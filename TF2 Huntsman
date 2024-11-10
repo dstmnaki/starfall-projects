@@ -23,7 +23,8 @@ if SERVER then
             else
                 arrow=prop.create(owner():getShootPos()+owner():getEyeAngles():getForward()*100, owner():getEyeAngles(), "models/sprops/rectangles_thin/size_0/rect_1_5x42x1_5.mdl", false)
             end
-            arrow:getPhysicsObject():setVelocity(arrow:getForward()*25000*GET_DRAW_POWER*(arrow:getMass()/24))
+            arrow:setMass(200)
+            arrow:getPhysicsObject():setVelocity(arrow:getForward()*8000*GET_DRAW_POWER*(arrow:getMass()/24))
             arrow:setTrails(25, 0, 2, "trails/laser", Color(255,0,0,255), nil, false)
             table.insert(arrows,arrow)
         end
