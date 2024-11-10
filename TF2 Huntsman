@@ -89,7 +89,9 @@ else
             killTime = 0
             skullScore:setNoDraw(false)
             arrowScore:setNoDraw(false)
-            owner():getActiveWeapon():emitSound(sounds[math.round(math.rand(1,table.count(sounds)))],100,100,1,CHAN_WEAPON)
+            if owner():getActiveWeapon():isValid() then
+                owner():getActiveWeapon():emitSound(sounds[math.round(math.rand(1,table.count(sounds)))],100,100,1,CHAN_WEAPON)
+            end
         end)
         
         hook.add("calcview","drawviewmodel",function()
