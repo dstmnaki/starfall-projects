@@ -18,13 +18,14 @@ if SERVER then
     hook.add("net", "", function(name, len, ply)
         if name == "fire" then
             local GET_DRAW_POWER = net.readFloat()
-            if game.isMounted("tf2") == true then
+            if game.isMounted("tf") == true then
                 arrow=prop.create(owner():getShootPos()+owner():getEyeAngles():getForward()*100, owner():getEyeAngles(), "models/weapons/w_models/w_arrow.mdl", false)
             else
                 arrow=prop.create(owner():getShootPos()+owner():getEyeAngles():getForward()*100, owner():getEyeAngles(), "models/sprops/rectangles_thin/size_0/rect_1_5x42x1_5.mdl", false)
             end
+            arrow:enableMotion(true)
             arrow:setMass(200)
-            arrow:getPhysicsObject():setVelocity(arrow:getForward()*8000*GET_DRAW_POWER*(arrow:getMass()/24))
+            arrow:getPhysicsObject():setVelocity(arrow:getForward()*1000*GET_DRAW_POWER*(arrow:getMass()/24))
             arrow:setTrails(25, 0, 2, "trails/laser", Color(255,0,0,255), nil, false)
             table.insert(arrows,arrow)
         end
