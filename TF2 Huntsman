@@ -15,6 +15,24 @@ if SERVER then
             end
         end
     end)
+    hook.add("PlayerDeath","",function(ply, inflictor, attacker)
+        if inflictor:getOwner() == owner() then
+            if inflictor:getModel() == "models/weapons/w_models/w_arrow.mdl" or inflictor:getModel() == "models/sprops/rectangles_thin/size_0/rect_1_5x42x1_5.mdl" then
+                net.start("kill")
+                net.writeFloat(1)
+                net.send(nil,nil)
+            end
+        end
+    end)
+    hook.add("OnNPCKilled","",function(npc, attacker, inflictor)
+        if inflictor:getOwner() == owner() then
+            if inflictor:getModel() == "models/weapons/w_models/w_arrow.mdl" or inflictor:getModel() == "models/sprops/rectangles_thin/size_0/rect_1_5x42x1_5.mdl" then
+                net.start("kill")
+                net.writeFloat(1)
+                net.send(nil,nil)
+            end
+        end
+    end)
     hook.add("net", "", function(name, len, ply)
         if name == "fire" then
             local GET_DRAW_POWER = net.readFloat()
@@ -37,6 +55,12 @@ else
         local ATTACK_DOWN = false
         local DRAW_POWER = 0
         local FIRE_ANIM = 0
+        local killTime = 1
+        local sounds = {"vo/taunts/sniper/sniper_taunt_admire_20.mp3",
+                "vo/taunts/sniper/sniper_taunt_admire_19.mp3",
+                "vo/taunts/sniper/sniper_taunt_admire_16.mp3",
+                "vo/taunts/sniper/sniper_taunt_admire_12.mp3",
+                "vo/taunts/sniper/sniper_taunt_admire_01.mp3"}
         
         viewmodel = hologram.create(Vector(), Angle(), "models/weapons/c_models/c_sniper_arms.mdl", Vector(1,-1,1))
         viewmodel:setParent(owner():getActiveWeapon())
@@ -48,46 +72,81 @@ else
         bow:addEffects(EF.BONEMERGE)
         bow:setCullMode(1)
         
-        hook.add("calcview","drawhud",function()
-            if viewmodel:isValid() and bow:isValid() then
-                if owner():getActiveWeapon():getClass() == "none" then
-                    viewmodel:setNoDraw(false)
-                    bow:setNoDraw(false)
+        killScoreParent = hologram.create(Vector(), Angle(), "models/props_junk/PopCan01a.mdl", Vector())
+        killScoreParent:setParent(owner():getActiveWeapon())
+        killScoreParent:setNoDraw(true)
+        
+        skullScore = hologram.create(killScoreParent:localToWorld(Vector(0,3.5,-0.4)), killScoreParent:localToWorldAngles(Angle(15,160,-15)), "models/Gibs/HGIBS.mdl", Vector(0.2))
+        skullScore:setParent(killScoreParent)
+        skullScore:setRenderBounds(Vector(-200), Vector(200))
+        
+        arrowScore = hologram.create(killScoreParent:localToWorld(Vector(0,-1,0)), killScoreParent:localToWorldAngles(Angle(5,95,45)), "models/weapons/w_models/w_arrow.mdl", Vector(0.2))
+        arrowScore:setParent(killScoreParent)
+        arrowScore:setRenderBounds(Vector(-200), Vector(200))
+        
+        
+        net.receive("kill",function(len, ply)
+            killTime = 0
+            skullScore:setNoDraw(false)
+            arrowScore:setNoDraw(false)
+            owner():getActiveWeapon():emitSound(sounds[math.round(math.rand(1,table.count(sounds)))],100,100,1,CHAN_WEAPON)
+        end)
+        
+        hook.add("calcview","drawviewmodel",function()
+            if owner():isAlive() then
+                if killScoreParent:isValid() and skullScore:isValid() and arrowScore:isValid() then
+                    killTime = killTime + 0.012*timer.frametime()*100*math.clamp(math.sin(math.rad(killTime*90)),0.1,1)
+                    killTime = math.clamp(killTime,0,1)
+                    if killTime >= 1 then
+                        skullScore:setNoDraw(true)
+                        arrowScore:setNoDraw(true)
+                    end
+                    local sin1=math.sin(math.rad(killTime*270))
+                    local sin2=math.sin(math.rad(-0.2+killTime*90))
                     
-                    viewmodel:setPos(owner():getShootPos())
-                    viewmodel:setAngles(owner():getEyeAngles())
-                    
-                    if owner():keyDown(1) and FIRE_ANIM == 0 then
-                        if ATTACK_DOWN == false then
-                            owner():getActiveWeapon():emitSound("Weapon_CompoundBow.SinglePull",100,100,1,CHAN_WEAPON)
-                        end
-                        ATTACK_DOWN=true
-                        DRAW_POWER=DRAW_POWER + 0.01*timer.frametime()*100
-                        DRAW_POWER=math.clamp(DRAW_POWER,0,1)
-                        viewmodel:setAnimation("bw_charge", DRAW_POWER, 0)
-                    else
-                        if ATTACK_DOWN == true and DRAW_POWER > 0 then
-                            owner():getActiveWeapon():emitSound("Weapon_CompoundBow.Single",100,100,1,CHAN_WEAPON)
-                            net.start("fire")
-                            net.writeFloat(DRAW_POWER)
-                            net.send(nil,nil)
-                        end
-                        ATTACK_DOWN=false
-                        if DRAW_POWER == 0 then
-                            viewmodel:setAnimation("bw_idle", nil, 1)
+                    killScoreParent:setPos(owner():getShootPos()+owner():getEyeAngles():getForward()*7+owner():getEyeAngles():getUp()*(8-6*math.clamp(sin1*4,0,1)-7*math.clamp(sin1*(1-math.sin(math.rad(sin1*45))),0,1)))
+                    killScoreParent:setAngles(owner():getEyeAngles()+Angle(-25*sin2,15*sin2,0))
+                end
+                if viewmodel:isValid() and bow:isValid() then
+                    if owner():getActiveWeapon():getClass() == "none" then
+                        viewmodel:setNoDraw(false)
+                        bow:setNoDraw(false)
+                        
+                        viewmodel:setPos(owner():getShootPos())
+                        viewmodel:setAngles(owner():getEyeAngles())
+                        
+                        if owner():keyDown(1) and FIRE_ANIM == 0 then
+                            if ATTACK_DOWN == false then
+                                owner():getActiveWeapon():emitSound("Weapon_CompoundBow.SinglePull",100,100,1,CHAN_WEAPON)
+                            end
+                            ATTACK_DOWN=true
+                            DRAW_POWER=DRAW_POWER + 0.01*timer.frametime()*100
+                            DRAW_POWER=math.clamp(DRAW_POWER,0,1)
+                            viewmodel:setAnimation("bw_charge", DRAW_POWER, 0)
                         else
-                            FIRE_ANIM=FIRE_ANIM + 0.0075*timer.frametime()*100
-                            FIRE_ANIM=math.clamp(FIRE_ANIM,0,1)
-                            viewmodel:setAnimation("bw_fire", FIRE_ANIM, 0)
-                            if FIRE_ANIM >= 1 then
-                                DRAW_POWER=0
-                                FIRE_ANIM=0
+                            if ATTACK_DOWN == true and DRAW_POWER > 0 then
+                                owner():getActiveWeapon():emitSound("Weapon_CompoundBow.Single",100,100,1,CHAN_WEAPON)
+                                net.start("fire")
+                                net.writeFloat(DRAW_POWER)
+                                net.send(nil,nil)
+                            end
+                            ATTACK_DOWN=false
+                            if DRAW_POWER == 0 then
+                                viewmodel:setAnimation("bw_idle", nil, 1)
+                            else
+                                FIRE_ANIM=FIRE_ANIM + 0.0075*timer.frametime()*100
+                                FIRE_ANIM=math.clamp(FIRE_ANIM,0,1)
+                                viewmodel:setAnimation("bw_fire", FIRE_ANIM, 0)
+                                if FIRE_ANIM >= 1 then
+                                    DRAW_POWER=0
+                                    FIRE_ANIM=0
+                                end
                             end
                         end
+                    else
+                        viewmodel:setNoDraw(true)
+                        bow:setNoDraw(true)
                     end
-                else
-                    viewmodel:setNoDraw(true)
-                    bow:setNoDraw(true)
                 end
             end
         end)
