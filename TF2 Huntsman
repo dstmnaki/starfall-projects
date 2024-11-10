@@ -55,8 +55,10 @@ else
         local ATTACK_DOWN = false
         local DRAW_POWER = 0
         local FIRE_ANIM = 0
+        local EQUIP = 0
         local killTime = 1
         local makeModel = false
+        
         local sounds = {"vo/taunts/sniper/sniper_taunt_admire_20.mp3",
                 "vo/taunts/sniper/sniper_taunt_admire_19.mp3",
                 "vo/taunts/sniper/sniper_taunt_admire_16.mp3",
@@ -78,7 +80,6 @@ else
                     viewmodel = hologram.create(Vector(), Angle(), "models/weapons/c_models/c_sniper_arms.mdl", Vector(0.75,-0.75,0.75))
                     viewmodel:setParent(owner():getActiveWeapon())
                     viewmodel:setRenderBounds(Vector(-200), Vector(200))
-                    --viewmodel:setCullMode(1)
                     viewmodelreal = hologram.create(Vector(), Angle(), "models/weapons/c_models/c_sniper_arms.mdl", Vector(0.75))
                     viewmodelreal:setParent(viewmodel)
                     viewmodelreal:setRenderBounds(Vector(-200), Vector(200))
@@ -106,6 +107,24 @@ else
                 end
             else
                 makeModel = false
+                if viewmodel:isValid() then
+                    viewmodel:remove()
+                end
+                if viewmodelreal:isValid() then
+                    viewmodelreal:remove()
+                end
+                if bow:isValid() then
+                    bow:remove()
+                end
+                if killScoreParent:isValid() then
+                    killScoreParent:remove()
+                end
+                if skullScore:isValid() then
+                    skullScore:remove()
+                end
+                if arrowScore:isValid() then
+                    arrowScore:remove()
+                end
             end
             if owner():isAlive() and owner():getActiveWeapon():isValid() then
                 if killScoreParent:isValid() and skullScore:isValid() and arrowScore:isValid() then
@@ -147,7 +166,13 @@ else
                             end
                             ATTACK_DOWN=false
                             if DRAW_POWER == 0 then
-                                viewmodel:setAnimation("bw_idle", nil, 1)
+                                if EQUIP < 1 then
+                                    EQUIP = EQUIP + 0.01*timer.frametime()*100
+                                    EQUIP = math.clamp(EQUIP,0,1)
+                                    viewmodel:setAnimation("bw_draw", EQUIP, 0)
+                                else
+                                    viewmodel:setAnimation("bw_idle", nil, 1)
+                                end
                             else
                                 FIRE_ANIM=FIRE_ANIM + 0.0075*timer.frametime()*100
                                 FIRE_ANIM=math.clamp(FIRE_ANIM,0,1)
@@ -162,6 +187,7 @@ else
                         viewmodel:setNoDraw(true)
                         viewmodelreal:setNoDraw(true)
                         bow:setNoDraw(true)
+                        EQUIP=0
                     end
                 end
             end
