@@ -72,7 +72,7 @@ else
                         if DRAW_POWER == 0 then
                             viewmodel:setAnimation("bw_idle", nil, 1)
                         else
-                            FIRE_ANIM=FIRE_ANIM + 0.005*timer.frametime()*100
+                            FIRE_ANIM=FIRE_ANIM + 0.0075*timer.frametime()*100
                             FIRE_ANIM=math.clamp(FIRE_ANIM,0,1)
                             viewmodel:setAnimation("bw_fire", FIRE_ANIM, 0)
                             if FIRE_ANIM >= 1 then
