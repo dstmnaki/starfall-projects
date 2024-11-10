@@ -1,0 +1,92 @@
+--@name TF2 Huntsman
+--@author Naki
+--@shared
+
+if SERVER then
+    arrows={}
+    fire = 0
+    GET_DRAW_POWER = 0
+    hook.add("think","remove arrows",function()
+        if table.count(arrows) > 0 then
+            if arrows[1]:isValid() then
+                if timer.curtime()-arrows[1]:getCreationTime() >= 5 then
+                    arrows[1]:remove()
+                    table.remove(arrows,1)
+                end
+            end
+        end
+    end)
+    hook.add("net", "", function(name, len, ply)
+        if name == "fire" then
+            local GET_DRAW_POWER = net.readFloat()
+            arrow=prop.create(owner():getShootPos()+owner():getEyeAngles():getForward()*100, owner():getEyeAngles(), "models/weapons/w_models/w_arrow.mdl", false)
+            arrow:getPhysicsObject():setVelocity(arrow:getForward()*8000*GET_DRAW_POWER)
+            arrow:setTrails(25, 0, 2, "trails/laser", Color(255,0,0,255), nil, false)
+            table.insert(arrows,arrow)
+            fire=0
+        end
+    end)
+else
+    if player() == owner() then
+        print("TF2 - Huntsman, made by Naki")
+        print("-Use hands (none) with this weapon, mouse1 to charge, release to fire!")
+        local ATTACK_DOWN = false
+        local DRAW_POWER = 0
+        local FIRE_ANIM = 0
+        
+        viewmodel = hologram.create(Vector(), Angle(), "models/weapons/c_models/c_sniper_arms.mdl", Vector(1,-1,1))
+        viewmodel:setParent(owner():getActiveWeapon())
+        viewmodel:setRenderBounds(Vector(-200), Vector(200))
+        viewmodel:setCullMode(1)
+        bow = hologram.create(Vector(), Angle(), "models/weapons/c_models/c_bow/c_bow.mdl", Vector(1,-1,1))
+        bow:setParent(viewmodel)
+        bow:setRenderBounds(Vector(-200), Vector(200))
+        bow:addEffects(EF.BONEMERGE)
+        bow:setCullMode(1)
+        
+        hook.add("calcview","drawhud",function()
+            if viewmodel:isValid() and bow:isValid() then
+                if owner():getActiveWeapon():getClass() == "none" then
+                    viewmodel:setNoDraw(false)
+                    bow:setNoDraw(false)
+                    
+                    viewmodel:setPos(owner():getShootPos())
+                    viewmodel:setAngles(owner():getEyeAngles())
+                    
+                    if owner():keyDown(1) and FIRE_ANIM == 0 then
+                        if ATTACK_DOWN == false then
+                            owner():getActiveWeapon():emitSound("Weapon_CompoundBow.SinglePull",100,100,1,CHAN_WEAPON)
+                        end
+                        ATTACK_DOWN=true
+                        DRAW_POWER=DRAW_POWER + 0.01*timer.frametime()*100
+                        DRAW_POWER=math.clamp(DRAW_POWER,0,1)
+                        viewmodel:setAnimation("bw_charge", DRAW_POWER, 0)
+                    else
+                        if ATTACK_DOWN == true and DRAW_POWER > 0 then
+                            owner():getActiveWeapon():emitSound("Weapon_CompoundBow.Single",100,100,1,CHAN_WEAPON)
+                            net.start("fire")
+                            net.writeFloat(DRAW_POWER)
+                            net.send(nil,nil)
+                        end
+                        ATTACK_DOWN=false
+                        if DRAW_POWER == 0 then
+                            viewmodel:setAnimation("bw_idle", nil, 1)
+                        else
+                            FIRE_ANIM=FIRE_ANIM + 0.005*timer.frametime()*100
+                            FIRE_ANIM=math.clamp(FIRE_ANIM,0,1)
+                            viewmodel:setAnimation("bw_fire", FIRE_ANIM, 0)
+                            if FIRE_ANIM >= 1 then
+                                DRAW_POWER=0
+                                FIRE_ANIM=0
+                            end
+                        end
+                    end
+                else
+                    viewmodel:setNoDraw(true)
+                    bow:setNoDraw(true)
+                end
+            end
+        end)
+        enableHud(owner(),true)
+    end
+end
