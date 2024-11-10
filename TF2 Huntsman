@@ -93,7 +93,7 @@ else
         end)
         
         hook.add("calcview","drawviewmodel",function()
-            if owner():isAlive() then
+            if owner():isAlive() and owner():getActiveWeapon():isValid() then
                 if killScoreParent:isValid() and skullScore:isValid() and arrowScore:isValid() then
                     killTime = killTime + 0.012*timer.frametime()*100*math.clamp(math.sin(math.rad(killTime*90)),0.1,1)
                     killTime = math.clamp(killTime,0,1)
