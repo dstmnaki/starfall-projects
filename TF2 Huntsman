@@ -56,34 +56,12 @@ else
         local DRAW_POWER = 0
         local FIRE_ANIM = 0
         local killTime = 1
+        local makeModel = false
         local sounds = {"vo/taunts/sniper/sniper_taunt_admire_20.mp3",
                 "vo/taunts/sniper/sniper_taunt_admire_19.mp3",
                 "vo/taunts/sniper/sniper_taunt_admire_16.mp3",
                 "vo/taunts/sniper/sniper_taunt_admire_12.mp3",
                 "vo/taunts/sniper/sniper_taunt_admire_01.mp3"}
-        
-        viewmodel = hologram.create(Vector(), Angle(), "models/weapons/c_models/c_sniper_arms.mdl", Vector(1,-1,1))
-        viewmodel:setParent(owner():getActiveWeapon())
-        viewmodel:setRenderBounds(Vector(-200), Vector(200))
-        viewmodel:setCullMode(1)
-        bow = hologram.create(Vector(), Angle(), "models/weapons/c_models/c_bow/c_bow.mdl", Vector(1,-1,1))
-        bow:setParent(viewmodel)
-        bow:setRenderBounds(Vector(-200), Vector(200))
-        bow:addEffects(EF.BONEMERGE)
-        bow:setCullMode(1)
-        
-        killScoreParent = hologram.create(Vector(), Angle(), "models/props_junk/PopCan01a.mdl", Vector())
-        killScoreParent:setParent(owner():getActiveWeapon())
-        killScoreParent:setNoDraw(true)
-        
-        skullScore = hologram.create(killScoreParent:localToWorld(Vector(0,3.5,-0.4)), killScoreParent:localToWorldAngles(Angle(15,160,-15)), "models/Gibs/HGIBS.mdl", Vector(0.2))
-        skullScore:setParent(killScoreParent)
-        skullScore:setRenderBounds(Vector(-200), Vector(200))
-        
-        arrowScore = hologram.create(killScoreParent:localToWorld(Vector(0,-1,0)), killScoreParent:localToWorldAngles(Angle(5,95,45)), "models/weapons/w_models/w_arrow.mdl", Vector(0.2))
-        arrowScore:setParent(killScoreParent)
-        arrowScore:setRenderBounds(Vector(-200), Vector(200))
-        
         
         net.receive("kill",function(len, ply)
             killTime = 0
@@ -95,6 +73,35 @@ else
         end)
         
         hook.add("calcview","drawviewmodel",function()
+            if owner():isAlive() then
+                if makeModel == false then
+                    viewmodel = hologram.create(Vector(), Angle(), "models/weapons/c_models/c_sniper_arms.mdl", Vector(1,-1,1))
+                    viewmodel:setParent(owner():getActiveWeapon())
+                    viewmodel:setRenderBounds(Vector(-200), Vector(200))
+                    viewmodel:setCullMode(1)
+                    bow = hologram.create(Vector(), Angle(), "models/weapons/c_models/c_bow/c_bow.mdl", Vector(1,-1,1))
+                    bow:setParent(viewmodel)
+                    bow:setRenderBounds(Vector(-200), Vector(200))
+                    bow:addEffects(EF.BONEMERGE)
+                    bow:setCullMode(1)
+                    
+                    killScoreParent = hologram.create(Vector(), Angle(), "models/props_junk/PopCan01a.mdl", Vector())
+                    killScoreParent:setParent(owner():getActiveWeapon())
+                    killScoreParent:setNoDraw(true)
+                    
+                    skullScore = hologram.create(killScoreParent:localToWorld(Vector(0,3.5,-0.4)), killScoreParent:localToWorldAngles(Angle(15,160,-15)), "models/Gibs/HGIBS.mdl", Vector(0.2))
+                    skullScore:setParent(killScoreParent)
+                    skullScore:setRenderBounds(Vector(-200), Vector(200))
+                    
+                    arrowScore = hologram.create(killScoreParent:localToWorld(Vector(0,-1,0)), killScoreParent:localToWorldAngles(Angle(5,95,45)), "models/weapons/w_models/w_arrow.mdl", Vector(0.2))
+                    arrowScore:setParent(killScoreParent)
+                    arrowScore:setRenderBounds(Vector(-200), Vector(200))
+                    
+                    makeModel = true
+                end
+            else
+                makeModel = false
+            end
             if owner():isAlive() and owner():getActiveWeapon():isValid() then
                 if killScoreParent:isValid() and skullScore:isValid() and arrowScore:isValid() then
                     killTime = killTime + 0.012*timer.frametime()*100*math.clamp(math.sin(math.rad(killTime*90)),0.1,1)
