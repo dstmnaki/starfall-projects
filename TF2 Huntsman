@@ -3,15 +3,24 @@
 --@shared
 
 if SERVER then
-    arrows={}
-    GET_DRAW_POWER = 0
+    local TF2_FIX = "tf2" --set this to "tf" if the server has tf2 mounted, game.isMounted is not working properly on servers atm 
+    local arrows={timer.curtime()}
+    local GET_DRAW_POWER = 0
+    
+    if game.isMounted(TF2_FIX) == true then
+        arrow=prop.create(chip():getPos()+Vector(0,0,0), Angle(0,0,0), "models/weapons/w_models/w_arrow.mdl", true)
+    else
+        arrow=prop.create(chip():getPos()+Vector(0,0,0), Angle(0,0,0), "models/sprops/rectangles_thin/size_0/rect_1_5x42x1_5.mdl", true)
+    end
+    arrow:setTrails(25, 0, 2, "trails/laser", Color(255,0,0,255), nil, false)
+    arrow:setMass(200)
     hook.add("think","remove arrows",function()
-        if table.count(arrows) > 0 then
-            if arrows[1]:isValid() then
-                if timer.curtime()-arrows[1]:getCreationTime() >= 5 then
-                    arrows[1]:remove()
-                    table.remove(arrows,1)
-                end
+        if timer.curtime() - arrows[1] > 1.5 then
+            if arrow:isValid() then
+                arrow:removeTrails()
+                arrow:enableMotion(false)
+                arrow:setPos(chip():getPos()+Vector(0,0,0))
+                arrow:setNoDraw(true)
             end
         end
     end)
@@ -36,16 +45,13 @@ if SERVER then
     hook.add("net", "", function(name, len, ply)
         if name == "fire" then
             local GET_DRAW_POWER = net.readFloat()
-            if game.isMounted("tf") == true then
-                arrow=prop.create(owner():getShootPos()+owner():getEyeAngles():getForward()*60, owner():getEyeAngles(), "models/weapons/w_models/w_arrow.mdl", false)
-            else
-                arrow=prop.create(owner():getShootPos()+owner():getEyeAngles():getForward()*60, owner():getEyeAngles(), "models/sprops/rectangles_thin/size_0/rect_1_5x42x1_5.mdl", false)
-            end
-            arrow:enableMotion(true)
-            arrow:setMass(200)
-            arrow:getPhysicsObject():setVelocity(arrow:getForward()*1000*GET_DRAW_POWER*(arrow:getMass()/24))
             arrow:setTrails(25, 0, 2, "trails/laser", Color(255,0,0,255), nil, false)
-            table.insert(arrows,arrow)
+            arrow:setNoDraw(false)
+            arrow:setPos(owner():getShootPos()+owner():getEyeAngles():getForward()*60)
+            arrow:setAngles(owner():getEyeAngles())
+            arrow:enableMotion(true)
+            arrow:getPhysicsObject():setVelocity(arrow:getForward()*1000*GET_DRAW_POWER*(arrow:getMass()/24))
+            arrows={timer.curtime()}
         end
     end)
 else
