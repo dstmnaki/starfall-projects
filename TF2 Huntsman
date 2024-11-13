@@ -3,7 +3,7 @@
 --@shared
 
 if SERVER then
-    local TF2_FIX = "tf2" --set this to "tf" if the server has tf2 mounted, game.isMounted is not working properly on servers atm 
+    local TF2_FIX = "notf" --set this to "tf" if the server has tf2 mounted, game.isMounted is not working properly on servers atm 
     local arrows={timer.curtime()}
     local GET_DRAW_POWER = 0
     
