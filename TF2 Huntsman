@@ -3,7 +3,7 @@
 --@shared
 
 if SERVER then
-    local TF2_FIX = "notf" --set this to "tf" if the server has tf2 mounted, game.isMounted is not working properly on servers atm 
+    local TF2_FIX = "tf" --set this to "tf" if the server has tf2 mounted, game.isMounted is not working properly on servers atm 
     local arrows={timer.curtime()}
     local GET_DRAW_POWER = 0
     
@@ -14,7 +14,17 @@ if SERVER then
     end
     arrow:setTrails(25, 0, 2, "trails/laser", Color(255,0,0,255), nil, false)
     arrow:setMass(200)
+    arrow:setCollisionGroup(COLLISION_GROUP.PLAYER)
+    function collide(colData, collider)
+        if arrow:isFrozen() == false then
+            arrow:enableMotion(false)
+        end
+    end
     hook.add("think","remove arrows",function()
+        if arrow:isValid() then
+            arrow:addCollisionListener(collide, "collide")
+            
+        end
         if timer.curtime() - arrows[1] > 1.5 then
             if arrow:isValid() then
                 arrow:removeTrails()
@@ -57,7 +67,8 @@ if SERVER then
 else
     if player() == owner() then
         print("TF2 - Huntsman, made by Naki")
-        print("-Use hands (none) with this weapon, mouse1 to charge, release to fire!")
+        print("-Use hands (none) with this weapon, Mouse1 to charge, release to fire!")
+        print("-R to undraw")
         local ATTACK_DOWN = false
         local DRAW_POWER = 0
         local FIRE_ANIM = 0
@@ -154,41 +165,56 @@ else
                         
                         viewmodel:setPos(owner():getShootPos())
                         viewmodel:setAngles(owner():getEyeAngles())
-                        
-                        if owner():keyDown(1) and FIRE_ANIM == 0 then
-                            if ATTACK_DOWN == false then
-                                owner():getActiveWeapon():emitSound("Weapon_CompoundBow.SinglePull",100,100,1,CHAN_WEAPON)
-                            end
-                            ATTACK_DOWN=true
-                            DRAW_POWER=DRAW_POWER + 0.01*timer.frametime()*100
+                        if Return == true then
+                            ATTACK_DOWN=false
+                            DRAW_POWER=DRAW_POWER - 0.0125*timer.frametime()*100
                             DRAW_POWER=math.clamp(DRAW_POWER,0,1)
                             viewmodel:setAnimation("bw_charge", DRAW_POWER, 0)
-                        else
-                            if ATTACK_DOWN == true and DRAW_POWER > 0 then
-                                owner():getActiveWeapon():emitSound("Weapon_CompoundBow.Single",100,100,1,CHAN_WEAPON)
-                                net.start("fire")
-                                net.writeFloat(DRAW_POWER)
-                                net.send()
-                            end
-                            ATTACK_DOWN=false
                             if DRAW_POWER == 0 then
-                                if EQUIP < 1 then
-                                    EQUIP = EQUIP + 0.01*timer.frametime()*100
-                                    EQUIP = math.clamp(EQUIP,0,1)
-                                    viewmodel:setAnimation("bw_draw", EQUIP, 0)
-                                else
-                                    viewmodel:setAnimation("bw_idle", nil, 1)
+                                Return = false
+                            end
+                        else
+                            if input.isMouseDown(MOUSE.MOUSE1) and FIRE_ANIM == 0 then
+                                if Return != true then
+                                    if ATTACK_DOWN == false then
+                                        owner():getActiveWeapon():emitSound("Weapon_CompoundBow.SinglePull",100,100,1,CHAN_WEAPON)
+                                    end
+                                    if input.isKeyDown(KEY.R) then
+                                        Return = true
+                                    end
+                                    ATTACK_DOWN=true
+                                    DRAW_POWER=DRAW_POWER + 0.01*timer.frametime()*100
+                                    DRAW_POWER=math.clamp(DRAW_POWER,0,1)
+                                    viewmodel:setAnimation("bw_charge", DRAW_POWER, 0)
                                 end
                             else
-                                FIRE_ANIM=FIRE_ANIM + 0.0075*timer.frametime()*100
-                                FIRE_ANIM=math.clamp(FIRE_ANIM,0,1)
-                                viewmodel:setAnimation("bw_fire", FIRE_ANIM, 0)
-                                if FIRE_ANIM >= 1 then
-                                    DRAW_POWER=0
-                                    FIRE_ANIM=0
+                                if ATTACK_DOWN == true and DRAW_POWER > 0 then
+                                    owner():getActiveWeapon():emitSound("Weapon_CompoundBow.Single",100,100,1,CHAN_WEAPON)
+                                    net.start("fire")
+                                    net.writeFloat(DRAW_POWER)
+                                    net.send()
+                                end
+                                ATTACK_DOWN=false
+                                if DRAW_POWER == 0 then
+                                    if EQUIP < 1 then
+                                        EQUIP = EQUIP + 0.01*timer.frametime()*100
+                                        EQUIP = math.clamp(EQUIP,0,1)
+                                        viewmodel:setAnimation("bw_draw", EQUIP, 0)
+                                    else
+                                        viewmodel:setAnimation("bw_idle", nil, 1)
+                                    end
+                                else
+                                    FIRE_ANIM=FIRE_ANIM + 0.0075*timer.frametime()*100
+                                    FIRE_ANIM=math.clamp(FIRE_ANIM,0,1)
+                                    viewmodel:setAnimation("bw_fire", FIRE_ANIM, 0)
+                                    if FIRE_ANIM >= 1 then
+                                        DRAW_POWER=0
+                                        FIRE_ANIM=0
+                                    end
                                 end
                             end
                         end
+                        
                     else
                         viewmodel:setNoDraw(true)
                         viewmodelreal:setNoDraw(true)
