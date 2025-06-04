@@ -312,7 +312,7 @@ if CLIENT then
         if cloakButton ~= lastCloakButtonState and cloakButton and cantogglecloak then
             startRandomIdleAnim = false
             timer.stop("random_idle")
-            
+            FRAME = 0
             Animation = "cloaktoggle"
             AnimationPlaying = true
             cantogglecloak = false
