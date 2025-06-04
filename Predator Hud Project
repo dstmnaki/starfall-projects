@@ -17,6 +17,8 @@ local LOCKON = true
   https://steamcommunity.com/sharedfiles/filedetails/?id=2956665051 (THERMAL)
 
   CONTROLS:
+  MOUSE1 - ATTACK
+  MOUSE1 + MOUSE2 - SHOOT PLASMA CASTER
   R - CLOAK (VISUAL ONLY)
   F - TOGGLE THERMAL
   MOUSE2 - TRACK/TURN LASER ON
@@ -27,10 +29,25 @@ local LOCKON = true
   *"pp_texturize \"\"; pp_colormod 0"..(USEFLIR and "; flir_toggle" or "")*
   
 ]]--
-
+local plasmaholo = {}
 hook.add("net","",function(name,len,ply)
     if name == "sendcloak" then
         owner():setMaterial(net.readBool() and "models/shadertest/predator" or "")
+    end
+    if SERVER then
+        if name == "sendProjectileToServer" then
+            This = hologram.create(owner():getShootPos()-owner():getEyeAngles():getRight()*7, owner():getEyeAngles():rotateAroundAxis(owner():getEyeAngles():getUp(),-90), "models/sprops/misc/oblong1_hq.mdl", Vector(0.3,1,0.3))
+            This:suppressEngineLighting(true)
+            This:setTrails(25, 5, 0.2, "trails/laser", Color(0,255,255), nil, nil)
+            This:setColor(Color(0,255,255))
+            table.insert(plasmaholo, -1, This)
+        end
+        if name == "slash" then
+            --game.bulletDamage(src, Dir, damage, num, force, distance, Spread, hullSize, ignoreEntity, callback)
+            if owner():getShootPos():getDistance(owner():getEyeTrace().HitPos) < 50 then
+                owner():getEyeTrace().Entity:applyDamage(125, owner(), owner(), DAMAGE.SLASH, owner():getShootPos())
+            end
+        end
     end
 end)
 if SERVER then
@@ -51,6 +68,26 @@ if SERVER then
         holo:setMaterial("models/debug/debugwhite")
     end
     hook.add("think","",function()
+        if #plasmaholo > 0 then
+            for i, bolt in pairs(plasmaholo) do
+                if bolt:isValid() and bolt != nil then
+                    local tr = trace.line(bolt:getPos(),bolt:getPos()-bolt:getRight()*75,owner(), nil, nil, false)
+                    local lastPos = tr.HitPos
+                    bolt:setPos(lastPos)
+                    if tr.Hit then
+                        bolt:remove()
+                        if hasPermission("game.blastDamage") then
+                            game.blastDamage(lastPos, 100, 200)
+                        end
+                        net.start("BOOM but CLIENT")
+                        net.writeVector(lastPos)
+                        net.send()
+                        owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_bolt_explosion_0"..math.round(math.rand(1,5))..".ogg", 100, 100, 1, CHANNEL_AUTO)
+                    end
+                end
+            end
+        end
+        
         local LaserPos = owner():getShootPos()+owner():getEyeAngles():getRight()*6+owner():getEyeAngles():getUp()*2
         local AngMath = (LaserPos - owner():getEyeTrace().HitPos):getAngle()
         centerHolo:setPos(LaserPos-Vector(0,0,35))
@@ -74,16 +111,27 @@ if SERVER then
     end)
 end
 if CLIENT then
-    if player() ~= owner() then return end
-    enableHud(owner(), true)
     
     hook.add("net","",function(name,len,ply)
         if name == "sendlasers" then
-            for i, holo in pairs(net.readTable()) do
-                holo:setNoDraw(true)
+            if player() == owner() then
+                for i, holo in pairs(net.readTable()) do
+                    holo:setNoDraw(true)
+                end
             end
         end
+        if name == "BOOM but CLIENT" then
+            local lastPos = net.readVector()
+            eff = effect.create()
+            eff:setOrigin(lastPos)
+            eff:play("explosion")
+        end
+        if name == "sendProjectileToClient" then
+            
+        end
     end)
+    if player() ~= owner() then return end
+    enableHud(owner(), true)
     
     local centerHolo = hologram.create(chip():getPos(), Angle(0,0,0), "models/props_c17/oildrum001.mdl", Vector(0))
     centerHolo:setParent(owner())
@@ -101,23 +149,6 @@ if CLIENT then
         holo:suppressEngineLighting(true)
         holo:setMaterial("models/debug/debugwhite")
     end
-    hook.add("think","",function()
-        local LaserPos = owner():getShootPos()+owner():getEyeAngles():getRight()*7+owner():getEyeAngles():getUp()*2
-        local AngMath = (LaserPos - owner():getEyeTrace().HitPos):getAngle()
-        centerHolo:setPos(LaserPos)
-        centerHolo:setAngles(AngMath:rotateAroundAxis(AngMath:getRight(), 90))
-        
-        local DistMath = centerHolo:getPos():getDistance(owner():getEyeTrace().HitPos)
-        
-        LeftTop:setScale(Vector(0.02,0.02,DistMath/45)*(owner():keyDown(IN_KEY.ATTACK2) and 1 or 0))
-        RightMiddle:setScale(Vector(0.02,0.02,DistMath/45)*(owner():keyDown(IN_KEY.ATTACK2) and 1 or 0))
-        LeftBottom:setScale(Vector(0.02,0.02,DistMath/45)*(owner():keyDown(IN_KEY.ATTACK2) and 1 or 0))
-        
-        
-        for i, holo in pairs({LeftTop, RightMiddle, LeftBottom}) do
-            holo:setColor(Color(255,0,0,75*(owner():keyDown(IN_KEY.ATTACK2) and owner():isTyping() == false  and 1 or 0)))
-        end
-    end)
     
     vmHolo = hologram.create(Vector(0,0,0), Angle(0,0,0), "models/cpthazama/avp/predators/hud.mdl", Vector(1,1,1))
     vmHolo:setParent(owner():getActiveWeapon())
@@ -147,6 +178,77 @@ if CLIENT then
     local anglesLerp = Angle()
     local originLerp = Vector()
     local fovLerp = 100
+    local blockAttack = false
+    local plasmaholo = {}
+    local canAttack = true
+    
+    function shootPlasmaCaster()
+        if plasmacasterct == nil then plasmacasterct = 0 end
+        if timer.curtime() - plasmacasterct > 0.5 then
+            plasmacasterct = timer.curtime()
+            net.start("sendProjectileToServer")
+            net.writeFloat(0)
+            net.send()
+            owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_shot_0"..math.round(math.rand(1,3))..".ogg", 100, 100, 1, CHANNEL_AUTO)
+        end
+    end
+    function randattack()
+        local t = {
+            "predator_hud_claws_attack_left_lower_slash_complete",
+            "predator_hud_claws_attack_left_punch_complete",
+            "predator_hud_claws_attack_left_upper_slash_complete",
+            "predator_hud_claws_attack_right_lower_slash_complete",
+            "predator_hud_claws_attack_right_punch_complete",
+            "predator_hud_claws_attack_right_upper_slash_complete",
+        }
+        return table.random(t)
+    end
+    function randattacksnd()
+        local t = {
+            "cpthazama/avp/weapons/predator/wrist_blades/prd_wrist_blades_swipe_01.ogg",
+            "cpthazama/avp/weapons/predator/wrist_blades/prd_wrist_blades_swipe_02.ogg",
+            "cpthazama/avp/weapons/predator/wrist_blades/prd_wrist_blades_swipe_03.ogg",
+            "cpthazama/avp/weapons/predator/wrist_blades/prd_wrist_blades_swipe_04.ogg",
+        }
+        return table.random(t)
+    end
+    hook.add("think","",function()
+        WPNOK = owner():getActiveWeapon():getClass() == "none"
+        
+        if input.isMouseDown(MOUSE.MOUSE1) and blockAttack != true and canAttack and owner():isTyping() == false and WPNOK then
+            blockAttack = true
+            if input.isMouseDown(MOUSE.MOUSE2) and not input.isMouseDown(MOUSE.MOUSE4) and not owner():isTyping() and WPNOK then
+                shootPlasmaCaster()
+            else
+                canAttack = false
+                Animation = "attack_light"
+                AnimationPlaying = true
+                selectedATTACK = randattack()
+                selectedSND = randattacksnd()
+                net.start("slash")
+                net.writeFloat(0)
+                net.send()
+                owner():emitSound(selectedSND, 100, 100, 1, CHANNEL_AUTO)
+            end
+        end
+        blockAttack = input.isMouseDown(MOUSE.MOUSE1)
+        
+        local LaserPos = owner():getShootPos()+owner():getEyeAngles():getRight()*7+owner():getEyeAngles():getUp()*2
+        local AngMath = (LaserPos - owner():getEyeTrace().HitPos):getAngle()
+        centerHolo:setPos(LaserPos)
+        centerHolo:setAngles(AngMath:rotateAroundAxis(AngMath:getRight(), 90))
+        
+        local DistMath = centerHolo:getPos():getDistance(owner():getEyeTrace().HitPos)
+        
+        LeftTop:setScale(Vector(0.02,0.02,DistMath/45)*(owner():keyDown(IN_KEY.ATTACK2) and 1 or 0))
+        RightMiddle:setScale(Vector(0.02,0.02,DistMath/45)*(owner():keyDown(IN_KEY.ATTACK2) and 1 or 0))
+        LeftBottom:setScale(Vector(0.02,0.02,DistMath/45)*(owner():keyDown(IN_KEY.ATTACK2) and 1 or 0))
+        
+        
+        for i, holo in pairs({LeftTop, RightMiddle, LeftBottom}) do
+            holo:setColor(Color(255,0,0,75*(owner():keyDown(IN_KEY.ATTACK2) and owner():isTyping() == false  and 1 or 0)))
+        end
+    end)
     
     function changeVision()
         thermalOn = !thermalOn
@@ -185,7 +287,9 @@ if CLIENT then
     hook.add("PlayerFootstep", "", function(ply, pos, foot, snd, volume)
         return true
     end)
+    
     hook.add("drawhud", "", function()
+        WPNOK = owner():getActiveWeapon():getClass() == "none"
         vmHolo:setPos(owner():getShootPos())
         vmHolo:setAngles(owner():getEyeAngles())
         
@@ -209,7 +313,7 @@ if CLIENT then
         ZoomVal = ZoomVal + 0.1*(zooming and 1 or -1)*timer.frametime()*66
         ZoomVal = math.clamp(ZoomVal,0,1)
         
-        local TRACKING = input.isMouseDown(MOUSE.MOUSE2) and not zooming and owner():isTyping() == false 
+        local TRACKING = input.isMouseDown(MOUSE.MOUSE2) and not zooming and WPNOK
         
         local BLOCKIDLERANDOMIZER = zooming or TRACKING or (owner():getVelocity():setZ(0):getLength()/52>1)
         
@@ -287,6 +391,16 @@ if CLIENT then
                     FRAME = 0
                 end
                 vmHolo:setAnimation("predator_hud_console_open", FRAME, 0)
+            end
+            if Animation == "attack_light" then
+                FRAME = FRAME + 0.035*timer.frametime()*66
+                if FRAME >= 1 then
+                    Animation = ""
+                    AnimationPlaying = false
+                    FRAME = 0
+                    canAttack = true
+                end
+                vmHolo:setAnimation(selectedATTACK, FRAME, 0)
             end
             if Animation == "idle_stretch" then
                 FRAME = FRAME + 0.005*timer.frametime()*66
@@ -521,7 +635,7 @@ if CLIENT then
         end
     end)
     hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
-        if AnimationPlaying and Animation != "cloaktoggle" then
+        if AnimationPlaying and Animation != "cloaktoggle" and Animation != "attack_light" then
             anglesLerp = math.lerpAngle(0.2,anglesLerp, manipulateang and manipulateang or ang)
             originLerp = math.lerpVector(0.2, originLerp, manipulatepos and manipulatepos or pos)
             fovLerp = math.lerp(0.2, fovLerp, manipulatefov and manipulatefov or 80)
