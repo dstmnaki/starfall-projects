@@ -11,6 +11,9 @@ local LOCKON = true
   
   PREDATOR HUD PROJECT by Naki
   
+  !!!THIS WAS MADE TO WORK ON BUILDSTRUCT AND A.P.E.S ONLY ANY OTHER SERVER MAY NOT WORK DUE TO PERMISSION SETTINGS!!!
+  
+  
   REQUIRED ADDONS:
   https://steamcommunity.com/sharedfiles/filedetails/?id=3491940716 (VIEWMODEL & SOUNDS)
   https://steamcommunity.com/sharedfiles/filedetails/?id=1085431037 (HUD ELEMENTS & SOUNDS)
@@ -48,7 +51,21 @@ hook.add("net","",function(name,len,ply)
         end
     end
 end)
+
 if SERVER then
+    local storeRunSpeed = owner():getRunSpeed()
+    local storeJumpPower = owner():getJumpPower()
+    owner():setRunSpeed(storeRunSpeed*1.3)
+    owner():setJumpPower(storeJumpPower*2)
+    hook.add("Removed", "", function()
+        owner():setRunSpeed(storeRunSpeed)
+        owner():setJumpPower(storeJumpPower)
+    end)
+    hook.add("EntityTakeDamage", "", function(target, attacker, inflictor, amount, type, position, force)
+        if type == DAMAGE.FALL then
+            return true
+        end
+    end)
     local centerHolo = hologram.create(chip():getPos(), Angle(0,0,0), "models/props_c17/oildrum001.mdl", Vector(0))
     centerHolo:setParent(owner():getActiveWeapon())
     
