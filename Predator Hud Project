@@ -47,7 +47,7 @@ hook.add("think","",function()
     
     
     for i, holo in pairs({LeftTop, RightMiddle, LeftBottom}) do
-        holo:setColor(Color(255,0,0,75*(owner():keyDown(IN_KEY.ATTACK2) and 1 or 0)))
+        holo:setColor(Color(255,0,0,75*(owner():keyDown(IN_KEY.ATTACK2) and owner():isTyping() == false  and 1 or 0)))
     end
 end)
 
@@ -115,23 +115,24 @@ hook.add("drawhud", "", function()
     vmHolo:setPos(owner():getShootPos())
     vmHolo:setAngles(owner():getEyeAngles())
     
-    local cloakButton = input.isKeyDown(KEY.R)
-    if cloakButton ~= lastCloakButtonState and cloakButton then
+    local cloakButton = input.isKeyDown(KEY.R) and owner():isTyping() == false 
+    if cloakButton ~= lastCloakButtonState and cloakButton and cantogglecloak then
         startRandomIdleAnim = false
         timer.stop("random_idle")
         
         Animation = "cloaktoggle"
         AnimationPlaying = true
+        cantogglecloak = false
         cloakstate = !cloakstate
         owner():emitSound((cloakstate and "cpthazama/avp/predator/cloak/prd_cloak.ogg" or "cpthazama/avp/predator/cloak/prd_uncloak.ogg"), 100, 100, 1, CHANNEL_AUTO)
         vmHolo:setMaterial(cloakstate and "models/shadertest/predator" or "")
     end
     lastCloakButtonState = cloakButton
-    local zooming = input.isMouseDown(MOUSE.MOUSE4)
+    local zooming = input.isMouseDown(MOUSE.MOUSE4) and owner():isTyping() == false 
     ZoomVal = ZoomVal + 0.1*(zooming and 1 or -1)*timer.frametime()*66
     ZoomVal = math.clamp(ZoomVal,0,1)
     
-    local TRACKING = input.isMouseDown(MOUSE.MOUSE2) and not zooming
+    local TRACKING = input.isMouseDown(MOUSE.MOUSE2) and not zooming and owner():isTyping() == false 
     
     local BLOCKIDLERANDOMIZER = zooming or TRACKING or (owner():getVelocity():setZ(0):getLength()/52>1)
     
