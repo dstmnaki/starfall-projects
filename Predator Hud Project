@@ -1,0 +1,418 @@
+--@name Predator Hud Project
+--@author Naki
+--@client
+
+--[[
+  
+  PREDATOR HUD PROJECT
+
+  REQUIRED ADDONS:
+  https://steamcommunity.com/sharedfiles/filedetails/?id=3491940716 (VIEWMODEL & SOUNDS)
+  https://steamcommunity.com/sharedfiles/filedetails/?id=1085431037 (HUD ELEMENTS & SOUNDS)
+  https://steamcommunity.com/sharedfiles/filedetails/?id=2956665051 (THERMAL)
+  
+  NOTE THE THERMAL VISION RUNS VIA CONCMD, YOU CAN CHECK THE COMMAND HERE OR BELOW WHERE THE CONCMD LINE RUNS AT (LINES 86 & 88)
+  *"pp_texturize \"pp/texturize/thermal_gradient.png\"; pp_colormod 1; pp_colormod_addb 0; pp_colormod_addg 0; pp_colormod_addr 0; pp_colormod_color 1; pp_colormod_contrast 1; pp_colormod_mulb 0; pp_colormod_mulg 0; pp_colormod_mulr 0"..(USEFLIR and "; flir_toggle" or "")*
+  *"pp_texturize \"\"; pp_colormod 0"..(USEFLIR and "; flir_toggle" or "")*
+  
+]]--
+
+local centerHolo = hologram.create(chip():getPos(), Angle(0,0,0), "models/props_c17/oildrum001.mdl", Vector(0))
+centerHolo:setParent(owner())
+
+local LeftTop = hologram.create(centerHolo:localToWorld(Vector(1,0,0):rotateAroundAxis(Vector(0,0,1),120)), Angle(0,0,0), "models/props_c17/oildrum001.mdl", Vector(0.02,0.02,500/45))
+LeftTop:setParent(centerHolo)
+
+local RightMiddle = hologram.create(centerHolo:localToWorld(Vector(1,0,0):rotateAroundAxis(Vector(0,0,1),0)), Angle(0,0,0), "models/props_c17/oildrum001.mdl", Vector(0.02,0.02,500/45))
+RightMiddle:setParent(centerHolo)
+
+local LeftBottom = hologram.create(centerHolo:localToWorld(Vector(1,0,0):rotateAroundAxis(Vector(0,0,1),-120)), Angle(0,0,0), "models/props_c17/oildrum001.mdl", Vector(0.02,0.02,500/45))
+LeftBottom:setParent(centerHolo)
+
+for i, holo in pairs({LeftTop, RightMiddle, LeftBottom}) do
+    holo:suppressEngineLighting(true)
+    holo:setMaterial("models/debug/debugwhite")
+end
+hook.add("think","",function()
+    local LaserPos = owner():getShootPos()+owner():getEyeAngles():getRight()*6+owner():getEyeAngles():getUp()*2
+    local AngMath = (LaserPos - owner():getEyeTrace().HitPos):getAngle()
+    centerHolo:setPos(LaserPos)
+    centerHolo:setAngles(AngMath:rotateAroundAxis(AngMath:getRight(), 90))
+    
+    local DistMath = centerHolo:getPos():getDistance(owner():getEyeTrace().HitPos)
+    
+    LeftTop:setScale(Vector(0.02,0.02,DistMath/45)*(owner():keyDown(IN_KEY.ATTACK2) and 1 or 0))
+    RightMiddle:setScale(Vector(0.02,0.02,DistMath/45)*(owner():keyDown(IN_KEY.ATTACK2) and 1 or 0))
+    LeftBottom:setScale(Vector(0.02,0.02,DistMath/45)*(owner():keyDown(IN_KEY.ATTACK2) and 1 or 0))
+    
+    
+    for i, holo in pairs({LeftTop, RightMiddle, LeftBottom}) do
+        holo:setColor(Color(255,0,0,75*(owner():keyDown(IN_KEY.ATTACK2) and 1 or 0)))
+    end
+end)
+
+if player() ~= owner() then return end
+enableHud(owner(), true)
+
+vmHolo = hologram.create(Vector(0,0,0), Angle(0,0,0), "models/cpthazama/avp/predators/hud.mdl", Vector(1,1,1))
+vmHolo:setParent(owner():getActiveWeapon())
+
+local USEFLIR = true
+local LOCKON = true
+
+local thermalOn = false
+local visionChangeVal = 1
+local visionChangeVal2 = 1
+local SIZE1 = 0
+local SIZE2 = 0
+local SIZE3 = 0
+local ROTATION = 0
+local TARGET = nil
+local TARGETFOUND = 0
+local TRACKINGFIRST = false
+local ZoomVal = 0
+local AnimationPlaying = false
+local Animation = ""
+local FRAME = 0
+local startRandomIdleAnim = false
+local cantogglecloak = true
+local lastCloakButtonState = false
+local cloakstate = false
+local sprintFirst = false
+local SPRINTVAL = 0
+
+function changeVision()
+    thermalOn = !thermalOn
+    owner():emitSound("vision_change.wav", 100, 100, 1, CHANNEL_AUTO)
+    if thermalOn == true then
+        concmd("pp_texturize \"pp/texturize/thermal_gradient.png\"; pp_colormod 1; pp_colormod_addb 0; pp_colormod_addg 0; pp_colormod_addr 0; pp_colormod_color 1; pp_colormod_contrast 1; pp_colormod_mulb 0; pp_colormod_mulg 0; pp_colormod_mulr 0"..(USEFLIR and "; flir_toggle" or ""))
+    else
+        concmd("pp_texturize \"\"; pp_colormod 0"..(USEFLIR and "; flir_toggle" or ""))
+    end
+end
+
+BaseMat = material.createFromImage("hud/predatorhud.png", "noclamp smooth")
+ZoomMat = material.createFromImage("hud/predatorzoom.png", "noclamp smooth")
+
+VisionChangeMat = material.create("UnlitGeneric")
+VisionChangeMat:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/3x916i68wp78uzhu7ynqb/vision-change.png?rlkey=s68r2moiocyscrmcyi8x22uog&dl=1", nil, nil)
+
+TriangleSideMat = material.create("UnlitGeneric")
+TriangleSideMat:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/by1y6bwjsytz5o268wfzd/triangle_side.png?rlkey=5b6jntvkw33d9rr54kw5aylms&dl=1", nil, nil)
+
+hook.add("HUDShouldDraw", "", function(str)
+    if str == "CHudCrosshair" then
+        return false
+    end
+    if str == "CHudZoom" then
+        return false
+    end
+end)
+hook.add("PlayerFootstep", "", function(ply, pos, foot, snd, volume)
+    return true
+end)
+hook.add("drawhud", "", function()
+    vmHolo:setPos(owner():getShootPos())
+    vmHolo:setAngles(owner():getEyeAngles())
+    
+    local cloakButton = input.isKeyDown(KEY.R)
+    if cloakButton ~= lastCloakButtonState and cloakButton then
+        startRandomIdleAnim = false
+        timer.stop("random_idle")
+        
+        Animation = "cloaktoggle"
+        AnimationPlaying = true
+        cloakstate = !cloakstate
+        owner():emitSound((cloakstate and "cpthazama/avp/predator/cloak/prd_cloak.ogg" or "cpthazama/avp/predator/cloak/prd_uncloak.ogg"), 100, 100, 1, CHANNEL_AUTO)
+        vmHolo:setMaterial(cloakstate and "models/shadertest/predator" or "")
+    end
+    lastCloakButtonState = cloakButton
+    local zooming = input.isMouseDown(MOUSE.MOUSE4)
+    ZoomVal = ZoomVal + 0.1*(zooming and 1 or -1)*timer.frametime()*66
+    ZoomVal = math.clamp(ZoomVal,0,1)
+    
+    local TRACKING = input.isMouseDown(MOUSE.MOUSE2) and not zooming
+    
+    local BLOCKIDLERANDOMIZER = zooming or TRACKING or (owner():getVelocity():setZ(0):getLength()/52>1)
+    
+    if not AnimationPlaying and Animation == "" then
+        FRAME = 0
+        if owner():isOnGround() then
+            if owner():getVelocity():setZ(0):getLength()/52>1 and not owner():isSprinting() then
+                vmHolo:setAnimation("predator_hud_claws_walk", nil, 1)
+                startRandomIdleAnim = false
+                timer.stop("random_idle")
+                sprintFirst = false
+            elseif owner():getVelocity():setZ(0):getLength()/52>1 and owner():isSprinting() then
+                vmHolo:setAnimation("predator_hud_claws_sprint", nil, 1.5)
+                startRandomIdleAnim = false
+                timer.stop("random_idle")
+                if sprintFirst != true then
+                    sprintFirst = true
+                    owner():emitSound("cpthazama/avp/predator/adrenalin/adrenalin_turn_on_05.ogg", 100, 100, 1, CHANNEL_AUTO)
+                end
+            else
+                sprintFirst = false
+                vmHolo:setAnimation("predator_hud_claws_rest", nil, 1)
+                if startRandomIdleAnim != true then
+                    startRandomIdleAnim = true
+                    timer.create("random_idle", math.rand(8,15), 0, function()
+                        local selectanim = math.round(math.rand(1,3))
+                        if selectanim == 1 then
+                            Animation = "idle_stretch"
+                            AnimationPlaying = true
+                        elseif selectanim == 2 then
+                            Animation = "idle_inspect"
+                            AnimationPlaying = true
+                        elseif selectanim == 3 then
+                            Animation = "idle_wipe"
+                            AnimationPlaying = true
+                        end
+                    end)
+                end
+            end
+        else
+            sprintFirst = false
+            vmHolo:setAnimation("predator_hud_claws_jump_secondary", nil, 1)
+            timer.stop("random_idle")
+        end
+    else
+        startRandomIdleAnim = false
+        if Animation == "cloaktoggle" then
+            FRAME = FRAME + 0.025*timer.frametime()*66
+            if FRAME >= 1 then
+                Animation = ""
+                AnimationPlaying = false
+                cantogglecloak = true
+            end
+            vmHolo:setAnimation("predator_hud_console_open", FRAME, 0)
+        end
+        if Animation == "idle_stretch" then
+            FRAME = FRAME + 0.005*timer.frametime()*66
+            if FRAME >= 1 or BLOCKIDLERANDOMIZER then
+                Animation = ""
+                AnimationPlaying = false
+            end
+            vmHolo:setAnimation("predator_hud_claws_fidget_stretch", FRAME, 0)
+        end
+        if Animation == "idle_inspect" then
+            FRAME = FRAME + 0.005*timer.frametime()*66
+            if FRAME >= 1 or BLOCKIDLERANDOMIZER then
+                Animation = ""
+                AnimationPlaying = false
+            end
+            vmHolo:setAnimation("predator_hud_claws_fidget_inspect_claw", FRAME, 0)
+        end
+        if Animation == "idle_wipe" then
+            FRAME = FRAME + 0.005*timer.frametime()*66
+            if FRAME >= 1 or BLOCKIDLERANDOMIZER then
+                Animation = ""
+                AnimationPlaying = false
+            end
+            vmHolo:setAnimation("predator_hud_claws_fidget_wipe_wrist_pc", FRAME, 0)
+        end
+        
+    end
+    if input.isKeyDown(KEY.F) and owner():isTyping() == false then
+        if blockVisionChange != true and visionChangeVal >= 1 then
+            blockVisionChange = true
+            changeVision()
+            visionChangeVal = 0
+            visionChangeVal2 = 0
+        end
+    else
+        blockVisionChange = false
+    end
+    
+    local w, h = render.getGameResolution()
+    
+    render.setMaterial(ZoomMat)
+    render.setColor(thermalOn and Color(125*0.8,165*0.8,255*0.8,255*ZoomVal) or Color(255,0,0,255*ZoomVal))
+    render.drawTexturedRect(0, 0, w, h)
+    
+    render.setMaterial(nil)
+    render.setColor(Color(255,255,255,75)*(1-visionChangeVal2))
+    render.drawRect(0, 0, w, h)
+    
+    render.setMaterial(BaseMat)
+    render.setColor(thermalOn and Color(125*0.8,165*0.8,255*0.8) or Color(255,0,0))
+    render.drawTexturedRect(0, 0, w, h)
+    
+    visionChangeVal = visionChangeVal + 0.15*timer.frametime()*66
+    visionChangeVal = math.clamp(visionChangeVal,0,1)
+    
+    visionChangeVal2 = visionChangeVal2 + (0.12-0.1*visionChangeVal2)*0.75*timer.frametime()*66
+    visionChangeVal2 = math.clamp(visionChangeVal2,0,1)
+    
+    render.setColor(thermalOn and Color(125*0.8,165*0.8,255*0.8,255*math.clamp(2-visionChangeVal*2,0,1)) or Color(255,0,0,255*math.clamp(2-visionChangeVal*2,0,1)))
+    
+    render.setMaterial(VisionChangeMat)
+    render.drawTexturedRect((w-w*visionChangeVal)-w*0.25, 0, h*2.15, h*2.15)
+    
+    
+    -- CROSSHAIR
+    render.setColor(thermalOn and Color(125*0.8,165*0.8,255*0.8, 255*(1-ZoomVal)) or Color(0,255,255, 255*(1-ZoomVal)))
+    
+    render.setMaterial(TriangleSideMat)
+    local pos = Vector(w/2,h/2,0)+Vector(0,-10,0):getRotated(Angle(0,0,0))
+    render.drawTexturedRectRotatedFast(pos.x, pos.y, 25, 40, 0)
+    
+    local pos = Vector(w/2,h/2,0)+Vector(0,-10,0):getRotated(Angle(0,-120,0))
+    render.drawTexturedRectRotatedFast(pos.x, pos.y, 25, 40, 120)
+    
+    local pos = Vector(w/2,h/2,0)+Vector(0,-10,0):getRotated(Angle(0,120,0))
+    render.drawTexturedRectRotatedFast(pos.x, pos.y, 25, 40, -120)
+    
+    --TRACKING TRIANGLES
+    if TRACKING then
+        if LOCKON then
+            if TARGET == nil then
+                local players = find.allPlayers()
+                local npcs = find.byClass("npc_*")
+                local entities = {}
+                
+                // Merge players and NPCs into one list
+                for i = 1, #players do
+                    entities[#entities + 1] = players[i]
+                end
+                for i = 1, #npcs do
+                    entities[#entities + 1] = npcs[i]
+                end
+                
+                local closest = nil
+                local closestDist = 1e9  // large number
+                local cursorX, cursorY = input.getCursorPos() // 2D cursor position on screen
+                
+                for i = 1, #entities do
+                    local ent = entities[i]
+                    if not isValid(ent) then continue end
+                    if ent == owner() then continue end
+                
+                    local screenPos2 = ent:getPos():toScreen()
+                    local screenPos = Vector(screenPos2["x"],screenPos2["y"],0)
+                    if screenPos then
+                    
+                        local dist2D = (screenPos - Vector(cursorX,cursorY,0)):getLength()
+                        if dist2D < closestDist then
+                            closestDist = dist2D
+                            if isValid(ent) and ent != owner() then
+                                --if ent:isAlive() == true then
+                                    local toEnt = (ent:getPos() + ent:obbCenter()) - owner():getShootPos()
+                                    local distSqr = toEnt:getLength()
+                                    local trOK = (ent:getPos() + ent:obbCenter()):getDistance(trace.line(owner():getShootPos(),(ent:getPos() + ent:obbCenter()),{owner(),ent},nil, nil, false).HitPos)<5
+                                    if distSqr < 8000 and trOK then
+                                        local dirToEnt = toEnt:getNormalized()
+                                        local dot = owner():getEyeAngles():getForward():dot(dirToEnt)
+                                        if dot >= math.cos(math.rad(55 / 2)) then
+                                            TARGET = ent
+                                            TARGETFOUND = 0
+                                            TRACKINGFIRST = false
+                                        end
+                                    end
+                                --end
+                            end
+                        end
+                    end
+                end
+            else
+                if isValid(TARGET) and TARGET != owner() then
+                    --if TARGET:isAlive() == true then
+                        local toEnt = (TARGET:getPos() + TARGET:obbCenter()) - owner():getShootPos()
+                        local distSqr = toEnt:getLength()
+                        local trOK = (TARGET:getPos() + TARGET:obbCenter()):getDistance(trace.line(owner():getShootPos(),(TARGET:getPos() + TARGET:obbCenter()),{owner(),TARGET},nil, nil, false).HitPos)<5
+                        if distSqr < 8000 and trOK then
+                            local dirToEnt = toEnt:getNormalized()
+                            local dot = owner():getEyeAngles():getForward():dot(dirToEnt)
+                            if dot < math.cos(math.rad(60 / 2)) then
+                                TARGET = nil
+                            end
+                        else
+                            TARGET = nil
+                        end
+                    --else
+                    --    TARGET = nil
+                    --end
+                else
+                    TARGET = nil
+                end
+                if TARGET == nil then
+                    TRACKINGFIRST = false
+                end
+            end
+            
+            if TRACKINGFIRST != true then
+                TRACKINGFIRST = true
+                if TARGET == nil then
+                    owner():emitSound("targeting.wav", 100, 100, 1, CHANNEL_AUTO)
+                else
+                    owner():emitSound("targetaquired.wav", 100, 100, 1, CHANNEL_AUTO)
+                end
+            end
+            
+            if TARGET then
+                POSTOSCREEN = (TARGET:getPos()+TARGET:obbCenter()):toScreen()
+                LOCALPOS = Vector(POSTOSCREEN["x"],POSTOSCREEN["y"],0)
+                POSTOSCREEN2 = TARGET:getPos():toScreen()
+                LOCALPOS2 = Vector(POSTOSCREEN2["x"],POSTOSCREEN2["y"],0)
+                SCALEME = LOCALPOS:getDistance(LOCALPOS2)*0.8
+            else
+                LOCALPOS = Vector(w/2,h/2,0)
+                SCALEME = 0
+            end
+            TARGETFOUND = TARGETFOUND + 0.05*(TARGET != nil and 1 or -1)*timer.frametime()*66
+            TARGETFOUND = math.clamp(TARGETFOUND,0,1)
+        else
+            LOCALPOS = Vector(w/2,h/2,0)
+            SCALEME = 0
+            TARGETFOUND = 1
+            
+            if TRACKINGFIRST != true then
+                TRACKINGFIRST = true
+                owner():emitSound("targeting.wav", 100, 100, 1, CHANNEL_AUTO)
+            end
+        end
+        render.setColor(thermalOn and Color(125*0.8,165*0.8,255*0.8) or Color(255,0,0))
+        
+        
+        
+        ROTATION = ROTATION+(0.3+TARGETFOUND*0.7)*timer.frametime()*66
+        
+        SIZE1 = SIZE1+(0.04+0.05*SIZE1)*timer.frametime()*66
+        SIZE1 = math.clamp(SIZE1,0,1*TARGETFOUND)
+        
+        SIZE2 = SIZE2+(0.04+0.05*SIZE2)*(SIZE1>=1 and 1 or 0)*timer.frametime()*66
+        SIZE2 = math.clamp(SIZE2,0,1*TARGETFOUND)
+        
+        SIZE3 = SIZE3+(0.04+0.05*SIZE3)*(SIZE2>=1 and 1 or 0)*timer.frametime()*66
+        SIZE3 = math.clamp(SIZE3,0,1*TARGETFOUND)
+        
+        local LargeScale = h/1.15
+        local NegateScale = LargeScale*0.925
+        
+        render.setMaterial(TriangleSideMat)
+        
+        local pos = LOCALPOS+Vector(0,-15,0):getRotated(Angle(0,-ROTATION+20*(1-TARGETFOUND),0))
+        render.drawTexturedRectRotatedFast(pos.x, pos.y, LargeScale-NegateScale*SIZE1+SCALEME, LargeScale-NegateScale*0.98*SIZE1*(2-TARGETFOUND)+SCALEME, ROTATION+45*(1-TARGETFOUND))
+        
+        local pos = LOCALPOS+Vector(0,-15,0):getRotated(Angle(0,-120-ROTATION+60*(1-TARGETFOUND),0))
+        render.drawTexturedRectRotatedFast(pos.x, pos.y, LargeScale-NegateScale*SIZE2+SCALEME, LargeScale-NegateScale*0.98*SIZE2*(2-TARGETFOUND)+SCALEME, 120+ROTATION-60*(1-TARGETFOUND))
+        
+        local pos = LOCALPOS+Vector(0,-15,0):getRotated(Angle(0,120-ROTATION+100*(1-TARGETFOUND),0))
+        render.drawTexturedRectRotatedFast(pos.x, pos.y, LargeScale-NegateScale*SIZE3+SCALEME, LargeScale-NegateScale*0.98*SIZE3*(2-TARGETFOUND)+SCALEME, -120+ROTATION-165*(1-TARGETFOUND))
+    else
+        SIZE1 = 0
+        SIZE2 = 0
+        SIZE3 = 0
+        SCALEME = 0
+        TARGETFOUND = 0
+        TRACKINGFIRST = false
+    end
+end)
+
+hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
+    SPRINTVAL = SPRINTVAL + (0.06-0.03*SPRINTVAL)*(owner():isSprinting() and (owner():getVelocity():setZ(0):getLength()/52>1) and 1 or -1)*timer.frametime()*66
+    SPRINTVAL = math.clamp(SPRINTVAL,0,1)
+    return {
+        fov = 100-60*ZoomVal+25*math.clamp(owner():getVelocity():getLength()/53*0.1*SPRINTVAL,0,1)
+    }
+end)
