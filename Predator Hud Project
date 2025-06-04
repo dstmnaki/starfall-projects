@@ -56,7 +56,7 @@ if SERVER then
     local storeRunSpeed = owner():getRunSpeed()
     local storeJumpPower = owner():getJumpPower()
     owner():setRunSpeed(storeRunSpeed*1.3)
-    owner():setJumpPower(storeJumpPower*2)
+    owner():setJumpPower(storeJumpPower*3)
     hook.add("Removed", "", function()
         owner():setRunSpeed(storeRunSpeed)
         owner():setJumpPower(storeJumpPower)
