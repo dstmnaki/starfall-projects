@@ -151,7 +151,11 @@ if CLIENT then
             concmd("pp_texturize \"\"; pp_colormod 0"..(USEFLIR and "; flir_toggle" or ""))
         end
     end
-    
+    hook.add("Removed", "", function()
+        if thermalOn then
+            concmd("pp_texturize \"\"; pp_colormod 0"..(USEFLIR and "; flir_toggle" or ""))
+        end
+    end)
     BaseMat = material.createFromImage("hud/predatorhud.png", "noclamp smooth")
     ZoomMat = material.createFromImage("hud/predatorzoom.png", "noclamp smooth")
     
@@ -309,8 +313,8 @@ if CLIENT then
                 manipulatefov = math.lerp(math.clamp(math.sin(math.rad(FRAME*180))*1.2,0,1), 80, 70)
             end
         end
-        if input.isKeyDown(KEY.F) and owner():isTyping() == false then
-            if blockVisionChange != true and visionChangeVal >= 1 then
+        if input.isKeyDown(KEY.F) and not owner():isTyping() then
+            if blockVisionChange != true and visionChangeVal >= 1 and not owner():isTyping() then
                 blockVisionChange = true
                 changeVision()
                 visionChangeVal = 0
