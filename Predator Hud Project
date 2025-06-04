@@ -665,7 +665,7 @@ if CLIENT then
                 fov = fovLerp
             }
         else
-            SPRINTVAL = SPRINTVAL + (0.06-0.03*SPRINTVAL)*(owner():isSprinting() and (owner():getVelocity():setZ(0):getLength()/52>1) and 1 or -1)*timer.frametime()*66
+            SPRINTVAL = SPRINTVAL + (0.06-0.03*SPRINTVAL)*(owner():isSprinting() and owner():isOnGround() and (owner():getVelocity():setZ(0):getLength()/52>1) and 1 or -1)*timer.frametime()*66
             SPRINTVAL = math.clamp(SPRINTVAL,0,1)
             anglesLerp = Angle(0,0,0)
             originLerp = math.lerpVector(0.2, originLerp, owner():getEyeAngles():getRight()*5*sway+owner():getEyeAngles():getUp()*2*sway2)
