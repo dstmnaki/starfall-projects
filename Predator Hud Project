@@ -225,6 +225,7 @@ if CLIENT then
                         owner():emitSound("cpthazama/avp/predator/adrenalin/adrenalin_turn_on_05.ogg", 100, 100, 1, CHANNEL_AUTO)
                     end
                 else
+                    FRAME = 0
                     sway = 0
                     sway2 = 0
                     sprintFirst = false
