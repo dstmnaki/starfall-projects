@@ -5,11 +5,17 @@
 --[[
   
   PREDATOR HUD PROJECT by Naki
-
+  
   REQUIRED ADDONS:
   https://steamcommunity.com/sharedfiles/filedetails/?id=3491940716 (VIEWMODEL & SOUNDS)
   https://steamcommunity.com/sharedfiles/filedetails/?id=1085431037 (HUD ELEMENTS & SOUNDS)
   https://steamcommunity.com/sharedfiles/filedetails/?id=2956665051 (THERMAL)
+
+  CONTROLS:
+  R - CLOAK (VISUAL ONLY)
+  F - TOGGLE THERMAL
+  MOUSE2 - TRACK/TURN LASER ON
+  MOUSE4 - ZOOM
   
   NOTE THE THERMAL VISION RUNS VIA CONCMD, YOU CAN CHECK THE COMMAND HERE OR BELOW WHERE THE CONCMD LINE RUNS AT (LINES 86 & 88)
   *"pp_texturize \"pp/texturize/thermal_gradient.png\"; pp_colormod 1; pp_colormod_addb 0; pp_colormod_addg 0; pp_colormod_addr 0; pp_colormod_color 1; pp_colormod_contrast 1; pp_colormod_mulb 0; pp_colormod_mulg 0; pp_colormod_mulr 0"..(USEFLIR and "; flir_toggle" or "")*
