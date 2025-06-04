@@ -395,7 +395,7 @@ if CLIENT then
                 sway = 0
                 sway2 = 0
                 sprintFirst = false
-                vmHolo:setAnimation("predator_hud_claws_jump_secondary", nil, 1)
+                vmHolo:setAnimation("predator_hud_claws_jump_long", 0.9, 0)
                 timer.stop("random_idle")
             end
         else
