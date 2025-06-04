@@ -17,8 +17,6 @@ local LOCKON = true
   https://steamcommunity.com/sharedfiles/filedetails/?id=2956665051 (THERMAL)
 
   CONTROLS:
-  MOUSE1 - ATTACK
-  MOUSE1 + MOUSE2 - SHOOT PLASMA CASTER
   R - CLOAK (VISUAL ONLY)
   F - TOGGLE THERMAL
   MOUSE2 - TRACK/TURN LASER ON
@@ -317,6 +315,11 @@ if CLIENT then
         
         local BLOCKIDLERANDOMIZER = zooming or TRACKING or (owner():getVelocity():setZ(0):getLength()/52>1)
         
+        if BLOCKIDLERANDOMIZER then
+            startRandomIdleAnim = false
+            timer.stop("random_idle")
+        end
+        
         if not AnimationPlaying and Animation == "" then
             if owner():isOnGround() then
                 if owner():getVelocity():setZ(0):getLength()/52>1 and not owner():isSprinting() then
@@ -350,7 +353,7 @@ if CLIENT then
                     sway2 = 0
                     sprintFirst = false
                     vmHolo:setAnimation("predator_hud_claws_rest", nil, 1)
-                    if startRandomIdleAnim != true then
+                    if startRandomIdleAnim != true and not BLOCKIDLERANDOMIZER then
                         startRandomIdleAnim = true
                         timer.create("random_idle", math.rand(5,18), 0, function()
                             local selectanim = math.round(math.rand(1,3))
