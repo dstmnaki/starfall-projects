@@ -96,7 +96,7 @@ if CLIENT then
         holo:setMaterial("models/debug/debugwhite")
     end
     hook.add("think","",function()
-        local LaserPos = owner():getShootPos()+owner():getEyeAngles():getRight()*6+owner():getEyeAngles():getUp()*2
+        local LaserPos = owner():getShootPos()+owner():getEyeAngles():getRight()*7+owner():getEyeAngles():getUp()*2
         local AngMath = (LaserPos - owner():getEyeTrace().HitPos):getAngle()
         centerHolo:setPos(LaserPos)
         centerHolo:setAngles(AngMath:rotateAroundAxis(AngMath:getRight(), 90))
@@ -518,7 +518,7 @@ if CLIENT then
             SPRINTVAL = math.clamp(SPRINTVAL,0,1)
             anglesLerp = Angle(0,0,0)
             originLerp = math.lerpVector(0.2, originLerp, owner():getEyeAngles():getRight()*5*sway+owner():getEyeAngles():getUp()*2*sway2)
-            fovLerp = math.lerp(0.2, fovLerp, 80-60*ZoomVal+25*math.clamp(owner():getVelocity():getLength()/53*0.1*SPRINTVAL,0,1))
+            fovLerp = math.lerp(0.2, fovLerp, 80-60*ZoomVal+35*math.clamp(owner():getVelocity():getLength()/53*0.1*SPRINTVAL,0,1))
             return {
                 angles = Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,0):rotateAroundAxis(owner():getAimVector(),1*sway*(input.isMouseDown(MOUSE.MOUSE2) and 0 or 1)),
                 origin = owner():getShootPos()+originLerp*(input.isMouseDown(MOUSE.MOUSE2) and 0 or 1),
