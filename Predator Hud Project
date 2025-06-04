@@ -27,6 +27,12 @@ local LOCKON = true
   *"pp_texturize \"\"; pp_colormod 0"..(USEFLIR and "; flir_toggle" or "")*
   
 ]]--
+
+hook.add("net","",function(name,len,ply)
+    if name == "sendcloak" then
+        owner():setMaterial(net.readBool() and "models/shadertest/predator" or "")
+    end
+end)
 if SERVER then
     local centerHolo = hologram.create(chip():getPos(), Angle(0,0,0), "models/props_c17/oildrum001.mdl", Vector(0))
     centerHolo:setParent(owner():getActiveWeapon())
@@ -155,6 +161,9 @@ if CLIENT then
         if thermalOn then
             concmd("pp_texturize \"\"; pp_colormod 0"..(USEFLIR and "; flir_toggle" or ""))
         end
+        if cloakstate then
+            print("CLOAK WAS LEFT ON BEFORE REMOVING, YOUR ARE STILL INVISIBLE, RESPAWN ME AND UNCLOAK BEFORE REMOVING ME!")
+        end
     end)
     BaseMat = material.createFromImage("hud/predatorhud.png", "noclamp smooth")
     ZoomMat = material.createFromImage("hud/predatorzoom.png", "noclamp smooth")
@@ -189,6 +198,9 @@ if CLIENT then
             AnimationPlaying = true
             cantogglecloak = false
             cloakstate = !cloakstate
+            net.start("sendcloak")
+            net.writeBool(cloakstate)
+            net.send()
             owner():emitSound((cloakstate and "cpthazama/avp/predator/cloak/prd_cloak.ogg" or "cpthazama/avp/predator/cloak/prd_uncloak.ogg"), 100, 100, 1, CHANNEL_AUTO)
             vmHolo:setMaterial(cloakstate and "models/shadertest/predator" or "")
         end
