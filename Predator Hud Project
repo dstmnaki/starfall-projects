@@ -136,6 +136,11 @@ if CLIENT then
     local cloakstate = false
     local sprintFirst = false
     local SPRINTVAL = 0
+    local sway = 0
+    local sway2 = 0
+    local anglesLerp = Angle()
+    local originLerp = Vector()
+    local fovLerp = 100
     
     function changeVision()
         thermalOn = !thermalOn
@@ -193,15 +198,26 @@ if CLIENT then
         local BLOCKIDLERANDOMIZER = zooming or TRACKING or (owner():getVelocity():setZ(0):getLength()/52>1)
         
         if not AnimationPlaying and Animation == "" then
-            FRAME = 0
             if owner():isOnGround() then
                 if owner():getVelocity():setZ(0):getLength()/52>1 and not owner():isSprinting() then
-                    vmHolo:setAnimation("predator_hud_claws_walk", nil, 1)
+                    FRAME = FRAME + 0.015*timer.frametime()*66
+                    if FRAME >= 1 then
+                        FRAME = 0
+                    end
+                    sway = math.sin(FRAME * 2 * 3.14)*0.2
+                    sway2 = math.sin(FRAME * 2 * 3.14 * 2)*0.2
+                    vmHolo:setAnimation("predator_hud_claws_walk", FRAME, 0)
                     startRandomIdleAnim = false
                     timer.stop("random_idle")
                     sprintFirst = false
                 elseif owner():getVelocity():setZ(0):getLength()/52>1 and owner():isSprinting() then
-                    vmHolo:setAnimation("predator_hud_claws_sprint", nil, 1.5)
+                    FRAME = FRAME + 0.025*timer.frametime()*66
+                    if FRAME >= 1 then
+                        FRAME = 0
+                    end
+                    sway = math.sin(FRAME * 2 * 3.14)
+                    sway2 = math.sin(FRAME * 2 * 3.14 * 2)
+                    vmHolo:setAnimation("predator_hud_claws_sprint", FRAME, nil)
                     startRandomIdleAnim = false
                     timer.stop("random_idle")
                     if sprintFirst != true then
@@ -209,11 +225,13 @@ if CLIENT then
                         owner():emitSound("cpthazama/avp/predator/adrenalin/adrenalin_turn_on_05.ogg", 100, 100, 1, CHANNEL_AUTO)
                     end
                 else
+                    sway = 0
+                    sway2 = 0
                     sprintFirst = false
                     vmHolo:setAnimation("predator_hud_claws_rest", nil, 1)
                     if startRandomIdleAnim != true then
                         startRandomIdleAnim = true
-                        timer.create("random_idle", math.rand(8,15), 0, function()
+                        timer.create("random_idle", math.rand(5,18), 0, function()
                             local selectanim = math.round(math.rand(1,3))
                             if selectanim == 1 then
                                 Animation = "idle_stretch"
@@ -225,15 +243,23 @@ if CLIENT then
                                 Animation = "idle_wipe"
                                 AnimationPlaying = true
                             end
+                            originLerp = Vector(0,0,0)
+                            anglesLerp = Angle(0,0,0)
+                            manipulatepos = Vector(0,0,0)
+                            manipulateang = Angle(0,0,0)
                         end)
                     end
                 end
             else
+                sway = 0
+                sway2 = 0
                 sprintFirst = false
                 vmHolo:setAnimation("predator_hud_claws_jump_secondary", nil, 1)
                 timer.stop("random_idle")
             end
         else
+            sway = 0
+            sway2 = 0
             startRandomIdleAnim = false
             if Animation == "cloaktoggle" then
                 FRAME = FRAME + 0.025*timer.frametime()*66
@@ -241,6 +267,7 @@ if CLIENT then
                     Animation = ""
                     AnimationPlaying = false
                     cantogglecloak = true
+                    FRAME = 0
                 end
                 vmHolo:setAnimation("predator_hud_console_open", FRAME, 0)
             end
@@ -249,26 +276,37 @@ if CLIENT then
                 if FRAME >= 1 or BLOCKIDLERANDOMIZER then
                     Animation = ""
                     AnimationPlaying = false
+                    FRAME = 0
                 end
                 vmHolo:setAnimation("predator_hud_claws_fidget_stretch", FRAME, 0)
+                manipulatepos = math.bezierVectorCubic(FRAME, Vector(0,0,0), owner():getEyeAngles():getForward()*3, owner():getEyeAngles():getUp()*1.8, Vector(0,0,0))
+                manipulateang = math.lerpAngle(math.clamp(math.sin(math.rad(FRAME*180))*1,0,1), Angle(0,0,0), Angle(0,0,0)+Angle(-1,0,0))
+                manipulatefov = math.lerp(math.clamp(math.sin(math.rad(FRAME*180))*1,0,1), 100, 102)
             end
             if Animation == "idle_inspect" then
                 FRAME = FRAME + 0.005*timer.frametime()*66
                 if FRAME >= 1 or BLOCKIDLERANDOMIZER then
                     Animation = ""
                     AnimationPlaying = false
+                    FRAME = 0
                 end
                 vmHolo:setAnimation("predator_hud_claws_fidget_inspect_claw", FRAME, 0)
+                manipulatepos = math.bezierVectorCubic(FRAME, Vector(0,0,0), owner():getEyeAngles():getRight()*3, -owner():getEyeAngles():getRight()*7, Vector(0,0,0))
+                manipulateang = math.lerpAngle(math.clamp(math.sin(math.rad(FRAME*180))*1.3,0,1), Angle(0,0,0), Angle(0,0,0)+Angle(5,-7,0))
+                manipulatefov = math.lerp(math.clamp(math.sin(math.rad(FRAME*180))*1.2,0,1), 100, 95)
             end
             if Animation == "idle_wipe" then
                 FRAME = FRAME + 0.005*timer.frametime()*66
                 if FRAME >= 1 or BLOCKIDLERANDOMIZER then
                     Animation = ""
                     AnimationPlaying = false
+                    FRAME = 0
                 end
                 vmHolo:setAnimation("predator_hud_claws_fidget_wipe_wrist_pc", FRAME, 0)
+                manipulatepos = math.bezierVectorCubic(FRAME, Vector(0,0,0), owner():getEyeAngles():getRight()*3, owner():getEyeAngles():getRight()*4, Vector(0,0,0))
+                manipulateang = math.lerpAngle(math.clamp(math.sin(math.rad(FRAME*180))*1.5,0,1), Angle(0,0,0), Angle(0,0,0)+Angle(6,15,0))
+                manipulatefov = math.lerp(math.clamp(math.sin(math.rad(FRAME*180))*1.2,0,1), 100, 90)
             end
-            
         end
         if input.isKeyDown(KEY.F) and owner():isTyping() == false then
             if blockVisionChange != true and visionChangeVal >= 1 then
@@ -465,12 +503,27 @@ if CLIENT then
             TRACKINGFIRST = false
         end
     end)
-    
     hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
-        SPRINTVAL = SPRINTVAL + (0.06-0.03*SPRINTVAL)*(owner():isSprinting() and (owner():getVelocity():setZ(0):getLength()/52>1) and 1 or -1)*timer.frametime()*66
-        SPRINTVAL = math.clamp(SPRINTVAL,0,1)
-        return {
-            fov = 100-60*ZoomVal+25*math.clamp(owner():getVelocity():getLength()/53*0.1*SPRINTVAL,0,1)
-        }
+        if AnimationPlaying and Animation != "cloaktoggle" then
+            anglesLerp = math.lerpAngle(0.2,anglesLerp, manipulateang and manipulateang or ang)
+            originLerp = math.lerpVector(0.2, originLerp, manipulatepos and manipulatepos or pos)
+            fovLerp = math.lerp(0.2, fovLerp, manipulatefov and manipulatefov or 100)
+            return {
+                angles = owner():getEyeAngles()+anglesLerp,
+                origin = owner():getShootPos()+originLerp,
+                fov = fovLerp
+            }
+        else
+            SPRINTVAL = SPRINTVAL + (0.06-0.03*SPRINTVAL)*(owner():isSprinting() and (owner():getVelocity():setZ(0):getLength()/52>1) and 1 or -1)*timer.frametime()*66
+            SPRINTVAL = math.clamp(SPRINTVAL,0,1)
+            anglesLerp = Angle(0,0,0)
+            originLerp = math.lerpVector(0.2, originLerp, owner():getEyeAngles():getRight()*5*sway+owner():getEyeAngles():getUp()*2*sway2)
+            fovLerp = math.lerp(0.2, fovLerp, 100-60*ZoomVal+25*math.clamp(owner():getVelocity():getLength()/53*0.1*SPRINTVAL,0,1))
+            return {
+                angles = Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,0):rotateAroundAxis(owner():getAimVector(),1*sway),
+                origin = owner():getShootPos()+originLerp,
+                fov = fovLerp
+            }
+        end
     end)
 end
