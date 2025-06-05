@@ -100,7 +100,7 @@ if SERVER then
                         net.start("BOOM but CLIENT")
                         net.writeVector(lastPos)
                         net.send()
-                        owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_bolt_explosion_0"..math.round(math.rand(1,5))..".ogg", 100, 100, 1, CHANNEL_AUTO)
+                        --owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_bolt_explosion_0"..math.round(math.rand(1,5))..".ogg", 100, 100, 1, CHANNEL_AUTO)
                     end
                 end
             end
