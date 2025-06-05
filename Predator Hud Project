@@ -9,24 +9,26 @@ local LOCKON = true
 
 --[[
   
-  PREDATOR HUD PROJECT by Naki
-  
-  !!!THIS WAS MADE TO WORK ON BUILDSTRUCT AND A.P.E.S ONLY ANY OTHER SERVER MAY NOT WORK DUE TO PERMISSION SETTINGS!!!
-  
-  
-  !!!REQUIRES AVP 2010 SNPCS PACK TO WORK!!!
-  https://steamcommunity.com/sharedfiles/filedetails/?id=3491940716
-
-  CONTROLS:
-  R - CLOAK (VISUAL ONLY)
-  F - TOGGLE THERMAL
-  MOUSE2 - TRACK/TURN LASER ON
-  MOUSE4 - ZOOM
-  
-  NOTE THE THERMAL VISION RUNS VIA CONCMD, YOU CAN CHECK THE COMMAND HERE OR BELOW WHERE THE CONCMD LINE RUNS AT (LINES 86 & 88)
-  *"pp_texturize \"pp/texturize/thermal_gradient.png\"; pp_colormod 1; pp_colormod_addb 0; pp_colormod_addg 0; pp_colormod_addr 0; pp_colormod_color 1; pp_colormod_contrast 1; pp_colormod_mulb 0; pp_colormod_mulg 0; pp_colormod_mulr 0"..(USEFLIR and "; flir_toggle" or "")*
-  *"pp_texturize \"\"; pp_colormod 0"..(USEFLIR and "; flir_toggle" or "")*
-  
+    PREDATOR HUD PROJECT by Naki
+    
+    !!!THIS WAS MADE TO WORK ON BUILDSTRUCT AND A.P.E.S ONLY ANY OTHER SERVER MAY NOT WORK DUE TO PERMISSION SETTINGS!!!
+    
+    
+    !!!REQUIRES AVP 2010 SNPCS PACK TO WORK!!!
+    https://steamcommunity.com/sharedfiles/filedetails/?id=3491940716
+    
+    CONTROLS:
+    R - CLOAK
+    F - TOGGLE THERMAL
+    MOUSE1 - ATTACK
+    MOUSE1 + MOUSE2 - FIRE PLASMA CASTER
+    MOUSE2 - TRACK
+    MOUSE3 - ZOOM
+    
+    NOTE THE THERMAL VISION RUNS VIA CONCMD, YOU CAN CHECK THE COMMAND HERE OR BELOW WHERE THE CONCMD LINE RUNS AT (LINES 86 & 88)
+    *"pp_texturize \"pp/texturize/thermal_gradient.png\"; pp_colormod 1; pp_colormod_addb 0; pp_colormod_addg 0; pp_colormod_addr 0; pp_colormod_color 1; pp_colormod_contrast 1; pp_colormod_mulb 0; pp_colormod_mulg 0; pp_colormod_mulr 0"..(USEFLIR and "; flir_toggle" or "")*
+    *"pp_texturize \"\"; pp_colormod 0"..(USEFLIR and "; flir_toggle" or "")*
+    
 ]]--
 local plasmaholo = {}
 hook.add("net","",function(name,len,ply)
@@ -255,7 +257,7 @@ if CLIENT then
             
             if input.isMouseDown(MOUSE.MOUSE1) and blockAttack != true and canAttack and owner():isTyping() == false and WPNOK then
                 blockAttack = true
-                if input.isMouseDown(MOUSE.MOUSE2) and not input.isMouseDown(MOUSE.MOUSE4) and not owner():isTyping() and WPNOK then
+                if input.isMouseDown(MOUSE.MOUSE2) and not input.isMouseDown(MOUSE.MOUSE3) and not owner():isTyping() and WPNOK then
                     shootPlasmaCaster()
                 else
                     canAttack = false
@@ -371,7 +373,7 @@ if CLIENT then
                 vmHolo:setMaterial(cloakstate and "models/shadertest/predator" or "")
             end
             lastCloakButtonState = cloakButton
-            local zooming = input.isMouseDown(MOUSE.MOUSE4) and owner():isTyping() == false 
+            local zooming = input.isMouseDown(MOUSE.MOUSE3) and owner():isTyping() == false 
             ZoomVal = ZoomVal + 0.1*(zooming and 1 or -1)*timer.frametime()*66
             ZoomVal = math.clamp(ZoomVal,0,1)
             
