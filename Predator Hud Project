@@ -772,6 +772,13 @@ if CLIENT then
                 TARGETFOUND = 0
                 TRACKINGFIRST = false
                 TARGET = nil
+                LOCKTARGETFIRST = false
+                if LOCKTARGET != nil then
+                    LOCKTARGET = nil
+                    net.start("target")
+                    net.writeEntity(owner())
+                    net.send()
+                end
             end
             if zooming then
                 if aimEntity == nil then
