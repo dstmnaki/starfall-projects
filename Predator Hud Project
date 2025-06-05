@@ -627,7 +627,7 @@ if CLIENT then
                                         --if ent:isAlive() == true then
                                             local toEnt = (ent:getPos() + ent:obbCenter()) - owner():getShootPos()
                                             local distSqr = toEnt:getLength()
-                                            local trOK = (ent:getPos() + ent:obbCenter()):getDistance(trace.line(owner():getShootPos(),(ent:getPos() + ent:obbCenter()),{owner(),ent},nil, nil, false).HitPos)<5
+                                            local trOK = (ent:getPos() + ent:obbCenter()):getDistance(trace.line(owner():getShootPos(),(ent:getPos() + ent:obbCenter()),{owner(),ent},nil, COLLISION_GROUP.IN_VEHICLE, false).HitPos)<5
                                             if distSqr < 15000 and trOK then
                                                 local dirToEnt = toEnt:getNormalized()
                                                 local dot = owner():getEyeAngles():getForward():dot(dirToEnt)
@@ -646,7 +646,7 @@ if CLIENT then
                         if isValid(TARGET) and TARGET != owner() then
                             local toEnt = (TARGET:getPos() + TARGET:obbCenter()) - owner():getShootPos()
                             local distSqr = toEnt:getLength()
-                            local trOK = (TARGET:getPos() + TARGET:obbCenter()):getDistance(trace.line(owner():getShootPos(),(TARGET:getPos() + TARGET:obbCenter()),{owner(),TARGET},nil, nil, false).HitPos)<5
+                            local trOK = (TARGET:getPos() + TARGET:obbCenter()):getDistance(trace.line(owner():getShootPos(),(TARGET:getPos() + TARGET:obbCenter()),{owner(),TARGET},nil, COLLISION_GROUP.IN_VEHICLE, false).HitPos)<5
                             if distSqr < 15000 and trOK then
                                 local dirToEnt = toEnt:getNormalized()
                                 local dot = owner():getEyeAngles():getForward():dot(dirToEnt)
