@@ -37,7 +37,7 @@ hook.add("net","",function(name,len,ply)
     end
     if SERVER then
         if name == "sendProjectileToServer" then
-            This = hologram.create(owner():getShootPos()-owner():getEyeAngles():getRight()*7, owner():getEyeAngles():rotateAroundAxis(owner():getEyeAngles():getUp(),-90), "models/sprops/misc/oblong1_hq.mdl", Vector(0.3,1,0.3))
+            This = hologram.create(owner():getShootPos()-owner():getEyeAngles():getRight()*7, owner():getEyeAngles():rotateAroundAxis(owner():getEyeAngles():getUp(),-90), "models/starfall/holograms/sphere.mdl", Vector(0.6,1.6,0.6)*5)
             This:suppressEngineLighting(true)
             This:setTrails(25, 5, 0.2, "trails/laser", Color(0,255,255), nil, nil)
             This:setColor(Color(0,255,255))
