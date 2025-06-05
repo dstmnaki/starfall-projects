@@ -39,6 +39,7 @@ hook.add("net","",function(name,len,ply)
         if name == "sendProjectileToServer" then
             This = hologram.create(owner():getShootPos()-owner():getEyeAngles():getRight()*7, owner():getEyeAngles():rotateAroundAxis(owner():getEyeAngles():getUp(),-90), "models/hunter/misc/sphere025x025.mdl", Vector(0.6,1.6,0.6)*0.7)
             This:suppressEngineLighting(true)
+            This:setMaterial("models/debug/debugwhite")
             This:setTrails(25, 5, 0.2, "trails/laser", Color(0,255,255), nil, nil)
             This:setColor(Color(0,255,255))
             table.insert(plasmaholo, -1, This)
@@ -63,7 +64,6 @@ if SERVER then
         owner():setRunSpeed(storeRunSpeed)
         owner():setJumpPower(storeJumpPower)
     end)
-    
     hook.add("EntityTakeDamage", "", function(target, attacker, inflictor, amount, type, position, force)
         if type == DAMAGE.FALL then
             return true
