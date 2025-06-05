@@ -627,7 +627,7 @@ if CLIENT then
                                             local toEnt = (ent:getPos() + ent:obbCenter()) - owner():getShootPos()
                                             local distSqr = toEnt:getLength()
                                             local trOK = (ent:getPos() + ent:obbCenter()):getDistance(trace.line(owner():getShootPos(),(ent:getPos() + ent:obbCenter()),{owner(),ent},nil, nil, false).HitPos)<5
-                                            if distSqr < 8000 and trOK then
+                                            if distSqr < 15000 and trOK then
                                                 local dirToEnt = toEnt:getNormalized()
                                                 local dot = owner():getEyeAngles():getForward():dot(dirToEnt)
                                                 if dot >= math.cos(math.rad(55 / 2)) then
@@ -646,7 +646,7 @@ if CLIENT then
                             local toEnt = (TARGET:getPos() + TARGET:obbCenter()) - owner():getShootPos()
                             local distSqr = toEnt:getLength()
                             local trOK = (TARGET:getPos() + TARGET:obbCenter()):getDistance(trace.line(owner():getShootPos(),(TARGET:getPos() + TARGET:obbCenter()),{owner(),TARGET},nil, nil, false).HitPos)<5
-                            if distSqr < 8000 and trOK then
+                            if distSqr < 15000 and trOK then
                                 local dirToEnt = toEnt:getNormalized()
                                 local dot = owner():getEyeAngles():getForward():dot(dirToEnt)
                                 if dot < math.cos(math.rad(60 / 2)) then
