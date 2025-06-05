@@ -63,6 +63,7 @@ if SERVER then
         owner():setRunSpeed(storeRunSpeed)
         owner():setJumpPower(storeJumpPower)
     end)
+    
     hook.add("EntityTakeDamage", "", function(target, attacker, inflictor, amount, type, position, force)
         if type == DAMAGE.FALL then
             return true
@@ -328,9 +329,11 @@ if CLIENT then
     hook.add("PlayerFootstep", "", function(ply, pos, foot, snd, volume)
         return true
     end)
-    
+    Light = light.create(owner():getPos(), 200, 2, Color(255,255,255))
     hook.add("drawhud", "", function()
         if owner():getHealth() > 0 then
+            Light:setPos(owner():getPos()+Vector(0,0,35))
+            Light:draw()
             WPNOK = owner():getActiveWeapon():getClass() == "none"
             vmHolo:setPos(owner():getShootPos())
             vmHolo:setAngles(owner():getEyeAngles())
