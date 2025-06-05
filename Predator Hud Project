@@ -329,7 +329,7 @@ if CLIENT then
     hook.add("PlayerFootstep", "", function(ply, pos, foot, snd, volume)
         return true
     end)
-    Light = light.create(owner():getPos(), 200, 2, Color(255,255,255))
+    Light = light.create(owner():getPos(), 150, 0.5, Color(25,25,25))
     hook.add("drawhud", "", function()
         if owner():getHealth() > 0 then
             Light:setPos(owner():getPos()+Vector(0,0,35))
