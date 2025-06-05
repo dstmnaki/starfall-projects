@@ -44,17 +44,19 @@ hook.add("net","",function(name,len,ply)
             table.insert(plasmaholo, -1, This)
         end
         if name == "slash" then
-            --game.bulletDamage(src, Dir, damage, num, force, distance, Spread, hullSize, ignoreEntity, callback)
             if owner():getShootPos():getDistance(owner():getEyeTrace().HitPos) < 50 then
-                owner():getEyeTrace().Entity:applyDamage(125, owner(), owner(), DAMAGE.SLASH, owner():getShootPos())
+                local aimEntity = owner():getEyeTrace().Entity
+                if hasPermission("entities.applyDamage", aimEntity) then
+                    aimEntity:applyDamage(125, owner(), owner(), DAMAGE.SLASH, owner():getShootPos())
+                end
             end
         end
     end
 end)
 
 if SERVER then
-    local storeRunSpeed = owner():getRunSpeed()
-    local storeJumpPower = owner():getJumpPower()
+    local storeRunSpeed = 400
+    local storeJumpPower = 200
     owner():setRunSpeed(storeRunSpeed*1.3)
     owner():setJumpPower(storeJumpPower*3)
     hook.add("Removed", "", function()
