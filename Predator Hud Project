@@ -207,6 +207,8 @@ if CLIENT then
     local canAttack = true
     local trackingVal = 0
     local ENERGY = 0
+    local aimEntity = nil
+    
     function shootPlasmaCaster()
         if plasmacasterct == nil then plasmacasterct = 0 end
         if timer.curtime() - plasmacasterct > 0.5 then
@@ -727,8 +729,73 @@ if CLIENT then
                 TRACKINGFIRST = false
                 TARGET = nil
             end
-            local aimEntity = owner():getEyeTrace().Entity
-            trackingVal = trackingVal + 0.1*(((TARGET != nil and TRACKING) or (zooming and aimEntity:isValid() and (aimEntity:isPlayer() or aimEntity:isNPC()))) and 1 or -1)*timer.frametime()*66
+            if zooming then
+                if aimEntity == nil then
+                    local players = find.allPlayers()
+                    local npcs = find.byClass("npc_*")
+                    local entities = {}
+                    
+                    // Merge players and NPCs into one list
+                    for i = 1, #players do
+                        entities[#entities + 1] = players[i]
+                    end
+                    for i = 1, #npcs do
+                        entities[#entities + 1] = npcs[i]
+                    end
+                    
+                    local closest = nil
+                    local closestDist = 1e9  // large number
+                    local cursorX, cursorY = input.getCursorPos() // 2D cursor position on screen
+                    
+                    for i = 1, #entities do
+                        local ent = entities[i]
+                        if not isValid(ent) then continue end
+                        if ent == owner() then continue end
+                    
+                        local screenPos2 = ent:getPos():toScreen()
+                        local screenPos = Vector(screenPos2["x"],screenPos2["y"],0)
+                        if screenPos then
+                        
+                            local dist2D = (screenPos - Vector(cursorX,cursorY,0)):getLength()
+                            if dist2D < closestDist then
+                                closestDist = dist2D
+                                if isValid(ent) and ent != owner() then
+                                    --if ent:isAlive() == true then
+                                        local toEnt = (ent:getPos() + ent:obbCenter()) - owner():getShootPos()
+                                        local distSqr = toEnt:getLength()
+                                        local trOK = (ent:getPos() + ent:obbCenter()):getDistance(trace.line(owner():getShootPos(),(ent:getPos() + ent:obbCenter()),{owner(),ent},nil, COLLISION_GROUP.IN_VEHICLE, false).HitPos)<5
+                                        if distSqr < 15000 and trOK then
+                                            local dirToEnt = toEnt:getNormalized()
+                                            local dot = owner():getEyeAngles():getForward():dot(dirToEnt)
+                                            if dot >= math.cos(math.rad(7 / 2)) then
+                                                aimEntity = ent
+                                            end
+                                        end
+                                    --end
+                                end
+                            end
+                        end
+                    end
+                else
+                    if isValid(aimEntity) and aimEntity != owner() then
+                        local toEnt = (aimEntity:getPos() + aimEntity:obbCenter()) - owner():getShootPos()
+                        local distSqr = toEnt:getLength()
+                        local trOK = (aimEntity:getPos() + aimEntity:obbCenter()):getDistance(trace.line(owner():getShootPos(),(aimEntity:getPos() + aimEntity:obbCenter()),{owner(),aimEntity},nil, COLLISION_GROUP.IN_VEHICLE, false).HitPos)<5
+                        if distSqr < 15000 and trOK then
+                            local dirToEnt = toEnt:getNormalized()
+                            local dot = owner():getEyeAngles():getForward():dot(dirToEnt)
+                            if dot < math.cos(math.rad(10 / 2)) then
+                                aimEntity = nil
+                            end
+                        else
+                            aimEntity = nil
+                        end
+                    else
+                        aimEntity = nil
+                    end
+                end
+            end
+            trackingVal = trackingVal + 0.1*(((TARGET != nil and TRACKING) or (zooming and aimEntity)) and 1 or -1)*timer.frametime()*66
             trackingVal = math.clamp(trackingVal,0,1)
             
             render.setMaterial(HighlightMat)
@@ -737,8 +804,8 @@ if CLIENT then
             
             render.setMaterial(TargetPlayerMat)
             if trackingVal >= 1 then
-                local TARGET2 = zooming and owner():getEyeTrace().Entity or TARGET
-                if TARGET2 then
+                local TARGET2 = zooming and aimEntity or TARGET
+                if TARGET2:isValid() then
                     render.setColor(thermalOn and Color(125,125,125, 255*math.clamp(-1+trackingVal*2,0,1)) or Color(255,255,255, 255*math.clamp(-1+trackingVal*2,0,1)))
                     render.drawTexturedRect(w-h/4, h/3.5, h/8, h/8)
                     
