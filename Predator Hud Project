@@ -235,6 +235,14 @@ if CLIENT then
         }
         return table.random(t)
     end
+    function randattackhitsnd()
+        local t = {
+            "cpthazama/avp/weapons/predator/wrist_blades/prd_wrist_impact_flesh_mn_01.ogg",
+            "cpthazama/avp/weapons/predator/wrist_blades/prd_wrist_impact_flesh_mn_02.ogg",
+            "cpthazama/avp/weapons/predator/wrist_blades/prd_wrist_impact_flesh_mn_03.ogg",
+        }
+        return table.random(t)
+    end
     hook.add("think","",function()
         if owner():getHealth() > 0 then
             WPNOK = owner():getActiveWeapon():getClass() == "none"
@@ -248,11 +256,19 @@ if CLIENT then
                     Animation = "attack_light"
                     AnimationPlaying = true
                     selectedATTACK = randattack()
-                    selectedSND = randattacksnd()
                     net.start("slash")
                     net.writeFloat(0)
                     net.send()
-                    owner():emitSound(selectedSND, 100, 100, 1, CHANNEL_AUTO)
+                    if owner():getShootPos():getDistance(owner():getEyeTrace().HitPos) < 50 then
+                        local aimEntity = owner():getEyeTrace().Entity
+                        if aimEntity:isPlayer() or aimEntity:isNPC() then
+                            owner():emitSound(randattackhitsnd(), 100, 100, 1, CHANNEL_AUTO)
+                        else
+                            owner():emitSound(randattacksnd(), 100, 100, 1, CHANNEL_AUTO)
+                        end
+                    else
+                        owner():emitSound(randattacksnd(), 100, 100, 1, CHANNEL_AUTO)
+                    end
                 end
             end
             blockAttack = input.isMouseDown(MOUSE.MOUSE1)
