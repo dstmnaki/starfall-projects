@@ -159,13 +159,13 @@ if CLIENT then
     local centerHolo = hologram.create(chip():getPos(), Angle(0,0,0), "models/props_c17/oildrum001.mdl", Vector(0))
     centerHolo:setParent(owner())
     
-    local LeftTop = hologram.create(centerHolo:localToWorld(Vector(1,0,0):rotateAroundAxis(Vector(0,0,1),120)), Angle(0,0,0), "models/props_c17/oildrum001.mdl", Vector(0.02,0.02,1/45))
+    local LeftTop = hologram.create(centerHolo:localToWorld(Vector(1,0,0):rotateAroundAxis(Vector(0,0,1),120)), Angle(0,0,0), "models/sprops/misc/cones/size_3/cone_36x36.mdl", Vector(0.02,0.02,1/45))
     LeftTop:setParent(centerHolo)
     
-    local RightMiddle = hologram.create(centerHolo:localToWorld(Vector(1,0,0):rotateAroundAxis(Vector(0,0,1),0)), Angle(0,0,0), "models/props_c17/oildrum001.mdl", Vector(0.02,0.02,1/45))
+    local RightMiddle = hologram.create(centerHolo:localToWorld(Vector(1,0,0):rotateAroundAxis(Vector(0,0,1),0)), Angle(0,0,0), "models/sprops/misc/cones/size_3/cone_36x36.mdl", Vector(0.02,0.02,1/45))
     RightMiddle:setParent(centerHolo)
     
-    local LeftBottom = hologram.create(centerHolo:localToWorld(Vector(1,0,0):rotateAroundAxis(Vector(0,0,1),-120)), Angle(0,0,0), "models/props_c17/oildrum001.mdl", Vector(0.02,0.02,1/45))
+    local LeftBottom = hologram.create(centerHolo:localToWorld(Vector(1,0,0):rotateAroundAxis(Vector(0,0,1),-120)), Angle(0,0,0), "models/sprops/misc/cones/size_3/cone_36x36.mdl", Vector(0.02,0.02,1/45))
     LeftBottom:setParent(centerHolo)
     
     for i, holo in pairs({LeftTop, RightMiddle, LeftBottom}) do
@@ -692,9 +692,6 @@ if CLIENT then
                     TARGETFOUND = 1
                 end
                 render.setColor(thermalOn and Color(125*0.8,165*0.8,255*0.8) or Color(255,0,0))
-                
-                
-                
                 ROTATION = ROTATION+(0.3+TARGETFOUND*0.7)*timer.frametime()*66
                 
                 SIZE1 = SIZE1+(0.04+0.05*SIZE1)*timer.frametime()*66
@@ -751,7 +748,6 @@ if CLIENT then
                         render.drawText(w-h/5, h/2.1, "HUMAN: "..TARGET:getName(), TEXT_ALIGN.CENTER)
                         render.drawText(w-h/5, h/1.6, "HEALTH: "..TARGET:getHealth(), TEXT_ALIGN.CENTER)
                     end
-                    
                 end
             end
         end
