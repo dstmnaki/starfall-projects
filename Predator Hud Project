@@ -96,7 +96,7 @@ if SERVER then
                     if tr.Hit then
                         bolt:remove()
                         if hasPermission("game.blastDamage") then
-                            game.blastDamage(lastPos, 100, 200)
+                            game.blastDamage(lastPos, 150, 500)
                         end
                         net.start("BOOM but CLIENT")
                         net.writeVector(lastPos)
