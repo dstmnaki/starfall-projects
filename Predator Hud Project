@@ -32,7 +32,8 @@ local LOCKON = true
 local plasmaholo = {}
 hook.add("net","",function(name,len,ply)
     if name == "sendcloak" then
-        owner():setMaterial(net.readBool() and "models/shadertest/predator" or "")
+        local bool = net.readBool()
+        owner():setMaterial(bool and "models/shadertest/predator" or "")
     end
     if SERVER then
         if name == "sendProjectileToServer" then
@@ -131,7 +132,6 @@ if SERVER then
     end)
 end
 if CLIENT then
-    
     hook.add("net","",function(name,len,ply)
         if owner():getHealth() > 0 then
             if name == "sendlasers" then
@@ -554,7 +554,7 @@ if CLIENT then
             
             render.setMaterial(EnergyBarMat)
             
-            ENERGY=ENERGY+0.0025*timer.frametime()*66
+            ENERGY=ENERGY+0.0025*timer.frametime()*66*(not cloakstate and 1 or 0.25)
             ENERGY = math.clamp(ENERGY,0,1)
             for i = 0, 26 do
                 local startData = {w*0.16,h-h*0.0875,w*0.045,h*0.045,-3}
