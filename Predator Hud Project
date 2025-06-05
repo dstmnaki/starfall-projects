@@ -744,8 +744,14 @@ if CLIENT then
                     render.drawTexturedRect(w-h/4, h/3.5, h/8, h/8)
                     
                     render.setFont("DermaLarge")
-                    render.drawText(w-h/5, h/2.1, "HUMAN: "..TARGET:getName(), TEXT_ALIGN.CENTER)
-                    render.drawText(w-h/5, h/1.6, "HEALTH: "..TARGET:getHealth(), TEXT_ALIGN.CENTER)
+                    if TARGET:isNPC() then
+                        render.drawText(w-h/5, h/2.1, "HUMAN: "..TARGET:getClass(), TEXT_ALIGN.CENTER)
+                        render.drawText(w-h/5, h/1.6, "HEALTH: "..TARGET:getHealth(), TEXT_ALIGN.CENTER)
+                    elseif TARGET:isPlayer() then
+                        render.drawText(w-h/5, h/2.1, "HUMAN: "..TARGET:getName(), TEXT_ALIGN.CENTER)
+                        render.drawText(w-h/5, h/1.6, "HEALTH: "..TARGET:getHealth(), TEXT_ALIGN.CENTER)
+                    end
+                    
                 end
             end
         end
