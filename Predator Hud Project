@@ -648,6 +648,12 @@ if CLIENT then
                             end
                         end
                         LOCKTARGETFIRST = false
+                        if LOCKTARGET != nil then
+                            LOCKTARGET = nil
+                            net.start("target")
+                            net.writeEntity(owner())
+                            net.send()
+                        end
                     else
                         if isValid(TARGET) and TARGET != owner() then
                             local locktargetbutton = input.isMouseDown(MOUSE.MOUSE3)
