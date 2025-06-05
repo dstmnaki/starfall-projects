@@ -389,7 +389,7 @@ if CLIENT then
             
             if not AnimationPlaying and Animation == "" then
                 if owner():isOnGround() then
-                    if owner():getVelocity():setZ(0):getLength()/52>5 and not owner():isSprinting() then
+                    if owner():getVelocity():setZ(0):getLength()/52>3 and not owner():isSprinting() then
                         FRAME = FRAME + 0.015*timer.frametime()*66
                         if FRAME >= 1 then
                             FRAME = 0
@@ -400,7 +400,7 @@ if CLIENT then
                         startRandomIdleAnim = false
                         timer.stop("random_idle")
                         sprintFirst = false
-                    elseif owner():getVelocity():setZ(0):getLength()/52>5 and owner():isSprinting() then
+                    elseif owner():getVelocity():setZ(0):getLength()/52>3 and owner():isSprinting() then
                         FRAME = FRAME + 0.025*timer.frametime()*66
                         if FRAME >= 1 then
                             FRAME = 0
