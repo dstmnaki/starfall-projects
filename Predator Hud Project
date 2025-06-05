@@ -39,7 +39,7 @@ hook.add("net","",function(name,len,ply)
     end
     if SERVER then
         if name == "sendProjectileToServer" then
-            This = hologram.create(owner():getShootPos()-owner():getEyeAngles():getRight()*7, ((TARGETSERVER != owner() and TARGETSERVER != nil and (TARGETSERVER:obbCenterW()) or owner():getEyeTrace().HitPos) - (owner():getShootPos()-owner():getEyeAngles():getRight()*7)):getAngle():rotateAroundAxis(owner():getEyeAngles():getUp(),-90), "models/hunter/misc/sphere025x025.mdl", Vector(0.6,1.6,0.6)*0.7)
+            This = hologram.create(owner():getShootPos()-owner():getEyeAngles():getRight()*7, ((owner():getShootPos()-owner():getEyeAngles():getRight()*7) - (TARGETSERVER != owner() and TARGETSERVER != nil and (TARGETSERVER:obbCenterW()) or owner():getEyeTrace().HitPos)):getAngle(), "models/hunter/misc/sphere025x025.mdl", Vector(1.6,0.6,0.6)*0.7)
             This:suppressEngineLighting(true)
             This:setMaterial("models/debug/debugwhite")
             This:setTrails(25, 5, 0.2, "trails/laser", Color(0,255,255), nil, nil)
@@ -96,7 +96,7 @@ if SERVER then
         if #plasmaholo > 0 then
             for i, bolt in pairs(plasmaholo) do
                 if bolt:isValid() and bolt != nil then
-                    local tr = trace.line(bolt:getPos(),bolt:getPos()-bolt:getRight()*75,owner(), nil, nil, false)
+                    local tr = trace.line(bolt:getPos(),bolt:getPos()-bolt:getForward()*75,owner(), nil, nil, false)
                     local lastPos = tr.HitPos
                     bolt:setPos(lastPos)
                     if tr.Hit then
