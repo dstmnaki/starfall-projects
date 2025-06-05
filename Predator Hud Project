@@ -62,12 +62,12 @@ if SERVER then
         owner():setRunSpeed(storeRunSpeed)
         owner():setJumpPower(storeJumpPower)
     end)
-    --[[
+    
     hook.add("EntityTakeDamage", "", function(target, attacker, inflictor, amount, type, position, force)
         if type == DAMAGE.FALL then
             return true
         end
-    end)]]
+    end)
     local centerHolo = hologram.create(chip():getPos(), Angle(0,0,0), "models/props_c17/oildrum001.mdl", Vector(0))
     centerHolo:setParent(owner():getActiveWeapon())
     
