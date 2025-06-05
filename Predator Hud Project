@@ -22,7 +22,7 @@ local LOCKON = true
     MOUSE1 - ATTACK
     MOUSE1 + MOUSE2 - FIRE PLASMA CASTER
     MOUSE2 - TRACK
-    MOUSE3 - ZOOM
+    MOUSE4 - ZOOM
     
     NOTE THE THERMAL VISION RUNS VIA CONCMD, YOU CAN CHECK THE COMMAND HERE OR BELOW WHERE THE CONCMD LINE RUNS AT (LINES 86 & 88)
     *"pp_texturize \"pp/texturize/thermal_gradient.png\"; pp_colormod 1; pp_colormod_addb 0; pp_colormod_addg 0; pp_colormod_addr 0; pp_colormod_color 1; pp_colormod_contrast 1; pp_colormod_mulb 0; pp_colormod_mulg 0; pp_colormod_mulr 0"..(USEFLIR and "; flir_toggle" or "")*
@@ -256,7 +256,7 @@ if CLIENT then
             
             if input.isMouseDown(MOUSE.MOUSE1) and blockAttack != true and canAttack and owner():isTyping() == false and WPNOK then
                 blockAttack = true
-                if input.isMouseDown(MOUSE.MOUSE2) and not input.isMouseDown(MOUSE.MOUSE3) and not owner():isTyping() and WPNOK then
+                if input.isMouseDown(MOUSE.MOUSE2) and not input.isMouseDown(MOUSE.MOUSE4) and not owner():isTyping() and WPNOK then
                     shootPlasmaCaster()
                 else
                     canAttack = false
@@ -372,7 +372,7 @@ if CLIENT then
                 vmHolo:setMaterial(cloakstate and "models/shadertest/predator" or "")
             end
             lastCloakButtonState = cloakButton
-            local zooming = input.isMouseDown(MOUSE.MOUSE3) and owner():isTyping() == false 
+            local zooming = input.isMouseDown(MOUSE.MOUSE4) and owner():isTyping() == false 
             ZoomVal = ZoomVal + 0.1*(zooming and 1 or -1)*timer.frametime()*66
             ZoomVal = math.clamp(ZoomVal,0,1)
             
