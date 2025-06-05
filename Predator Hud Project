@@ -727,7 +727,7 @@ if CLIENT then
                 TARGET = nil
             end
             
-            trackingVal = trackingVal + 0.1*(TARGET != nil and TRACKING and 1 or -1)*timer.frametime()*66
+            trackingVal = trackingVal + 0.1*(TARGET != nil and TRACKING or (zooming and owner():getEyeTrace().Entity:isValid()) and 1 or -1)*timer.frametime()*66
             trackingVal = math.clamp(trackingVal,0,1)
             
             render.setMaterial(HighlightMat)
@@ -736,17 +736,18 @@ if CLIENT then
             
             render.setMaterial(TargetPlayerMat)
             if trackingVal >= 1 then
-                if TARGET then
+                local TARGET2 = zooming and owner():getEyeTrace().Entity or TARGET
+                if TARGET2 then
                     render.setColor(thermalOn and Color(125,125,125, 255*math.clamp(-1+trackingVal*2,0,1)) or Color(255,255,255, 255*math.clamp(-1+trackingVal*2,0,1)))
                     render.drawTexturedRect(w-h/4, h/3.5, h/8, h/8)
                     
                     render.setFont("DermaLarge")
-                    if TARGET:isNPC() then
-                        render.drawText(w-h/5, h/2.1, "HUMAN: "..TARGET:getClass(), TEXT_ALIGN.CENTER)
-                        render.drawText(w-h/5, h/1.6, "HEALTH: "..TARGET:getHealth(), TEXT_ALIGN.CENTER)
-                    elseif TARGET:isPlayer() then
-                        render.drawText(w-h/5, h/2.1, "HUMAN: "..TARGET:getName(), TEXT_ALIGN.CENTER)
-                        render.drawText(w-h/5, h/1.6, "HEALTH: "..TARGET:getHealth(), TEXT_ALIGN.CENTER)
+                    if TARGET2:isNPC() then
+                        render.drawText(w-h/5, h/2.1, "HUMAN: "..TARGET2:getClass(), TEXT_ALIGN.CENTER)
+                        render.drawText(w-h/5, h/1.6, "HEALTH: "..TARGET2:getHealth(), TEXT_ALIGN.CENTER)
+                    elseif TARGET2:isPlayer() then
+                        render.drawText(w-h/5, h/2.1, "HUMAN: "..TARGET2:getName(), TEXT_ALIGN.CENTER)
+                        render.drawText(w-h/5, h/1.6, "HEALTH: "..TARGET2:getHealth(), TEXT_ALIGN.CENTER)
                     end
                 end
             end
