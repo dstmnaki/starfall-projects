@@ -323,7 +323,6 @@ if CLIENT then
     EnergyBarMat = material.createFromImage("hud/cpthazama/avp/pred_energy.png", "noclamp smooth")
     EnergyBarBGMat = material.createFromImage("hud/cpthazama/avp/pred_hp_warning.png", "noclamp smooth nocull")
     HealthBarMat = material.createFromImage("hud/cpthazama/avp/pred_hp.png", "noclamp smooth")
-    HealthBarBGMat = material.createFromImage("hud/cpthazama/avp/pred_hp_bar.png", "noclamp smooth nocull")
     
     TargetPlayerMat = material.createFromImage("hud/cpthazama/avp/icons/human.png", "noclamp smooth")
     
