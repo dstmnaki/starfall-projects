@@ -238,7 +238,7 @@ if CLIENT then
     local PRESSBUTTON = false
     local ZOOMINVAL = 0
     local zoomingLast = 0
-    
+    local LOCKTARGETLAST = false
     function shootPlasmaCaster()
         if plasmacasterct == nil then plasmacasterct = 0 end
         if timer.curtime() - plasmacasterct > 0.5 then
@@ -565,6 +565,7 @@ if CLIENT then
                         AnimationPlaying = false
                         FRAME = 0
                         PRESSBUTTON = false
+                        LOCKTARGETLAST = false
                     end
                     vmHolo:setAnimation("predator_hud_battery_interaction", math.sin(math.rad(FRAME*180))*0.2, 0)
                 end
@@ -738,30 +739,31 @@ if CLIENT then
                     for i = 1, #entities do
                         local ent = entities[i]
                         if not isValid(ent) or ent == owner() then continue end
-                    
-                        local screenPosData = ent:getPos():toScreen()
-                        if not screenPosData.visible then continue end // only track visible objects
-                    
-                        local screenPos = Vector(screenPosData.x, screenPosData.y, 0)
-                        local cursorPos = Vector(cursorX, cursorY, 0)
-                        local dist2D = (screenPos - cursorPos):getLength()
-                    
-                        if dist2D < bestDistance then
-                            local entPos = ent:getPos() + ent:obbCenter()
-                            local toEnt = entPos - owner():getShootPos()
-                            local dist3D = toEnt:getLength()
-                    
-                            if dist3D < 15000 then
-                                local traceRes = trace.line(owner():getShootPos(), entPos, {owner(), ent}, nil, COLLISION_GROUP.IN_VEHICLE, false)
-                                local trOK = entPos:getDistance(traceRes.HitPos) < 5
-                    
-                                if trOK then
-                                    local dirToEnt = toEnt:getNormalized()
-                                    local dot = owner():getEyeAngles():getForward():dot(dirToEnt)
-                    
-                                    if dot >= math.cos(math.rad(55 / 2)) then
-                                        bestDistance = dist2D
-                                        bestTarget = ent
+                        if ent:getHealth() > 0 then
+                            local screenPosData = ent:getPos():toScreen()
+                            if not screenPosData.visible then continue end // only track visible objects
+                        
+                            local screenPos = Vector(screenPosData.x, screenPosData.y, 0)
+                            local cursorPos = Vector(cursorX, cursorY, 0)
+                            local dist2D = (screenPos - cursorPos):getLength()
+                        
+                            if dist2D < bestDistance then
+                                local entPos = ent:getPos() + ent:obbCenter()
+                                local toEnt = entPos - owner():getShootPos()
+                                local dist3D = toEnt:getLength()
+                        
+                                if dist3D < 15000 then
+                                    local traceRes = trace.line(owner():getShootPos(), entPos, {owner(), ent}, nil, COLLISION_GROUP.IN_VEHICLE, false)
+                                    local trOK = entPos:getDistance(traceRes.HitPos) < 5
+                        
+                                    if trOK then
+                                        local dirToEnt = toEnt:getNormalized()
+                                        local dot = owner():getEyeAngles():getForward():dot(dirToEnt)
+                        
+                                        if dot >= math.cos(math.rad(55 / 2)) then
+                                            bestDistance = dist2D
+                                            bestTarget = ent
+                                        end
                                     end
                                 end
                             end
@@ -781,10 +783,12 @@ if CLIENT then
                             if LOCKTARGETFIRST != true then
                                 LOCKTARGETFIRST = true
                                 if LOCKTARGET == nil or LOCKTARGET == owner() or TARGET != LOCKTARGET then
-                                    owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_confirmtarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
-                                    FRAME = 0
-                                    Animation = "assigntarget"
-                                    AnimationPlaying = true
+                                    if TARGET:getHealth() > 0 then
+                                        owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_confirmtarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
+                                        FRAME = 0
+                                        Animation = "assigntarget"
+                                        AnimationPlaying = true
+                                    end
                                 else
                                     owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_canceltarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
                                     FRAME = 0
@@ -823,11 +827,13 @@ if CLIENT then
                         owner():emitSound("cpthazama/avp/shared/pickup_audiodiary.ogg", 100, 100, 1, CHANNEL_AUTO)
                         SENDFIRST = false
                         LOCKTARGETFIRST = false
+                        LOCKTARGETLAST = false
                     else
                         owner():stopSound("cpthazama/avp/predator/vision_loopfx.wav")
                         owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_aquiretarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
                         SENDFIRST = false
                         LOCKTARGETFIRST = false
+                        LOCKTARGETLAST = false
                     end
                 end
                 if TARGETLOCKON then
@@ -1050,14 +1056,18 @@ if CLIENT then
                 LOCKTARGET2 = false
                 LOCKTARGET = owner()
             end
-            if LOCKTARGET2 != false then
-                if input.isMouseDown(MOUSE.MOUSE3) then
-                    LOCKTARGET2 = false
-                    owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_canceltarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
-                    FRAME = 0
-                    Animation = "unassigntarget"
-                    AnimationPlaying = true
-                    PRESSBUTTON = false
+            if not TRACKING then
+                if LOCKTARGET2 != false then
+                    if input.isMouseDown(MOUSE.MOUSE3) then
+                        if LOCKTARGETLAST != true then
+                            LOCKTARGETLAST = true
+                            owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_canceltarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
+                            FRAME = 0
+                            Animation = "unassigntarget"
+                            AnimationPlaying = true
+                            PRESSBUTTON = false
+                        end
+                    end
                 end
             end
         end
