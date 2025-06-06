@@ -695,7 +695,7 @@ if CLIENT then
             render.setStencilCompareFunction( STENCIL.NEVER )
             render.setStencilFailOperation( STENCIL.REPLACE )
             
-            local data = {0,0,w-w*0.29+(w*0.265*(owner():getHealth()/owner():getMaxHealth())),h+h*0.1,h*0.5,h*0.5,-21}
+            local data = {0,0,w-w*0.29+(w*0.265*math.clamp(owner():getHealth()/owner():getMaxHealth(),0,1)),h+h*0.1,h*0.5,h*0.5,-21}
             
             StencilSetMask(data)
             render.setStencilCompareFunction( STENCIL.GREATER )
