@@ -213,6 +213,9 @@ if CLIENT then
     local LOCKTARGET = nil
     local LOCKTARGETVAL = 0
     local PRESSBUTTON = false
+    local ZOOMINVAL = 0
+    local zoomingLast = 0
+    
     function shootPlasmaCaster()
         if plasmacasterct == nil then plasmacasterct = 0 end
         if timer.curtime() - plasmacasterct > 0.5 then
@@ -352,6 +355,13 @@ if CLIENT then
         if str == "CHudHealth" then
             return false
         end
+        if str == "CHudWeaponSelection" then
+            if input.isMouseDown(MOUSE.MOUSE4) and owner():isTyping() == false then
+                return false
+            else
+                return true
+            end
+        end
     end)
     hook.add("PlayerFootstep", "", function(ply, pos, foot, snd, volume)
         return true
@@ -381,10 +391,13 @@ if CLIENT then
                 vmHolo:setMaterial(cloakstate and "models/shadertest/predator" or "")
             end
             lastCloakButtonState = cloakButton
-            local zooming = input.isMouseDown(MOUSE.MOUSE4) and owner():isTyping() == false 
+            local zooming = input.isMouseDown(MOUSE.MOUSE4) and owner():isTyping() == false
             ZoomVal = ZoomVal + 0.1*(zooming and 1 or -1)*timer.frametime()*66
             ZoomVal = math.clamp(ZoomVal,0,1)
-            
+            if zoomingLast ~= zooming then
+                ZOOMINVAL = 0.5
+            end
+            zoomingLast = zooming
             local TRACKING = input.isMouseDown(MOUSE.MOUSE2) and not zooming and WPNOK
             
             local BLOCKIDLERANDOMIZER = zooming or TRACKING or (owner():getVelocity():setZ(0):getLength()/52>1)
@@ -923,6 +936,10 @@ if CLIENT then
             end
         end
     end)
+    hook.add("MouseWheeled", "", function(delta)
+        ZOOMINVAL = ZOOMINVAL + delta*0.15
+        ZOOMINVAL = math.clamp(ZOOMINVAL,0.5,1.1)
+    end)
     hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
         if owner():getHealth() > 0 then
             if AnimationPlaying and Animation != "cloaktoggle" and Animation != "attack_light" and Animation != "assigntarget" and Animation != "unassigntarget" then
@@ -939,7 +956,7 @@ if CLIENT then
                 SPRINTVAL = math.clamp(SPRINTVAL,0,1)
                 anglesLerp = Angle(0,0,0)
                 originLerp = math.lerpVector(0.2, originLerp, owner():getEyeAngles():getRight()*5*sway+owner():getEyeAngles():getUp()*2*sway2)
-                fovLerp = math.lerp(0.2, fovLerp, 80-60*ZoomVal+35*math.clamp(owner():getVelocity():getLength()/53*0.1*SPRINTVAL,0,1))
+                fovLerp = math.lerp(0.2, fovLerp, 80-60*ZoomVal*ZOOMINVAL+35*math.clamp(owner():getVelocity():getLength()/53*0.1*SPRINTVAL,0,1))
                 return {
                     angles = Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,0):rotateAroundAxis(owner():getAimVector(),1*sway*(input.isMouseDown(MOUSE.MOUSE2) and 0 or 1)),
                     origin = owner():getShootPos()+originLerp*(input.isMouseDown(MOUSE.MOUSE2) and 0 or 1),
