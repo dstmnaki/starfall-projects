@@ -754,6 +754,7 @@ if CLIENT then
                             TARGETLOCKON = false
                             if LOCKTARGET != nil then
                                 LOCKTARGET = nil
+                                owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_canceltarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
                                 net.start("target")
                                 net.writeEntity(owner())
                                 net.send()
@@ -824,6 +825,7 @@ if CLIENT then
                 LOCKTARGETFIRST = false
                 if LOCKTARGET != nil then
                     LOCKTARGET = nil
+                    owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_canceltarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
                     net.start("target")
                     net.writeEntity(owner())
                     net.send()
