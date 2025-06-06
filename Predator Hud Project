@@ -2,10 +2,6 @@
 --@author Naki
 --@shared
 
-
-local USEFLIR = true
-local LOCKON = true
-
 --[[
   
     PREDATOR HUD PROJECT by Naki
@@ -63,6 +59,8 @@ hook.add("net","",function(name,len,ply)
 end)
 
 if SERVER then
+    local USEFLIR = wire.serverUUID() != "1c17c305-2132-4428-840e-3f4cb52f9705"
+    local LOCKON = true
     local storeRunSpeed = 400
     local storeJumpPower = 200
     owner():setRunSpeed(storeRunSpeed*1.3)
