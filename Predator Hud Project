@@ -29,6 +29,8 @@
 ]]--
 local plasmaholo = {}
 local TARGETSERVER = owner()
+local TARGETSERVERSET = owner()
+
 hook.add("net","",function(name,len,ply)
     if name == "sendcloak" then
         local bool = net.readBool()
@@ -52,12 +54,13 @@ hook.add("net","",function(name,len,ply)
             end
         end
         if name == "target" then
-            TARGETSERVER = net.readEntity()
+            TARGETSERVERSET = net.readEntity()
         end
     end
 end)
 
 if SERVER then
+    
     local USEFLIR = wire.serverUUID() != "1c17c305-2132-4428-840e-3f4cb52f9705"
     if hasPermission("player.modifyMovementProperties", owner()) then
         local storeRunSpeed = 400
@@ -91,6 +94,24 @@ if SERVER then
         holo:setMaterial("models/debug/debugwhite")
     end
     hook.add("think","",function()
+        TARGETSERVER = TARGETSERVERSET
+    
+        if isValid(TARGETSERVERSET) and TARGETSERVERSET != owner() then
+            local toEnt = (TARGETSERVERSET:getPos() + TARGETSERVERSET:obbCenter()) - owner():getShootPos()
+            local distSqr = toEnt:getLength()
+            local trOK = (TARGETSERVERSET:getPos() + TARGETSERVERSET:obbCenter()):getDistance(trace.line(owner():getShootPos(),(TARGETSERVERSET:getPos() + TARGETSERVERSET:obbCenter()),{owner(),TARGETSERVERSET},nil, COLLISION_GROUP.IN_VEHICLE, false).HitPos)<5
+            if distSqr < 15000 and trOK then
+                local dirToEnt = toEnt:getNormalized()
+                local dot = owner():getEyeAngles():getForward():dot(dirToEnt)
+                if dot < math.cos(math.rad(60 / 2)) then
+                    TARGETSERVER = owner()
+                end
+            else
+                TARGETSERVER = owner()
+            end
+        else
+            TARGETSERVER = owner()
+        end
         
         if #plasmaholo > 0 then
             for i, bolt in pairs(plasmaholo) do
@@ -211,6 +232,7 @@ if CLIENT then
     local ENERGY = 0
     local aimEntity = nil
     local LOCKTARGET = nil
+    local LOCKTARGET2 = false
     local LOCKTARGETVAL = 0
     local PRESSBUTTON = false
     local ZOOMINVAL = 0
@@ -290,9 +312,8 @@ if CLIENT then
                 end
             end
             blockAttack = input.isMouseDown(MOUSE.MOUSE1)
-            
             local LaserPos = owner():getShootPos()+owner():getEyeAngles():getRight()*7+owner():getEyeAngles():getUp()*2
-            local endPos = (LOCKTARGET != owner() and LOCKTARGET != nil and (LOCKTARGET:getPos() + LOCKTARGET:obbCenter()) or owner():getEyeTrace().HitPos)
+            local endPos = ((LOCKTARGET2 and LOCKTARGET != nil and LOCKTARGET != owner()) and (LOCKTARGET:getPos() + LOCKTARGET:obbCenter()) or owner():getEyeTrace().HitPos)
             local AngMath = (LaserPos - endPos):getAngle()
             centerHolo:setPos(LaserPos)
             centerHolo:setAngles(AngMath:rotateAroundAxis(AngMath:getRight(), 90))
@@ -369,6 +390,7 @@ if CLIENT then
     Light = light.create(owner():getPos(), 150, 0.5, Color(25,25,25))
     hook.add("drawhud", "", function()
         if owner():getHealth() > 0 then
+            if TARGETLOCK == nil or TARGETLOCK == owner() then TARGETLOCK2 = false end
             Light:setPos(owner():getPos()+Vector(0,0,35))
             Light:draw()
             WPNOK = owner():getActiveWeapon():getClass() == "none"
@@ -704,19 +726,13 @@ if CLIENT then
                         TRACKINGFIRST = false
                     end
                     LOCKTARGETFIRST = false
-                    if LOCKTARGET != nil then
-                        LOCKTARGET = nil
-                        net.start("target")
-                        net.writeEntity(owner())
-                        net.send()
-                    end
                 else
                     if isValid(TARGET) and TARGET != owner() then
                         local locktargetbutton = input.isMouseDown(MOUSE.MOUSE3)
                         if locktargetbutton then
                             if LOCKTARGETFIRST != true then
                                 LOCKTARGETFIRST = true
-                                if LOCKTARGET == nil then
+                                if LOCKTARGET == nil or LOCKTARGET == owner() or TARGET != LOCKTARGET then
                                     owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_confirmtarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
                                     FRAME = 0
                                     Animation = "assigntarget"
@@ -759,20 +775,11 @@ if CLIENT then
                         owner():emitSound("cpthazama/avp/predator/vision_loopfx.wav", 100, 100, 1, CHANNEL_AUTO)
                         owner():emitSound("cpthazama/avp/shared/pickup_audiodiary.ogg", 100, 100, 1, CHANNEL_AUTO)
                         SENDFIRST = false
-                        TARGETLOCKON = false
                         LOCKTARGETFIRST = false
                     else
                         owner():stopSound("cpthazama/avp/predator/vision_loopfx.wav")
                         owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_aquiretarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
                         SENDFIRST = false
-                        TARGETLOCKON = false
-                        if LOCKTARGET != nil then
-                            LOCKTARGET = nil
-                            owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_canceltarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
-                            net.start("target")
-                            net.writeEntity(owner())
-                            net.send()
-                        end
                         LOCKTARGETFIRST = false
                     end
                 end
@@ -796,8 +803,8 @@ if CLIENT then
                 TARGETFOUND = TARGETFOUND + 0.05*(TARGET != nil and 1 or -1)*timer.frametime()*66
                 TARGETFOUND = math.clamp(TARGETFOUND,0,1)
                 render.setColor(thermalOn and Color(125*0.8,165*0.8,255*0.8) or Color(255,0,0))
-                ROTATION = (ROTATION+(0.3+TARGETFOUND*0.7)*timer.frametime()*66)*(LOCKTARGET == nil and 1 or 0)
-                LOCKTARGETVAL = LOCKTARGETVAL+0.1*(LOCKTARGET != nil and 1 or -1)*timer.frametime()*66
+                ROTATION = (ROTATION+(0.3+TARGETFOUND*0.7)*timer.frametime()*66)*(LOCKTARGET2 == false and 1 or 0)
+                LOCKTARGETVAL = LOCKTARGETVAL+0.1*(LOCKTARGET2 != false and 1 or -1)*timer.frametime()*66
                 LOCKTARGETVAL = math.clamp(LOCKTARGETVAL,0,1)
                 
                 SIZE1 = SIZE1+(0.04+0.05*SIZE1)*timer.frametime()*66
@@ -832,28 +839,21 @@ if CLIENT then
                 TRACKINGFIRST = false
                 TARGET = nil
                 LOCKTARGETFIRST = false
-                if LOCKTARGET != nil then
-                    LOCKTARGET = nil
-                    owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_canceltarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
-                    net.start("target")
-                    net.writeEntity(owner())
-                    net.send()
-                end
             end
             if zooming then
                 if aimEntity == nil then
                     local players = find.allPlayers()
                     local npcs = find.byClass("npc_*")
                     local entities = {}
-                
+                    
                     // Merge players and NPCs
                     table.merge(entities, players)
                     table.merge(entities, npcs)
-                
+                    
                     local closestEnt = nil
                     local closestDist = 1e9
                     local cursorX, cursorY = input.getCursorPos()
-                
+                    
                     for i = 1, #entities do
                         local ent = entities[i]
                         if not isValid(ent) or ent == owner() then continue end
@@ -886,7 +886,7 @@ if CLIENT then
                             end
                         end
                     end
-                
+                    
                     // === Eye Trace override ===
                     local traceEnt = owner():getEyeTrace().Entity
                     if isValid(traceEnt) and traceEnt != owner() then
@@ -903,12 +903,11 @@ if CLIENT then
                             end
                         end
                     end
-                
+                    
                     // If no eye trace override, use closest FOV target
                     if aimEntity == nil and closestEnt != nil then
                         aimEntity = closestEnt
                     end
-                
                 else
                     // Already tracking, don't check FOV again  just validate
                     if isValid(aimEntity) and aimEntity != owner() then
@@ -966,6 +965,36 @@ if CLIENT then
                         render.drawText(w-h/5, h/1.6, "HEALTH: "..TARGET2:getHealth(), TEXT_ALIGN.CENTER)
                     end
                 end
+            end
+            if LOCKTARGET != nil and LOCKTARGET:isValid() then
+                if LOCKTARGET:getHealth() > 0 then
+                    LOCKTARGET2 = true
+                    if isValid(LOCKTARGET) and LOCKTARGET != owner() then
+                        local toEnt = (LOCKTARGET:getPos() + LOCKTARGET:obbCenter()) - owner():getShootPos()
+                        local distSqr = toEnt:getLength()
+                        local trOK = (LOCKTARGET:getPos() + LOCKTARGET:obbCenter()):getDistance(trace.line(owner():getShootPos(),(LOCKTARGET:getPos() + LOCKTARGET:obbCenter()),{owner(),LOCKTARGET},nil, COLLISION_GROUP.IN_VEHICLE, false).HitPos)<5
+                        if distSqr < 15000 and trOK then
+                            local dirToEnt = toEnt:getNormalized()
+                            local dot = owner():getEyeAngles():getForward():dot(dirToEnt)
+                            if dot < math.cos(math.rad(60 / 2)) then
+                                LOCKTARGET2 = false
+                            end
+                        else
+                            LOCKTARGET2 = false
+                        end
+                    else
+                        LOCKTARGET2 = false
+                    end
+                else
+                    LOCKTARGET2 = false
+                    LOCKTARGET = owner()
+                end
+                if LOCKTARGET2 == true and LOCKTARGET != owner() then
+                    TARGET = LOCKTARGET
+                end
+            else
+                LOCKTARGET2 = false
+                LOCKTARGET = owner()
             end
         end
     end)
