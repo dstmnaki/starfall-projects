@@ -511,12 +511,22 @@ if CLIENT then
                         AnimationPlaying = false
                         FRAME = 0
                     end
-                    if FRAME >= 0.7 and LOCKTARGET != TARGET then
-                        LOCKTARGET=TARGET
-                        net.start("target")
-                        net.writeEntity(TARGET)
-                        net.send()
-                        owner():emitSound("cpthazama/avp/predator/console/prd_console_close_01.ogg", 100, 100, 1, CHANNEL_AUTO)
+                    if TARGET != nil and TARGET:isValid() then
+                        if FRAME >= 0.7 and LOCKTARGET != TARGET then
+                            LOCKTARGET=TARGET
+                            net.start("target")
+                            net.writeEntity(TARGET)
+                            net.send()
+                            owner():emitSound("cpthazama/avp/predator/console/prd_console_close_01.ogg", 100, 100, 1, CHANNEL_AUTO)
+                        end
+                    else
+                        if FRAME >= 0.7 and LOCKTARGET != TARGET then
+                            LOCKTARGET=nil
+                            net.start("target")
+                            net.writeEntity(owner())
+                            net.send()
+                            owner():emitSound("cpthazama/avp/predator/focus/predator_targetinfo_on_01.ogg", 100, 100, 1, CHANNEL_AUTO)
+                        end
                     end
                     vmHolo:setAnimation("predator_hud_battery_interaction", math.sin(math.rad(FRAME*180))*0.25, 0)
                 end
