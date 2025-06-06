@@ -863,6 +863,8 @@ if CLIENT then
                 LOCKTARGETFIRST = false
             end
             if zooming then
+                aimEntityOG = owner():getEyeTrace().Entity
+                aimEntity = ((aimEntityOG:isNPC() or aimEntityOG:isPlayer()) and aimEntityOG or nil)
                 if aimEntity == nil then
                     local players = find.allPlayers()
                     local npcs = find.byClass("npc_*")
@@ -932,27 +934,31 @@ if CLIENT then
                     end
                 else
                     // Already tracking, don't check FOV again  just validate
-                    if isValid(aimEntity) and aimEntity != owner() then
-                        local entPos = aimEntity:getPos() + aimEntity:obbCenter()
-                    
-                        local fromPos = owner():getShootPos()
-                        local toEnt = entPos - fromPos
-                        local dist3D = toEnt:getLength()
-                    
-                        local traceResult = trace.line(fromPos, entPos, {owner(), aimEntity}, nil, COLLISION_GROUP.IN_VEHICLE, false)
-                        local hitClose = entPos:getDistance(traceResult.HitPos) < 5
-                    
-                        if dist3D < 15000 and hitClose then
-                            // Replace 2D distance check with FOV check
-                            local dirToEnt = toEnt:getNormalized()
-                            local viewForward = owner():getEyeAngles():getForward()
-                    
-                            // 5-degree FOV cone
-                            local dot = viewForward:dot(dirToEnt)
-                            local fovThreshold = math.cos(math.rad(2)) // ~0.996
-                    
-                            if dot >= fovThreshold then
-                                // Still in FOV, keep tracking
+                    if owner():getEyeTrace().Entity != aimEntity then
+                        if isValid(aimEntity) and aimEntity != owner() then
+                            local entPos = aimEntity:getPos() + aimEntity:obbCenter()
+                        
+                            local fromPos = owner():getShootPos()
+                            local toEnt = entPos - fromPos
+                            local dist3D = toEnt:getLength()
+                        
+                            local traceResult = trace.line(fromPos, entPos, {owner(), aimEntity}, nil, COLLISION_GROUP.IN_VEHICLE, false)
+                            local hitClose = entPos:getDistance(traceResult.HitPos) < 5
+                        
+                            if dist3D < 15000 and hitClose then
+                                // Replace 2D distance check with FOV check
+                                local dirToEnt = toEnt:getNormalized()
+                                local viewForward = owner():getEyeAngles():getForward()
+                        
+                                // 5-degree FOV cone
+                                local dot = viewForward:dot(dirToEnt)
+                                local fovThreshold = math.cos(math.rad(2)) // ~0.996
+                        
+                                if dot >= fovThreshold then
+                                    // Still in FOV, keep tracking
+                                else
+                                    aimEntity = nil
+                                end
                             else
                                 aimEntity = nil
                             end
@@ -960,7 +966,8 @@ if CLIENT then
                             aimEntity = nil
                         end
                     else
-                        aimEntity = nil
+                        aimEntityOG = owner():getEyeTrace().Entity
+                        aimEntity = ((aimEntityOG:isNPC() or aimEntityOG:isPlayer()) and aimEntityOG or nil)
                     end
                 end
             end
