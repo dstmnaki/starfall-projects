@@ -113,11 +113,12 @@ if SERVER then
         end
         if owner():getHealth() > 0 and centerHolo:isValid() then
             local LaserPos = owner():getShootPos()+owner():getEyeAngles():getRight()*6+owner():getEyeAngles():getUp()*2
-            local AngMath = (LaserPos - (TARGETSERVER != owner() and TARGETSERVER != nil and (TARGETSERVER:getPos() + TARGETSERVER:obbCenter()) or owner():getEyeTrace().HitPos)):getAngle()
+            local endPos = (TARGETSERVER != owner() and TARGETSERVER != nil and (TARGETSERVER:getPos() + TARGETSERVER:obbCenter()) or owner():getEyeTrace().HitPos)
+            local AngMath = (LaserPos - endPos):getAngle()
             centerHolo:setPos(LaserPos-Vector(0,0,35))
             centerHolo:setAngles(AngMath:rotateAroundAxis(AngMath:getRight(), 90))
             
-            local DistMath = centerHolo:getPos():getDistance(owner():getEyeTrace().HitPos)
+            local DistMath = centerHolo:getPos():getDistance(endPos)
             
             LeftTop:setScale(Vector(0.02,0.02,DistMath/45)*(owner():keyDown(IN_KEY.ATTACK2) and 1 or 0))
             RightMiddle:setScale(Vector(0.02,0.02,DistMath/45)*(owner():keyDown(IN_KEY.ATTACK2) and 1 or 0))
@@ -285,11 +286,12 @@ if CLIENT then
             blockAttack = input.isMouseDown(MOUSE.MOUSE1)
             
             local LaserPos = owner():getShootPos()+owner():getEyeAngles():getRight()*7+owner():getEyeAngles():getUp()*2
-            local AngMath = (LaserPos - (LOCKTARGET != owner() and LOCKTARGET != nil and (LOCKTARGET:getPos() + LOCKTARGET:obbCenter()) or owner():getEyeTrace().HitPos)):getAngle()
+            local endPos = (LOCKTARGET != owner() and LOCKTARGET != nil and (LOCKTARGET:getPos() + LOCKTARGET:obbCenter()) or owner():getEyeTrace().HitPos)
+            local AngMath = (LaserPos - endPos):getAngle()
             centerHolo:setPos(LaserPos)
             centerHolo:setAngles(AngMath:rotateAroundAxis(AngMath:getRight(), 90))
             
-            local DistMath = centerHolo:getPos():getDistance(owner():getEyeTrace().HitPos)
+            local DistMath = centerHolo:getPos():getDistance(endPos)
             
             LeftTop:setScale(Vector(0.02,0.02,DistMath/45)*(owner():keyDown(IN_KEY.ATTACK2) and 1 or 0))
             RightMiddle:setScale(Vector(0.02,0.02,DistMath/45)*(owner():keyDown(IN_KEY.ATTACK2) and 1 or 0))
