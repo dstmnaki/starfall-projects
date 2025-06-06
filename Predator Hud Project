@@ -390,19 +390,6 @@ if CLIENT then
     Light = light.create(owner():getPos(), 150, 0.5, Color(25,25,25))
     hook.add("drawhud", "", function()
         if owner():getHealth() > 0 then
-            if LOCKTARGET != owner() and TARGET == nil then
-                if input.isMouseDown(MOUSE.MOUSE3) then
-                    if LOCKTARGETFIRST != true then
-                        LOCKTARGETFIRST = true
-                        owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_canceltarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
-                        FRAME = 0
-                        Animation = "unassigntarget"
-                        AnimationPlaying = true
-                        PRESSBUTTON = false
-                    end
-                end
-            end
-            
             if TARGETLOCK == nil or TARGETLOCK == owner() then TARGETLOCK2 = false end
             Light:setPos(owner():getPos()+Vector(0,0,35))
             Light:draw()
@@ -1024,6 +1011,18 @@ if CLIENT then
             else
                 LOCKTARGET2 = false
                 LOCKTARGET = owner()
+            end
+            if LOCKTARGET != owner() and LOCKTARGET2 != false then
+                if input.isMouseDown(MOUSE.MOUSE3) then
+                    if LOCKTARGETFIRST != true then
+                        LOCKTARGETFIRST = true
+                        owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_canceltarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
+                        FRAME = 0
+                        Animation = "unassigntarget"
+                        AnimationPlaying = true
+                        PRESSBUTTON = false
+                    end
+                end
             end
         end
     end)
