@@ -476,6 +476,12 @@ if CLIENT then
                         AnimationPlaying = false
                         FRAME = 0
                     end
+                    if FRAME >= 0.7 and LOCKTARGET != TARGET then
+                        LOCKTARGET=TARGET
+                        net.start("target")
+                        net.writeEntity(TARGET)
+                        net.send()
+                    end
                     vmHolo:setAnimation("predator_hud_battery_interaction", math.sin(math.rad(FRAME*180))*0.25, 0)
                 end
                 if Animation == "unassigntarget" then
@@ -484,6 +490,12 @@ if CLIENT then
                         Animation = ""
                         AnimationPlaying = false
                         FRAME = 0
+                    end
+                    if FRAME >= 0.7 and LOCKTARGET != nil then
+                        LOCKTARGET=nil
+                        net.start("target")
+                        net.writeEntity(owner())
+                        net.send()
                     end
                     vmHolo:setAnimation("predator_hud_battery_interaction", math.sin(math.rad(FRAME*180))*0.2, 0)
                 end
@@ -685,20 +697,12 @@ if CLIENT then
                                 if LOCKTARGETFIRST != true then
                                     LOCKTARGETFIRST = true
                                     if LOCKTARGET == nil then
-                                        LOCKTARGET=TARGET
                                         owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_confirmtarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
-                                        net.start("target")
-                                        net.writeEntity(TARGET)
-                                        net.send()
                                         FRAME = 0
                                         Animation = "assigntarget"
                                         AnimationPlaying = true
                                     else
-                                        LOCKTARGET=nil
                                         owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_canceltarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
-                                        net.start("target")
-                                        net.writeEntity(owner())
-                                        net.send()
                                         FRAME = 0
                                         Animation = "unassigntarget"
                                         AnimationPlaying = true
@@ -741,13 +745,13 @@ if CLIENT then
                             owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_aquiretarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
                             SENDFIRST = false
                             TARGETLOCKON = false
-                            LOCKTARGETFIRST = false
                             if LOCKTARGET != nil then
                                 LOCKTARGET = nil
                                 net.start("target")
                                 net.writeEntity(owner())
                                 net.send()
                             end
+                            LOCKTARGETFIRST = false
                         end
                     end
                     if TARGETLOCKON then
