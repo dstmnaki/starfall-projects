@@ -882,7 +882,7 @@ if CLIENT then
                                         if distSqr < 15000 and trOK then
                                             local dirToEnt = toEnt:getNormalized()
                                             local dot = owner():getEyeAngles():getForward():dot(dirToEnt)
-                                            if dot >= math.cos(math.rad(5 / 2)) then
+                                            if dot >= math.cos(math.rad(3 / 2)) then
                                                 aimEntity = ent
                                             end
                                         end
@@ -899,7 +899,7 @@ if CLIENT then
                         if distSqr < 15000 and trOK then
                             local dirToEnt = toEnt:getNormalized()
                             local dot = owner():getEyeAngles():getForward():dot(dirToEnt)
-                            if dot < math.cos(math.rad(7 / 2)) then
+                            if dot < math.cos(math.rad(5 / 2)) then
                                 aimEntity = nil
                             end
                         else
