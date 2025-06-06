@@ -1,7 +1,7 @@
 --@name Predator Hud Project
 --@author Naki
 --@shared
-
+local LOCKON = true
 --[[
   
     PREDATOR HUD PROJECT by Naki
@@ -60,7 +60,6 @@ end)
 
 if SERVER then
     local USEFLIR = wire.serverUUID() != "1c17c305-2132-4428-840e-3f4cb52f9705"
-    local LOCKON = true
     local storeRunSpeed = 400
     local storeJumpPower = 200
     owner():setRunSpeed(storeRunSpeed*1.3)
@@ -176,7 +175,7 @@ if CLIENT then
         holo:setMaterial("models/debug/debugwhite")
     end
     
-    vmHolo = hologram.create(Vector(0,0,0), Angle(0,0,0), "models/cpthazama/avp/predators/hud.mdl", Vector(1,1,1))
+    local vmHolo = hologram.create(Vector(0,0,0), Angle(0,0,0), "models/cpthazama/avp/predators/hud.mdl", Vector(1,1,1))
     vmHolo:setParent(owner():getActiveWeapon())
     
     local thermalOn = false
