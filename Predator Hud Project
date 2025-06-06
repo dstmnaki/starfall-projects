@@ -23,7 +23,7 @@
     MOUSE2 - TRACK
     MOUSE4 - ZOOM (MOUSE WHEEL TO ZOOM IN AND OUT)
     
-    NOTE THE THERMAL VISION RUNS VIA CONCMD, YOU CAN CHECK THE COMMAND HERE OR BELOW WHERE THE CONCMD LINE RUNS AT (LINES 86 & 88)
+    NOTE THE THERMAL VISION RUNS VIA CONCMD, YOU CAN CHECK THE COMMAND HERE
     *"pp_texturize \"pp/texturize/thermal_gradient.png\"; pp_colormod 1; pp_colormod_addb 0; pp_colormod_addg 0; pp_colormod_addr 0; pp_colormod_color 1; pp_colormod_contrast 1; pp_colormod_mulb 0; pp_colormod_mulg 0; pp_colormod_mulr 0"..(USEFLIR and "; flir_toggle" or "")*
     *"pp_texturize \"\"; pp_colormod 0"..(USEFLIR and "; flir_toggle" or "")*
     
@@ -388,12 +388,29 @@ if CLIENT then
     hook.add("PlayerFootstep", "", function(ply, pos, foot, snd, volume)
         return true
     end)
-    Light = light.create(owner():getPos(), 150, 0.5, Color(25,25,25))
+    local function MaskShape(maskData)
+        m = Matrix()
+        m:setTranslation(Vector(maskData[1], maskData[2]))
+        
+        render.pushMatrix(m)
+        
+        render.setColor(Color(25, 25, 25, 255))
+        render.drawRectRotated(maskData[3], maskData[4], maskData[5], maskData[6],maskData[7])
+        render.drawRectRotated(maskData[3]+maskData[3]*0.1, maskData[4], maskData[5], maskData[6],maskData[7])
+        
+        render.popMatrix()
+    end
+    local function StencilSetMask(data)
+        render.setStencilReferenceValue( 1 )
+        render.setStencilCompareFunction( STENCIL.NEVER )
+        render.setStencilFailOperation( STENCIL.REPLACE )
+        MaskShape(data)
+    end
+    
+    
     hook.add("drawhud", "", function()
         if owner():getHealth() > 0 then
             if TARGETLOCK == nil or TARGETLOCK == owner() then TARGETLOCK2 = false end
-            Light:setPos(owner():getPos()+Vector(0,0,35))
-            Light:draw()
             WPNOK = owner():getActiveWeapon():getClass() == "none"
             vmHolo:setPos(owner():getShootPos())
             vmHolo:setAngles(Angle(owner():getEyeAngles().pitch-15*math.clamp(math.sin(math.rad(FRAME*180))*2,0,1)*((Animation == "assigntarget" or Animation == "unassigntarget" and AnimationPlaying) and 1 or 0), owner():getEyeAngles().yaw, 0))
@@ -665,10 +682,30 @@ if CLIENT then
             render.setColor(thermalOn and Color(255,200,0)*0.7 or Color(255,200,0))
             render.drawTexturedRectRotated(w-w*0.25, h-h*0.1, w*0.3, h*0.12,-1)
             
+            render.setStencilEnable(true)
+            
+            render.setStencilWriteMask( 0xFF )
+            render.setStencilTestMask( 0xFF )
+            render.setStencilReferenceValue( 0 )
+            render.setStencilPassOperation( STENCIL.KEEP )
+            render.setStencilZFailOperation( STENCIL.KEEP )
+            render.clearStencil()
+            
+            render.setStencilReferenceValue( 1 )
+            render.setStencilCompareFunction( STENCIL.NEVER )
+            render.setStencilFailOperation( STENCIL.REPLACE )
+            
+            local data = {0,0,w-w*0.29+(w*0.265*(owner():getHealth()/owner():getMaxHealth())),h+h*0.1,h*0.5,h*0.5,-21}
+            
+            StencilSetMask(data)
+            render.setStencilCompareFunction( STENCIL.GREATER )
+            render.setStencilFailOperation( STENCIL.KEEP )
+            
             render.setMaterial(HealthBarMat)
             render.setColor(thermalOn and Color(255,200,0)*0.7 or Color(255,200,0))
             render.drawTexturedRectRotated(w-w*0.25, h-h*0.1, w*0.3, h*0.12,-1)
             
+            render.setStencilEnable(false)
             
             
             -- CROSSHAIR
