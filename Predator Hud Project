@@ -2,42 +2,67 @@
 --@author Naki
 --@shared
 --[[
-  
-    PREDATOR HUD PROJECT by Naki
+================================================================================================================================
     
-    !!!THIS WAS MADE TO WORK ON BUILDSTRUCT AND A.P.E.S ONLY ANY OTHER SERVER MAY NOT WORK DUE TO PERMISSION SETTINGS!!!
     
-    FOR SINGLEPLAYER USE INSTRUCTIONS:
-    RUN THE FOLLOWING COMMANDS
-    nsf_permission entities.blockDamage entities 1
-    nsf_permission entities.blockDamage usergroups 1
-    nsf_permission game.blastDamage usergroups 1
-    nsf_permission player.modifyMovementProperties usergroups 1
-    nsf_permission player.modifyMovementProperties entities 1
-    (THESE ALLOW YOU TO BLOCK FALL DAMAGE, CREATE EXPLOSIONS AND MODIFY MOVEMENT SPEED & JUMP HEIGHT)
+                                     P R E D A T O R   H U D   P R O J E C T   b y   N a k i
     
-    SHOULD YOU EXCEED CPU QUOTA (sf_timebuffer_cl_owner 0.25 AND sf_timebuffer_cl 0.25)
     
-    !!!CHECK THE GITHUB FOR UPDATES!!!
-    https://github.com/dstmnaki/starfall-projects/blob/main/Predator%20Hud%20Project
+    ========================================================================================================================
+    !!!                                                                                                                  !!!
+    !!!     DESIGNED TO WORK ON BUILDSTRUCT AND A.P.E.S ONLY ANY OTHER SERVER MAY NOT WORK DUE TO PERMISSION SETTINGS    !!!
+    !!!       CFC HAS PARTIAL SUPPORT (HIGHER RANK 'DEVOTEE' MAY BE REQUIRED FOR SOME FUNCTIONS TO WORK, 300 HOURS)      !!!
+    !!!                                                                                                                  !!!
+    ========================================================================================================================
     
-    !!!REQUIRES AVP 2010 SNPCS PACK TO WORK!!!
-    https://steamcommunity.com/sharedfiles/filedetails/?id=3491940716
     
-    CONTROLS:
-    R - CLOAK
-    F - TOGGLE THERMAL
-    MOUSE1 - ATTACK
-    MOUSE1 + MOUSE2 - FIRE PLASMA CASTER
-    MOUSE3 (WHILE TRACKING AND LOCKED ON) - ASSIGN/UNASSIGN TARGET
-    MOUSE3 (WHILE LOCKED ON) - UNASSIGN TARGET
-    MOUSE2 - TRACK
-    MOUSE4 - ZOOM (MOUSE WHEEL TO ZOOM IN AND OUT)
+                               - F O R   S I N G L E P L A Y E R   U S E   I N S T R U C T I O N S -
     
-    NOTE THE THERMAL VISION RUNS VIA CONCMD, YOU CAN CHECK THE COMMAND HERE
-    *"pp_texturize \"pp/texturize/thermal_gradient.png\"; pp_colormod 1; pp_colormod_addb 0; pp_colormod_addg 0; pp_colormod_addr 0; pp_colormod_color 1; pp_colormod_contrast 1; pp_colormod_mulb 0; pp_colormod_mulg 0; pp_colormod_mulr 0"..(USEFLIR and "; flir_toggle" or "")*
-    *"pp_texturize \"\"; pp_colormod 0"..(USEFLIR and "; flir_toggle" or "")*
+                                                  RUN THE FOLLOWING COMMANDS
+                                        nsf_permission entities.blockDamage entities 1
+                                       nsf_permission entities.blockDamage usergroups 1
+                                         nsf_permission game.blastDamage usergroups 1
+                                   nsf_permission player.modifyMovementProperties usergroups 1
+                                    nsf_permission player.modifyMovementProperties entities 1
+                    (THESE ALLOW YOU TO BLOCK FALL DAMAGE, CREATE EXPLOSIONS AND MODIFY MOVEMENT SPEED & JUMP HEIGHT)
     
+                          SHOULD YOU EXCEED CPU QUOTA (sf_timebuffer_cl_owner 0.25 AND sf_timebuffer_cl 0.25)
+    
+    
+    
+                        ! ! ! R E Q U I R E S   A V P   2 0 1 0   S N P C S   P A C K   T O   W O R K ! ! !
+                               https://steamcommunity.com/sharedfiles/filedetails/?id=3491940716
+    
+    
+    
+                                                       - C O N T R O L S -
+                                 R -------------------------------------------------------- CLOAK
+                                 F ----------------------------------------------- TOGGLE THERMAL
+                                 MOUSE1 -------------------------------------------------- ATTACK
+                                 MOUSE1 (WHILE TRACKING) --------------------- FIRE PLASMA CASTER
+                                 MOUSE3 (WHILE TRACKING AND LOCKED ON) --- ASSIGN/UNASSIGN TARGET
+                                 MOUSE3 (WHILE LOCKED ON) ----------------------- UNASSIGN TARGET
+                                 MOUSE2 --------------------------------------------------- TRACK
+                                 MOUSE4 ------------------- ZOOM (MOUSE WHEEL TO ZOOM IN AND OUT)
+    
+    
+               NOTE THE THERMAL VISION RUNS VIA CONCMD, YOU CAN CHECK THE COMMAND AT LINE 351 AND BELOW, IF YOU NEED TO
+    
+    
+    
+                                                        - C R E D I T S -
+    
+                      HUGE THANKS TO CPT. HAZAMA FOR CREATING THE AVP 2010 SNPC PACK, ALL ASSETS BELONG TO THEM
+                       I TAKE CREDIT FOR THIS CODE, SHARING IS PERMITTED, LINK THIS GITHUB FOR FUTURE UPDATES
+                
+                
+                
+                                                  - G I T H U B   M I R R O R -
+                                                
+                          https://github.com/dstmnaki/starfall-projects/blob/main/Predator%20Hud%20Project
+    
+    
+================================================================================================================================
 ]]--
 local plasmaholo = {}
 local TARGETSERVER = owner()
