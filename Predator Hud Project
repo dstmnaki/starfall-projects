@@ -1052,14 +1052,12 @@ if CLIENT then
             end
             if LOCKTARGET2 != false then
                 if input.isMouseDown(MOUSE.MOUSE3) then
-                    if LOCKTARGETFIRST != true then
-                        LOCKTARGETFIRST = true
-                        owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_canceltarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
-                        FRAME = 0
-                        Animation = "unassigntarget"
-                        AnimationPlaying = true
-                        PRESSBUTTON = false
-                    end
+                    LOCKTARGET2 = false
+                    owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_canceltarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
+                    FRAME = 0
+                    Animation = "unassigntarget"
+                    AnimationPlaying = true
+                    PRESSBUTTON = false
                 end
             end
         end
