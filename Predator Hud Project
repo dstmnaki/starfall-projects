@@ -1050,7 +1050,7 @@ if CLIENT then
                 LOCKTARGET2 = false
                 LOCKTARGET = owner()
             end
-            if LOCKTARGET != owner() and LOCKTARGET2 != false then
+            if LOCKTARGET2 != false then
                 if input.isMouseDown(MOUSE.MOUSE3) then
                     if LOCKTARGETFIRST != true then
                         LOCKTARGETFIRST = true
