@@ -262,7 +262,9 @@ if CLIENT then
             if input.isMouseDown(MOUSE.MOUSE1) and blockAttack != true and canAttack and owner():isTyping() == false and WPNOK then
                 blockAttack = true
                 if input.isMouseDown(MOUSE.MOUSE2) and not input.isMouseDown(MOUSE.MOUSE4) and not owner():isTyping() and WPNOK then
-                    shootPlasmaCaster()
+                    if not AnimationPlaying and Animation == "" then
+                        shootPlasmaCaster()
+                    end
                 else
                     canAttack = false
                     Animation = "attack_light"
