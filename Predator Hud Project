@@ -467,13 +467,13 @@ if CLIENT then
                     vmHolo:setAnimation("predator_hud_console_open", FRAME, 0)
                 end
                 if Animation == "assigntarget" then
-                    FRAME = FRAME + 0.01*timer.frametime()*66
+                    FRAME = FRAME + 0.015*timer.frametime()*66
                     if FRAME >= 1 then
                         Animation = ""
                         AnimationPlaying = false
                         FRAME = 0
                     end
-                    vmHolo:setAnimation("predator_hud_battery_interaction", math.sin(math.rad(FRAME*180))*0.3, 0)
+                    vmHolo:setAnimation("predator_hud_battery_interaction", math.sin(math.rad(FRAME*180))*0.25, 0)
                 end
                 if Animation == "unassigntarget" then
                     FRAME = FRAME + 0.015*timer.frametime()*66
