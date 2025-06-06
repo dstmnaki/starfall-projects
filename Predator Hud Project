@@ -473,6 +473,8 @@ if CLIENT then
                         canAttack = true
                     end
                     vmHolo:setAnimation(selectedATTACK, FRAME, 0)
+                    startRandomIdleAnim = false
+                    timer.stop("random_idle")
                 end
                 if Animation == "idle_stretch" then
                     FRAME = FRAME + 0.005*timer.frametime()*66
