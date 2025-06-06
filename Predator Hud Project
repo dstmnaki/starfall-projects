@@ -212,7 +212,7 @@ if CLIENT then
     local aimEntity = nil
     local LOCKTARGET = nil
     local LOCKTARGETVAL = 0
-    
+    local PRESSBUTTON = false
     function shootPlasmaCaster()
         if plasmacasterct == nil then plasmacasterct = 0 end
         if timer.curtime() - plasmacasterct > 0.5 then
@@ -481,21 +481,27 @@ if CLIENT then
                         net.start("target")
                         net.writeEntity(TARGET)
                         net.send()
+                        owner():emitSound("cpthazama/avp/predator/console/prd_console_close_01.ogg", 100, 100, 1, CHANNEL_AUTO)
                     end
                     vmHolo:setAnimation("predator_hud_battery_interaction", math.sin(math.rad(FRAME*180))*0.25, 0)
                 end
                 if Animation == "unassigntarget" then
                     FRAME = FRAME + 0.015*timer.frametime()*66
-                    if FRAME >= 1 then
-                        Animation = ""
-                        AnimationPlaying = false
-                        FRAME = 0
-                    end
                     if FRAME >= 0.7 and LOCKTARGET != nil then
                         LOCKTARGET=nil
                         net.start("target")
                         net.writeEntity(owner())
                         net.send()
+                    end
+                    if FRAME >= 0.6 and PRESSBUTTON != true then
+                        PRESSBUTTON=true
+                        owner():emitSound("cpthazama/avp/predator/console/prd_console_button_press_01.ogg", 100, 100, 1, CHANNEL_AUTO)
+                    end
+                    if FRAME >= 1 then
+                        Animation = ""
+                        AnimationPlaying = false
+                        FRAME = 0
+                        PRESSBUTTON = false
                     end
                     vmHolo:setAnimation("predator_hud_battery_interaction", math.sin(math.rad(FRAME*180))*0.2, 0)
                 end
@@ -706,6 +712,7 @@ if CLIENT then
                                         FRAME = 0
                                         Animation = "unassigntarget"
                                         AnimationPlaying = true
+                                        PRESSBUTTON = false
                                     end
                                     
                                 end
