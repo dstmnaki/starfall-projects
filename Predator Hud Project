@@ -360,7 +360,7 @@ if CLIENT then
             Light:draw()
             WPNOK = owner():getActiveWeapon():getClass() == "none"
             vmHolo:setPos(owner():getShootPos())
-            vmHolo:setAngles(owner():getEyeAngles())
+            vmHolo:setAngles(Angle(owner():getEyeAngles().pitch-15*math.clamp(math.sin(math.rad(FRAME*180))*2,0,1)*((Animation == "assigntarget" or Animation == "unassigntarget" and AnimationPlaying) and 1 or 0), owner():getEyeAngles().yaw, 0))
             
             local cloakButton = input.isKeyDown(KEY.R) and owner():isTyping() == false 
             if cloakButton ~= lastCloakButtonState and cloakButton and cantogglecloak then
@@ -465,6 +465,24 @@ if CLIENT then
                         FRAME = 0
                     end
                     vmHolo:setAnimation("predator_hud_console_open", FRAME, 0)
+                end
+                if Animation == "assigntarget" then
+                    FRAME = FRAME + 0.01*timer.frametime()*66
+                    if FRAME >= 1 then
+                        Animation = ""
+                        AnimationPlaying = false
+                        FRAME = 0
+                    end
+                    vmHolo:setAnimation("predator_hud_battery_interaction", math.sin(math.rad(FRAME*180))*0.3, 0)
+                end
+                if Animation == "unassigntarget" then
+                    FRAME = FRAME + 0.015*timer.frametime()*66
+                    if FRAME >= 1 then
+                        Animation = ""
+                        AnimationPlaying = false
+                        FRAME = 0
+                    end
+                    vmHolo:setAnimation("predator_hud_battery_interaction", math.sin(math.rad(FRAME*180))*0.2, 0)
                 end
                 if Animation == "attack_light" then
                     FRAME = FRAME + 0.035*timer.frametime()*66
@@ -669,12 +687,18 @@ if CLIENT then
                                         net.start("target")
                                         net.writeEntity(TARGET)
                                         net.send()
+                                        FRAME = 0
+                                        Animation = "assigntarget"
+                                        AnimationPlaying = true
                                     else
                                         LOCKTARGET=nil
                                         owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_canceltarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
                                         net.start("target")
                                         net.writeEntity(owner())
                                         net.send()
+                                        FRAME = 0
+                                        Animation = "unassigntarget"
+                                        AnimationPlaying = true
                                     end
                                     
                                 end
@@ -883,7 +907,7 @@ if CLIENT then
     end)
     hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
         if owner():getHealth() > 0 then
-            if AnimationPlaying and Animation != "cloaktoggle" and Animation != "attack_light" then
+            if AnimationPlaying and Animation != "cloaktoggle" and Animation != "attack_light" and Animation != "assigntarget" and Animation != "unassigntarget" then
                 anglesLerp = math.lerpAngle(0.2,anglesLerp, manipulateang and manipulateang or ang)
                 originLerp = math.lerpVector(0.2, originLerp, manipulatepos and manipulatepos or pos)
                 fovLerp = math.lerp(0.2, fovLerp, manipulatefov and manipulatefov or 80)
