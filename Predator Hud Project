@@ -1,7 +1,6 @@
 --@name Predator Hud Project
 --@author Naki
 --@shared
-local LOCKON = true
 --[[
   
     PREDATOR HUD PROJECT by Naki
@@ -654,154 +653,148 @@ if CLIENT then
             
             --TRACKING TRIANGLES
             if TRACKING then
-                if LOCKON then
-                    if TARGET == nil then
-                        local players = find.allPlayers()
-                        local npcs = find.byClass("npc_*")
-                        local entities = {}
-                        table.merge(entities, players)
-                        table.merge(entities, npcs)
-                        
-                        local cursorX, cursorY = input.getCursorPos() // 2D cursor position on screen
-                        
-                        local bestTarget = nil
-                        local bestDistance = 1e9
-                        
-                        for i = 1, #entities do
-                            local ent = entities[i]
-                            if not isValid(ent) or ent == owner() then continue end
-                        
-                            local screenPosData = ent:getPos():toScreen()
-                            if not screenPosData.visible then continue end // only track visible objects
-                        
-                            local screenPos = Vector(screenPosData.x, screenPosData.y, 0)
-                            local cursorPos = Vector(cursorX, cursorY, 0)
-                            local dist2D = (screenPos - cursorPos):getLength()
-                        
-                            if dist2D < bestDistance then
-                                local entPos = ent:getPos() + ent:obbCenter()
-                                local toEnt = entPos - owner():getShootPos()
-                                local dist3D = toEnt:getLength()
-                        
-                                if dist3D < 15000 then
-                                    local traceRes = trace.line(owner():getShootPos(), entPos, {owner(), ent}, nil, COLLISION_GROUP.IN_VEHICLE, false)
-                                    local trOK = entPos:getDistance(traceRes.HitPos) < 5
-                        
-                                    if trOK then
-                                        local dirToEnt = toEnt:getNormalized()
-                                        local dot = owner():getEyeAngles():getForward():dot(dirToEnt)
-                        
-                                        if dot >= math.cos(math.rad(55 / 2)) then
-                                            bestDistance = dist2D
-                                            bestTarget = ent
-                                        end
+                if TARGET == nil then
+                    local players = find.allPlayers()
+                    local npcs = find.byClass("npc_*")
+                    local entities = {}
+                    table.merge(entities, players)
+                    table.merge(entities, npcs)
+                    
+                    local cursorX, cursorY = input.getCursorPos() // 2D cursor position on screen
+                    
+                    local bestTarget = nil
+                    local bestDistance = 1e9
+                    
+                    for i = 1, #entities do
+                        local ent = entities[i]
+                        if not isValid(ent) or ent == owner() then continue end
+                    
+                        local screenPosData = ent:getPos():toScreen()
+                        if not screenPosData.visible then continue end // only track visible objects
+                    
+                        local screenPos = Vector(screenPosData.x, screenPosData.y, 0)
+                        local cursorPos = Vector(cursorX, cursorY, 0)
+                        local dist2D = (screenPos - cursorPos):getLength()
+                    
+                        if dist2D < bestDistance then
+                            local entPos = ent:getPos() + ent:obbCenter()
+                            local toEnt = entPos - owner():getShootPos()
+                            local dist3D = toEnt:getLength()
+                    
+                            if dist3D < 15000 then
+                                local traceRes = trace.line(owner():getShootPos(), entPos, {owner(), ent}, nil, COLLISION_GROUP.IN_VEHICLE, false)
+                                local trOK = entPos:getDistance(traceRes.HitPos) < 5
+                    
+                                if trOK then
+                                    local dirToEnt = toEnt:getNormalized()
+                                    local dot = owner():getEyeAngles():getForward():dot(dirToEnt)
+                    
+                                    if dot >= math.cos(math.rad(55 / 2)) then
+                                        bestDistance = dist2D
+                                        bestTarget = ent
                                     end
                                 end
                             end
                         end
-                        
-                        if bestTarget then
-                            TARGET = bestTarget
-                            TARGETFOUND = 0
-                            TRACKINGFIRST = false
-                        end
-                        LOCKTARGETFIRST = false
-                        if LOCKTARGET != nil then
-                            LOCKTARGET = nil
-                            net.start("target")
-                            net.writeEntity(owner())
-                            net.send()
-                        end
-                    else
-                        if isValid(TARGET) and TARGET != owner() then
-                            local locktargetbutton = input.isMouseDown(MOUSE.MOUSE3)
-                            if locktargetbutton then
-                                if LOCKTARGETFIRST != true then
-                                    LOCKTARGETFIRST = true
-                                    if LOCKTARGET == nil then
-                                        owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_confirmtarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
-                                        FRAME = 0
-                                        Animation = "assigntarget"
-                                        AnimationPlaying = true
-                                    else
-                                        owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_canceltarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
-                                        FRAME = 0
-                                        Animation = "unassigntarget"
-                                        AnimationPlaying = true
-                                        PRESSBUTTON = false
-                                    end
-                                    
+                    end
+                    
+                    if bestTarget then
+                        TARGET = bestTarget
+                        TARGETFOUND = 0
+                        TRACKINGFIRST = false
+                    end
+                    LOCKTARGETFIRST = false
+                    if LOCKTARGET != nil then
+                        LOCKTARGET = nil
+                        net.start("target")
+                        net.writeEntity(owner())
+                        net.send()
+                    end
+                else
+                    if isValid(TARGET) and TARGET != owner() then
+                        local locktargetbutton = input.isMouseDown(MOUSE.MOUSE3)
+                        if locktargetbutton then
+                            if LOCKTARGETFIRST != true then
+                                LOCKTARGETFIRST = true
+                                if LOCKTARGET == nil then
+                                    owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_confirmtarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
+                                    FRAME = 0
+                                    Animation = "assigntarget"
+                                    AnimationPlaying = true
+                                else
+                                    owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_canceltarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
+                                    FRAME = 0
+                                    Animation = "unassigntarget"
+                                    AnimationPlaying = true
+                                    PRESSBUTTON = false
                                 end
-                            else
-                                LOCKTARGETFIRST = false
+                                
                             end
-                            local toEnt = (TARGET:getPos() + TARGET:obbCenter()) - owner():getShootPos()
-                            local distSqr = toEnt:getLength()
-                            local trOK = (TARGET:getPos() + TARGET:obbCenter()):getDistance(trace.line(owner():getShootPos(),(TARGET:getPos() + TARGET:obbCenter()),{owner(),TARGET},nil, COLLISION_GROUP.IN_VEHICLE, false).HitPos)<5
-                            if distSqr < 15000 and trOK then
-                                local dirToEnt = toEnt:getNormalized()
-                                local dot = owner():getEyeAngles():getForward():dot(dirToEnt)
-                                if dot < math.cos(math.rad(60 / 2)) then
-                                    TARGET = nil
-                                end
-                            else
+                        else
+                            LOCKTARGETFIRST = false
+                        end
+                        local toEnt = (TARGET:getPos() + TARGET:obbCenter()) - owner():getShootPos()
+                        local distSqr = toEnt:getLength()
+                        local trOK = (TARGET:getPos() + TARGET:obbCenter()):getDistance(trace.line(owner():getShootPos(),(TARGET:getPos() + TARGET:obbCenter()),{owner(),TARGET},nil, COLLISION_GROUP.IN_VEHICLE, false).HitPos)<5
+                        if distSqr < 15000 and trOK then
+                            local dirToEnt = toEnt:getNormalized()
+                            local dot = owner():getEyeAngles():getForward():dot(dirToEnt)
+                            if dot < math.cos(math.rad(60 / 2)) then
                                 TARGET = nil
                             end
                         else
                             TARGET = nil
                         end
-                        if TARGET == nil then
-                            TRACKINGFIRST = false
-                        end
-                    end
-                    
-                    if TRACKINGFIRST != true then
-                        TRACKINGFIRST = true
-                        if TARGET == nil then
-                            owner():emitSound("cpthazama/avp/predator/vision_loopfx.wav", 100, 100, 1, CHANNEL_AUTO)
-                            owner():emitSound("cpthazama/avp/shared/pickup_audiodiary.ogg", 100, 100, 1, CHANNEL_AUTO)
-                            SENDFIRST = false
-                            TARGETLOCKON = false
-                            LOCKTARGETFIRST = false
-                        else
-                            owner():stopSound("cpthazama/avp/predator/vision_loopfx.wav")
-                            owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_aquiretarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
-                            SENDFIRST = false
-                            TARGETLOCKON = false
-                            if LOCKTARGET != nil then
-                                LOCKTARGET = nil
-                                owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_canceltarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
-                                net.start("target")
-                                net.writeEntity(owner())
-                                net.send()
-                            end
-                            LOCKTARGETFIRST = false
-                        end
-                    end
-                    if TARGETLOCKON then
-                        if SENDFIRST != true then
-                            SENDFIRST = true
-                        end
                     else
+                        TARGET = nil
+                    end
+                    if TARGET == nil then
+                        TRACKINGFIRST = false
+                    end
+                end
+                
+                if TRACKINGFIRST != true then
+                    TRACKINGFIRST = true
+                    if TARGET == nil then
+                        owner():emitSound("cpthazama/avp/predator/vision_loopfx.wav", 100, 100, 1, CHANNEL_AUTO)
+                        owner():emitSound("cpthazama/avp/shared/pickup_audiodiary.ogg", 100, 100, 1, CHANNEL_AUTO)
                         SENDFIRST = false
-                    end
-                    if TARGET then
-                        POSTOSCREEN = (TARGET:getPos()+TARGET:obbCenter()):toScreen()
-                        LOCALPOS = Vector(POSTOSCREEN["x"],POSTOSCREEN["y"],0)
-                        POSTOSCREEN2 = TARGET:getPos():toScreen()
-                        LOCALPOS2 = Vector(POSTOSCREEN2["x"],POSTOSCREEN2["y"],0)
-                        SCALEME = LOCALPOS:getDistance(LOCALPOS2)*0.8
+                        TARGETLOCKON = false
+                        LOCKTARGETFIRST = false
                     else
-                        LOCALPOS = Vector(w/2,h/2,0)
-                        SCALEME = 0
+                        owner():stopSound("cpthazama/avp/predator/vision_loopfx.wav")
+                        owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_aquiretarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
+                        SENDFIRST = false
+                        TARGETLOCKON = false
+                        if LOCKTARGET != nil then
+                            LOCKTARGET = nil
+                            owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_canceltarget_01.ogg", 100, 100, 1, CHANNEL_AUTO)
+                            net.start("target")
+                            net.writeEntity(owner())
+                            net.send()
+                        end
+                        LOCKTARGETFIRST = false
                     end
-                    TARGETFOUND = TARGETFOUND + 0.05*(TARGET != nil and 1 or -1)*timer.frametime()*66
-                    TARGETFOUND = math.clamp(TARGETFOUND,0,1)
+                end
+                if TARGETLOCKON then
+                    if SENDFIRST != true then
+                        SENDFIRST = true
+                    end
+                else
+                    SENDFIRST = false
+                end
+                if TARGET then
+                    POSTOSCREEN = (TARGET:getPos()+TARGET:obbCenter()):toScreen()
+                    LOCALPOS = Vector(POSTOSCREEN["x"],POSTOSCREEN["y"],0)
+                    POSTOSCREEN2 = TARGET:getPos():toScreen()
+                    LOCALPOS2 = Vector(POSTOSCREEN2["x"],POSTOSCREEN2["y"],0)
+                    SCALEME = LOCALPOS:getDistance(LOCALPOS2)*0.8
                 else
                     LOCALPOS = Vector(w/2,h/2,0)
                     SCALEME = 0
-                    TARGETFOUND = 1
                 end
+                TARGETFOUND = TARGETFOUND + 0.05*(TARGET != nil and 1 or -1)*timer.frametime()*66
+                TARGETFOUND = math.clamp(TARGETFOUND,0,1)
                 render.setColor(thermalOn and Color(125*0.8,165*0.8,255*0.8) or Color(255,0,0))
                 ROTATION = (ROTATION+(0.3+TARGETFOUND*0.7)*timer.frametime()*66)*(LOCKTARGET == nil and 1 or 0)
                 LOCKTARGETVAL = LOCKTARGETVAL+0.1*(LOCKTARGET != nil and 1 or -1)*timer.frametime()*66
