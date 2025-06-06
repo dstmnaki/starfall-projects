@@ -21,7 +21,7 @@ local LOCKON = true
     MOUSE1 + MOUSE2 - FIRE PLASMA CASTER
     MOUSE3 (WHILE TRACKING AND LOCKED ON) - ASSIGN/UNASSIGN TARGET
     MOUSE2 - TRACK
-    MOUSE4 - ZOOM
+    MOUSE4 - ZOOM (MOUSE WHEEL TO ZOOM IN AND OUT)
     
     NOTE THE THERMAL VISION RUNS VIA CONCMD, YOU CAN CHECK THE COMMAND HERE OR BELOW WHERE THE CONCMD LINE RUNS AT (LINES 86 & 88)
     *"pp_texturize \"pp/texturize/thermal_gradient.png\"; pp_colormod 1; pp_colormod_addb 0; pp_colormod_addg 0; pp_colormod_addr 0; pp_colormod_color 1; pp_colormod_contrast 1; pp_colormod_mulb 0; pp_colormod_mulg 0; pp_colormod_mulr 0"..(USEFLIR and "; flir_toggle" or "")*
