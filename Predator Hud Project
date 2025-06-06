@@ -7,6 +7,15 @@
     
     !!!THIS WAS MADE TO WORK ON BUILDSTRUCT AND A.P.E.S ONLY ANY OTHER SERVER MAY NOT WORK DUE TO PERMISSION SETTINGS!!!
     
+    FOR SINGLEPLAYER USE INSTRUCTIONS:
+    RUN THE FOLLOWING COMMANDS
+    nsf_permission entities.blockDamage entities 1
+    nsf_permission entities.blockDamage usergroups 1
+    nsf_permission game.blastDamage usergroups 1
+    nsf_permission player.modifyMovementProperties usergroups 1
+    nsf_permission player.modifyMovementProperties entities 1
+    (THESE ALLOW YOU TO BLOCK FALL DAMAGE, CREATE EXPLOSIONS AND MODIFY MOVEMENT SPEED & JUMP HEIGHT)
+    
     !!!CHECK THE GITHUB FOR UPDATES!!!
     https://github.com/dstmnaki/starfall-projects/blob/main/Predator%20Hud%20Project
     
