@@ -211,6 +211,7 @@ if CLIENT then
     local ENERGY = 0
     local aimEntity = nil
     local LOCKTARGET = nil
+    local LOCKTARGETVAL = 0
     
     function shootPlasmaCaster()
         if plasmacasterct == nil then plasmacasterct = 0 end
@@ -774,16 +775,18 @@ if CLIENT then
                     TARGETFOUND = 1
                 end
                 render.setColor(thermalOn and Color(125*0.8,165*0.8,255*0.8) or Color(255,0,0))
-                ROTATION = ROTATION+(0.3+TARGETFOUND*0.7)*timer.frametime()*66
+                ROTATION = (ROTATION+(0.3+TARGETFOUND*0.7)*timer.frametime()*66)*(LOCKTARGET == nil and 1 or 0)
+                LOCKTARGETVAL = LOCKTARGETVAL+0.1*(LOCKTARGET != nil and 1 or -1)*timer.frametime()*66
+                LOCKTARGETVAL = math.clamp(LOCKTARGETVAL,0,1)
                 
                 SIZE1 = SIZE1+(0.04+0.05*SIZE1)*timer.frametime()*66
-                SIZE1 = math.clamp(SIZE1,0,1*TARGETFOUND)
+                SIZE1 = math.clamp(SIZE1,0,1*TARGETFOUND)*(1+0.05*LOCKTARGETVAL)
                 
                 SIZE2 = SIZE2+(0.04+0.05*SIZE2)*(SIZE1>=1 and 1 or 0)*timer.frametime()*66
-                SIZE2 = math.clamp(SIZE2,0,1*TARGETFOUND)
+                SIZE2 = math.clamp(SIZE2,0,1*TARGETFOUND)*(1+0.05*LOCKTARGETVAL)
                 
                 SIZE3 = SIZE3+(0.04+0.05*SIZE3)*(SIZE2>=1 and 1 or 0)*timer.frametime()*66
-                SIZE3 = math.clamp(SIZE3,0,1*TARGETFOUND)
+                SIZE3 = math.clamp(SIZE3,0,1*TARGETFOUND)*(1+0.05*LOCKTARGETVAL)
                 
                 local LargeScale = h/1.15
                 local NegateScale = LargeScale*0.925
