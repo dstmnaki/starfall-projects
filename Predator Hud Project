@@ -212,7 +212,7 @@ if SERVER then
 end
 if CLIENT then
     if #NamePatterns == 0 then
-        print("NO NAME PATTERNS ADDED, USING DEFAULT PLAYER NAME, CONSIDER ADDING SOME AT LINE 71!")
+        print("NO NAME PATTERNS ADDED, USING DEFAULT PLAYER NAME, CONSIDER ADDING SOME AT LINE 70!")
         NamePatterns = {owner():getName()}
     end
     hook.add("net","",function(name,len,ply)
