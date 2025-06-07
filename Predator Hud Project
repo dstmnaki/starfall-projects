@@ -68,7 +68,7 @@
 
 
 
-local NamePatterns = {"naki","dstmnaki","[dstm]naki","[dstm] naki"}
+local NamePatterns = {}
 --NAMES TO DETECT IN TRANSLATOR, SEPARATE USING COMMANS, i.e {naki, dstmnaki}
 
 
