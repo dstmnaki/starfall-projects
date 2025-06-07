@@ -1,9 +1,12 @@
---@name Predator Chat System
+--@name Predator chat System
 --@author Naki
 --@shared
 
 -- Server sending
 if SERVER then
+    local hud = prop.createComponent(chip():getPos()+Vector(0,0,10), Angle(0), "starfall_hud", "models/props_combine/breenglobe.mdl", true)
+    hud:linkComponent(chip())
+    
     hook.add("PlayerSay", "MessageRelay", function(ply, text, teamChat)
         if ply:isHUDActive() then
             if text:sub(1, 3) == ".a " then
@@ -179,7 +182,6 @@ end
 
 hook.add("HUDConnected", "HudInit", function(ent, ply)
     if CLIENT and ply == player() then
-        
         if hasPermission("file.existsInGame",ply) then
             hasAVPSNPCS = file.existsInGame("materials/hud/cpthazama/avp/icons/human.png")
             hasSymbols = file.existsInGame("materials/naki/000.png")
