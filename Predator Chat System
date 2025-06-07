@@ -123,11 +123,11 @@ function runEverything(HudActive,useAssets)
                 "cpthazama/avp/predator/speech/p04_plz_03_pe.ogg",
                 "cpthazama/avp/predator/speech/p04_plz_04_pe.ogg",
             }
-
             local available = table.copy(pool)
             table.removeByValue(available, lastVocals)
 
             lastVocals = table.random(available)
+            
             return lastVocals
         end
 
