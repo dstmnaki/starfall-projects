@@ -333,6 +333,19 @@ if CLIENT then
         }
         return table.random(t)
     end
+    function randspeechsnd()
+        local t = {
+            "cpthazama/avp/predator/speech/p04_hc_01_pe.ogg",
+            "cpthazama/avp/predator/speech/p04_hc_02_pe.ogg",
+            "cpthazama/avp/predator/speech/p04_junglealiens_pe.ogg",
+            "cpthazama/avp/predator/speech/p04_plz_01_pe.ogg",
+            "cpthazama/avp/predator/speech/p04_plz_02_pe.ogg",
+            "cpthazama/avp/predator/speech/p04_plz_03_pe.ogg",
+            "cpthazama/avp/predator/speech/p04_plz_04_pe.ogg",
+        }
+        return table.random(t)
+    end
+    
     hook.add("think","",function()
         if owner():getHealth() > 0 then
             WPNOK = owner():getActiveWeapon():getClass() == "none"
@@ -1213,6 +1226,7 @@ if CLIENT then
                     textAddTime = 0
                     textRemoval = false
                     textRemovalCT = 0
+                    owner():emitSound(randspeechsnd(), 100, 100, 1, CHANNEL_AUTO)
                 end
                 lastText = text
                 if textRemoval then
