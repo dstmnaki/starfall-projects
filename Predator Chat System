@@ -31,7 +31,7 @@ if SERVER then
                 local msg = text:sub(4)
                 for _, target in pairs(returnPlayers) do
                     if target != nil then
-                        if target:isHUDActive() then
+                        if isValid(target) and target:isHUDActive() then
                             net.start("sendToClient")
                             net.writeTable({ply, msg})
                             net.send(target, false)
