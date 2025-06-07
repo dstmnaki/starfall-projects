@@ -147,7 +147,9 @@ function runEverything(HudActive,useAssets)
         hook.add("PlayerChat", "BlockCommandEcho", function(ply, text)
             if ply == owner() and text:sub(1,5) == ".say " then return false end
         end)
-
+        
+        local holo = hologram.create(chip():getPos(), Angle(0,0,0), "models/hunter/blocks/cube025x025x025.mdl", Vector(0,0,0))
+        
         hook.add("drawhud", "RenderChat", function()
             if #chatbuffer == 0 then return end
             local text = chatbuffer[1]
@@ -162,7 +164,8 @@ function runEverything(HudActive,useAssets)
                 textTransitionCT = 0
                 textFinished = false
                 textRemoval = false
-                player():emitSound(randspeechsnd(), 100, 100, 1, CHANNEL_AUTO)
+                holo:setPos(player():getPos())
+                holo:emitSound(randspeechsnd(), 100, 100, 1, CHAN_WEAPON)
             end
             lastText = text
 
