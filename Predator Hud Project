@@ -418,76 +418,74 @@ if CLIENT then
     TriangleSideMat = material.create("UnlitGeneric")
     TriangleSideMat:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/by1y6bwjsytz5o268wfzd/triangle_side.png?rlkey=5b6jntvkw33d9rr54kw5aylms&dl=1", nil, nil)
     
-    if hasLanguageInstalled then
-        symbols = {}
-        
-        for i = 0, 25 do
-            if i < 10 then
-                symbols[i] = material.createFromImage("naki/00"..i..".png", "noclamp smooth")
-            else
-                symbols[i] = material.createFromImage("naki/0"..i..".png", "noclamp smooth")
-            end
+    symbols = {}
+    
+    for i = 0, 25 do
+        if i < 10 then
+            symbols[i] = material.createFromImage("naki/00"..i..".png", "noclamp smooth")
+        else
+            symbols[i] = material.createFromImage("naki/0"..i..".png", "noclamp smooth")
         end
-        function GetSymbol(str)
-            if str != nil then
-                if string.lower(str) == "a" then
-                    return symbols[0]
-                elseif string.lower(str) == "b" then
-                    return symbols[1]
-                elseif string.lower(str) == "c" then
-                    return symbols[2]
-                elseif string.lower(str) == "d" then
-                    return symbols[3]
-                elseif string.lower(str) == "e" then
-                    return symbols[4]
-                elseif string.lower(str) == "f" then
-                    return symbols[5]
-                elseif string.lower(str) == "g" then
-                    return symbols[6]
-                elseif string.lower(str) == "h" then
-                    return symbols[7]
-                elseif string.lower(str) == "i" then
-                    return symbols[8]
-                elseif string.lower(str) == "j" then
-                    return symbols[9]
-                elseif string.lower(str) == "k" then
-                    return symbols[10]
-                elseif string.lower(str) == "l" then
-                    return symbols[11]
-                elseif string.lower(str) == "m" then
-                    return symbols[12]
-                elseif string.lower(str) == "n" then
-                    return symbols[13]
-                elseif string.lower(str) == "o" then
-                    return symbols[14]
-                elseif string.lower(str) == "p" then
-                    return symbols[15]
-                elseif string.lower(str) == "q" then
-                    return symbols[16]
-                elseif string.lower(str) == "r" then
-                    return symbols[17]
-                elseif string.lower(str) == "s" then
-                    return symbols[18]
-                elseif string.lower(str) == "t" then
-                    return symbols[19]
-                elseif string.lower(str) == "u" then
-                    return symbols[20]
-                elseif string.lower(str) == "v" then
-                    return symbols[21]
-                elseif string.lower(str) == "w" then
-                    return symbols[22]
-                elseif string.lower(str) == "x" then
-                    return symbols[23]
-                elseif string.lower(str) == "y" then
-                    return symbols[24]
-                elseif string.lower(str) == "z" then
-                    return symbols[25]
-                else
-                    return symbols[math.rand(0,25)]
-                end
+    end
+    function GetSymbol(str)
+        if str != nil then
+            if string.lower(str) == "a" then
+                return symbols[0]
+            elseif string.lower(str) == "b" then
+                return symbols[1]
+            elseif string.lower(str) == "c" then
+                return symbols[2]
+            elseif string.lower(str) == "d" then
+                return symbols[3]
+            elseif string.lower(str) == "e" then
+                return symbols[4]
+            elseif string.lower(str) == "f" then
+                return symbols[5]
+            elseif string.lower(str) == "g" then
+                return symbols[6]
+            elseif string.lower(str) == "h" then
+                return symbols[7]
+            elseif string.lower(str) == "i" then
+                return symbols[8]
+            elseif string.lower(str) == "j" then
+                return symbols[9]
+            elseif string.lower(str) == "k" then
+                return symbols[10]
+            elseif string.lower(str) == "l" then
+                return symbols[11]
+            elseif string.lower(str) == "m" then
+                return symbols[12]
+            elseif string.lower(str) == "n" then
+                return symbols[13]
+            elseif string.lower(str) == "o" then
+                return symbols[14]
+            elseif string.lower(str) == "p" then
+                return symbols[15]
+            elseif string.lower(str) == "q" then
+                return symbols[16]
+            elseif string.lower(str) == "r" then
+                return symbols[17]
+            elseif string.lower(str) == "s" then
+                return symbols[18]
+            elseif string.lower(str) == "t" then
+                return symbols[19]
+            elseif string.lower(str) == "u" then
+                return symbols[20]
+            elseif string.lower(str) == "v" then
+                return symbols[21]
+            elseif string.lower(str) == "w" then
+                return symbols[22]
+            elseif string.lower(str) == "x" then
+                return symbols[23]
+            elseif string.lower(str) == "y" then
+                return symbols[24]
+            elseif string.lower(str) == "z" then
+                return symbols[25]
             else
-                return nil
+                return symbols[math.rand(0,25)]
             end
+        else
+            return nil
         end
     end
     
