@@ -202,7 +202,7 @@ if SERVER then
     end)
 end
 if CLIENT then
-    local hasLanguageInstalled = string.getPathFromFilename("naki/000.png") != ""
+    local hasLanguageInstalled = string.getPathFromFilename("naki/000.png") != "naki/"
     if hasLanguageInstalled then
         print(Color(255,255,255),"YAUTJA LANGUAGE ",Color(0,255,255),"DETECTED",Color(255,255,255),", FULL TRANSLATOR AVAILABLE")
     else
