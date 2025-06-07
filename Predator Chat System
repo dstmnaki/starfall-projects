@@ -2,6 +2,11 @@
 --@author Naki
 --@shared
 
+--[[
+https://steamcommunity.com/sharedfiles/filedetails/?id=3491940716
+https://github.com/dstmnaki/starfall-projects/blob/main/yautja%20language%20letters.zip
+]]--
+
 -- Server sending
 if SERVER then
     local hud = prop.createComponent(chip():getPos()+Vector(0,0,10), Angle(0), "starfall_hud", "models/props_combine/breenglobe.mdl", true)
