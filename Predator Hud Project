@@ -68,7 +68,7 @@
 
 
 local NamePatterns = {}
---NAMES TO DETECT IN TRANSLATOR, SEPARATE USING COMMANS, i.e {naki, dstmnaki}
+--NAMES TO DETECT IN TRANSLATOR, SEPARATE USING COMMANS, i.e {"naki", "dstmnaki"}
 
 
 --============================================================================================================================--
