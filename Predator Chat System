@@ -162,7 +162,7 @@ function runEverything(HudActive,useAssets)
                 textTransitionCT = 0
                 textFinished = false
                 textRemoval = false
-                owner():emitSound(randspeechsnd(), 100, 100, 1, CHANNEL_AUTO)
+                player():emitSound(randspeechsnd(), 100, 100, 1, CHANNEL_AUTO)
             end
             lastText = text
 
