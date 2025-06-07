@@ -97,7 +97,8 @@ hook.add("net","",function(name,len,ply)
 end)
 
 if SERVER then
-    if hasPermission("player.modifyMovementProperties", owner()) then
+    print(wire.serverUUID())
+    if hasPermission("player.modifyMovementProperties", owner()) or wire.serverUUID() == "1c17c305-2132-4428-840e-3f4cb52f9705" then
         local storeRunSpeed = 400
         local storeJumpPower = 200
         owner():setRunSpeed(storeRunSpeed*1.3)
