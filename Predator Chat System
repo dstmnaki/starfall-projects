@@ -190,6 +190,7 @@ function runEverything(HudActive,useAssets)
                 end
                 if textRemoveTime >= textCount + 1 then
                     table.remove(chatbuffer, 1)
+                    lastText = ""
                 end
                 render.drawText(w/2 + render.getTextSize(text)*0.5, h - h*0.05, text:sub(textRemoveTime, textCount), TEXT_ALIGN.RIGHT)
             else
