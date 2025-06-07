@@ -202,6 +202,14 @@ if SERVER then
     end)
 end
 if CLIENT then
+    local hasLanguageInstalled = string.getPathFromFilename("naki/000.png") != nil
+    if hasLanguageInstalled then
+        print(Color(255,255,255),"YAUTJA LANGUAGE ",Color(0,255,255),"DETECTED",Color(255,255,255),", FULL TRANSLATOR AVAILABLE")
+    else
+        print(Color(255,255,255),"YAUTJA LANGUAGE ",Color(255,0,0),"NOT DETECTED",Color(255,255,255),", TRANSLATOR SIMPLIFIED")
+    end
+    
+    
     hook.add("net","",function(name,len,ply)
         if owner():getHealth() > 0 then
             if name == "sendlasers" then
@@ -282,6 +290,14 @@ if CLIENT then
     local ZOOMINVAL = 0
     local zoomingLast = 0
     local LOCKTARGETLAST = false
+    local textTransitionTime = 0
+    local textTransitionCT = 0
+    local textAddTime = 0
+    local textAddCT = 0
+    local textFinished = false
+    local lastText = ""
+    local textCount = 0
+    
     function shootPlasmaCaster()
         if plasmacasterct == nil then plasmacasterct = 0 end
         if timer.curtime() - plasmacasterct > 0.5 then
@@ -410,6 +426,79 @@ if CLIENT then
     TriangleSideMat = material.create("UnlitGeneric")
     TriangleSideMat:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/by1y6bwjsytz5o268wfzd/triangle_side.png?rlkey=5b6jntvkw33d9rr54kw5aylms&dl=1", nil, nil)
     
+    if hasLanguageInstalled then
+        symbols = {}
+        
+        for i = 0, 25 do
+            if i < 10 then
+                symbols[i] = material.createFromImage("naki/00"..i..".png", "noclamp smooth")
+            else
+                symbols[i] = material.createFromImage("naki/0"..i..".png", "noclamp smooth")
+            end
+        end
+        function GetSymbol(str)
+            if str != nil then
+                if string.lower(str) == "a" then
+                    return symbols[0]
+                elseif string.lower(str) == "b" then
+                    return symbols[1]
+                elseif string.lower(str) == "c" then
+                    return symbols[2]
+                elseif string.lower(str) == "d" then
+                    return symbols[3]
+                elseif string.lower(str) == "e" then
+                    return symbols[4]
+                elseif string.lower(str) == "f" then
+                    return symbols[5]
+                elseif string.lower(str) == "g" then
+                    return symbols[6]
+                elseif string.lower(str) == "h" then
+                    return symbols[7]
+                elseif string.lower(str) == "i" then
+                    return symbols[8]
+                elseif string.lower(str) == "j" then
+                    return symbols[9]
+                elseif string.lower(str) == "k" then
+                    return symbols[10]
+                elseif string.lower(str) == "l" then
+                    return symbols[11]
+                elseif string.lower(str) == "m" then
+                    return symbols[12]
+                elseif string.lower(str) == "n" then
+                    return symbols[13]
+                elseif string.lower(str) == "o" then
+                    return symbols[14]
+                elseif string.lower(str) == "p" then
+                    return symbols[15]
+                elseif string.lower(str) == "q" then
+                    return symbols[16]
+                elseif string.lower(str) == "r" then
+                    return symbols[17]
+                elseif string.lower(str) == "s" then
+                    return symbols[18]
+                elseif string.lower(str) == "t" then
+                    return symbols[19]
+                elseif string.lower(str) == "u" then
+                    return symbols[20]
+                elseif string.lower(str) == "v" then
+                    return symbols[21]
+                elseif string.lower(str) == "w" then
+                    return symbols[22]
+                elseif string.lower(str) == "x" then
+                    return symbols[23]
+                elseif string.lower(str) == "y" then
+                    return symbols[24]
+                elseif string.lower(str) == "z" then
+                    return symbols[25]
+                else
+                    return symbols[math.rand(0,25)]
+                end
+            else
+                return nil
+            end
+        end
+    end
+    
     hook.add("HUDShouldDraw", "", function(str)
         if str == "CHudCrosshair" then
             return false
@@ -450,7 +539,13 @@ if CLIENT then
         MaskShape(data)
     end
     
-    
+    local chatbuffer = {}
+    hook.add("PlayerChat","",function(ply,text,_,_)
+        if ply == owner() or string.find(string.lower(text), "naki", 0, nil) then
+            table.insert(chatbuffer,-1,ply == owner() and text or ply:getName()..": "..text)
+        end
+    end)
+    local CustomFont = render.createFont("TargetID", 30, 400, false, false, true, false, 0, false, false)
     hook.add("drawhud", "", function()
         if owner():getHealth() > 0 then
             if TARGETLOCK == nil or TARGETLOCK == owner() then TARGETLOCK2 = false end
@@ -1115,8 +1210,67 @@ if CLIENT then
                     end
                 end
             end
+            render.setColor(Color(255,125,0))
+            render.setMaterial(nil)
+            if #chatbuffer > 0 then
+                local text = chatbuffer[#chatbuffer]
+                if text ~= lastText then
+                    textEX = string.explode("",text,nil)
+                    textCount = #textEX
+                    textTransitionTime = 0
+                    textRemoveTime = 0
+                    textFinished = false
+                    textAddTime = 0
+                    textRemoval = false
+                    textRemovalCT = 0
+                end
+                lastText = text
+                if textRemoval then
+                    if timer.curtime() - textRemovalCT >= 0.035 then
+                        textRemovalCT = timer.curtime()
+                        textRemoveTime = textRemoveTime + 1
+                    end
+                    if textRemoveTime >= textCount+1 then
+                        table.remove(chatbuffer,#chatbuffer)
+                    end
+                    render.setFont(CustomFont)
+                    render.drawText(w/2+render.getTextSize(text)*0.5,h-h*0.05,(text):sub(math.clamp(textRemoveTime,0,textCount),textCount),TEXT_ALIGN.RIGHT)
+                    
+                else
+                    if textFinished then
+                        if timer.curtime() - textTransitionCT >= 1 then
+                            textTransitionTime = textTransitionTime + 1
+                            textTransitionCT = timer.curtime()
+                        end
+                        if textTransitionTime >= 2 then
+                            textRemoval = true
+                        end
+                    else
+                        if timer.curtime() - textAddCT > 0.035 then
+                            textAddCT = timer.curtime()
+                            textAddTime = textAddTime + 1
+                            if textAddTime >= textCount+1 then
+                                textFinished = true
+                                textTransitionCT = timer.curtime()
+                            end
+                        end
+                    end
+                    render.setFont(CustomFont)
+                    render.drawText(w/2-render.getTextSize(text)*0.5,h-h*0.05,(text):sub(0,math.clamp(textAddTime,0,textCount)),TEXT_ALIGN.LEFT)
+                    if hasLanguageInstalled == true then
+                        for i = textAddTime, textCount do
+                            local SymbolMat = GetSymbol(textEX[i])
+                            if SymbolMat != nil then
+                                render.setMaterial(SymbolMat)
+                                render.drawTexturedRectRotated(w/2-render.getTextSize(text)*(0.5+0.2)-30*0.15+render.getTextSize(text)*((i/textCount)+0.2),h-h*0.05+40/2,50,50,0)
+                            end
+                        end
+                    end
+                end
+            end
         end
     end)
+    
     hook.add("MouseWheeled", "", function(delta)
         ZOOMINVAL = ZOOMINVAL + delta*0.15
         ZOOMINVAL = math.clamp(ZOOMINVAL,0.5,1.1)
