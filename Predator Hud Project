@@ -67,17 +67,12 @@
 --============================================================================================================================--
 
 
-
 local NamePatterns = {}
 --NAMES TO DETECT IN TRANSLATOR, SEPARATE USING COMMANS, i.e {naki, dstmnaki}
 
 
 --============================================================================================================================--
 
-if #NamePatterns == 0 then
-    print("NO NAME PATTERNS ADDED, USING DEFAULT PLAYER NAME, CONSIDER ADDING SOME AT LINE 71!")
-    NamePatterns = {owner():getName()}
-end
 local plasmaholo = {}
 local TARGETSERVER = owner()
 local TARGETSERVERSET = owner()
@@ -216,6 +211,10 @@ if SERVER then
     end)
 end
 if CLIENT then
+    if #NamePatterns == 0 then
+        print("NO NAME PATTERNS ADDED, USING DEFAULT PLAYER NAME, CONSIDER ADDING SOME AT LINE 71!")
+        NamePatterns = {owner():getName()}
+    end
     hook.add("net","",function(name,len,ply)
         if owner():getHealth() > 0 then
             if name == "sendlasers" then
