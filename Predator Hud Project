@@ -203,7 +203,7 @@ if CLIENT then
                 if player() == owner() then
                     for i, holo in pairs(net.readTable()) do
                         if holo:isValid() then
-                            holo:setNoDraw(true)
+                            --holo:setNoDraw(true)
                         end
                     end
                 end
@@ -234,6 +234,7 @@ if CLIENT then
     for i, holo in pairs({LeftTop, RightMiddle, LeftBottom}) do
         holo:suppressEngineLighting(true)
         holo:setMaterial("models/debug/debugwhite")
+        holo:setNoDraw(true)
     end
     
     local vmHolo = hologram.create(Vector(0,0,0), Angle(0,0,0), "models/cpthazama/avp/predators/hud.mdl", Vector(1,1,1))
@@ -768,7 +769,11 @@ if CLIENT then
                     local entities = {}
                     table.merge(entities, players)
                     table.merge(entities, npcs)
-                    
+                    for i, e in pairs(entities) do
+                        if e:getClass() != "npc_tripmine" and e:getClass() != "npc_turret_ceiling" or e:getHealth() <= 0 then
+                            table.remove(entities,i)
+                        end
+                    end
                     local cursorX, cursorY = input.getCursorPos() // 2D cursor position on screen
                     
                     local bestTarget = nil
@@ -777,31 +782,29 @@ if CLIENT then
                     for i = 1, #entities do
                         local ent = entities[i]
                         if not isValid(ent) or ent == owner() then continue end
-                        if ent:getHealth() > 0 then
-                            local screenPosData = ent:getPos():toScreen()
-                            if not screenPosData.visible then continue end // only track visible objects
-                        
-                            local screenPos = Vector(screenPosData.x, screenPosData.y, 0)
-                            local cursorPos = Vector(cursorX, cursorY, 0)
-                            local dist2D = (screenPos - cursorPos):getLength()
-                        
-                            if dist2D < bestDistance then
-                                local entPos = ent:getPos() + ent:obbCenter()
-                                local toEnt = entPos - owner():getShootPos()
-                                local dist3D = toEnt:getLength()
-                        
-                                if dist3D < 15000 then
-                                    local traceRes = trace.line(owner():getShootPos(), entPos, {owner(), ent}, nil, COLLISION_GROUP.IN_VEHICLE, false)
-                                    local trOK = entPos:getDistance(traceRes.HitPos) < 5
-                        
-                                    if trOK then
-                                        local dirToEnt = toEnt:getNormalized()
-                                        local dot = owner():getEyeAngles():getForward():dot(dirToEnt)
-                        
-                                        if dot >= math.cos(math.rad(55 / 2)) then
-                                            bestDistance = dist2D
-                                            bestTarget = ent
-                                        end
+                        local screenPosData = ent:getPos():toScreen()
+                        if not screenPosData.visible then continue end // only track visible objects
+                    
+                        local screenPos = Vector(screenPosData.x, screenPosData.y, 0)
+                        local cursorPos = Vector(cursorX, cursorY, 0)
+                        local dist2D = (screenPos - cursorPos):getLength()
+                    
+                        if dist2D < bestDistance then
+                            local entPos = ent:obbCenterW()
+                            local toEnt = entPos - owner():getShootPos()
+                            local dist3D = toEnt:getLength()
+                    
+                            if dist3D < 15000 then
+                                local traceRes = trace.line(owner():getShootPos(), entPos, {owner(), ent}, nil, COLLISION_GROUP.IN_VEHICLE, false)
+                                local trOK = entPos:getDistance(traceRes.HitPos) < 15
+                                
+                                if trOK then
+                                    local dirToEnt = toEnt:getNormalized()
+                                    local dot = owner():getEyeAngles():getForward():dot(dirToEnt)
+                                    
+                                    if dot >= math.cos(math.rad(55 / 2)) then
+                                        bestDistance = dist2D
+                                        bestTarget = ent
                                     end
                                 end
                             end
@@ -840,7 +843,7 @@ if CLIENT then
                         end
                         local toEnt = (TARGET:getPos() + TARGET:obbCenter()) - owner():getShootPos()
                         local distSqr = toEnt:getLength()
-                        local trOK = (TARGET:getPos() + TARGET:obbCenter()):getDistance(trace.line(owner():getShootPos(),(TARGET:getPos() + TARGET:obbCenter()),{owner(),TARGET},nil, COLLISION_GROUP.IN_VEHICLE, false).HitPos)<5
+                        local trOK = (TARGET:getPos() + TARGET:obbCenter()):getDistance(trace.line(owner():getShootPos(),(TARGET:getPos() + TARGET:obbCenter()),{owner(),TARGET},nil, COLLISION_GROUP.IN_VEHICLE, false).HitPos)<15
                         if distSqr < 15000 and trOK then
                             local dirToEnt = toEnt:getNormalized()
                             local dot = owner():getEyeAngles():getForward():dot(dirToEnt)
