@@ -202,14 +202,6 @@ if SERVER then
     end)
 end
 if CLIENT then
-    local hasLanguageInstalled = string.getPathFromFilename("naki/000.png") != "naki/"
-    if hasLanguageInstalled then
-        print(Color(255,255,255),"YAUTJA LANGUAGE ",Color(0,255,255),"DETECTED",Color(255,255,255),", FULL TRANSLATOR AVAILABLE")
-    else
-        print(Color(255,255,255),"YAUTJA LANGUAGE ",Color(255,0,0),"NOT DETECTED",Color(255,255,255),", TRANSLATOR SIMPLIFIED")
-    end
-    
-    
     hook.add("net","",function(name,len,ply)
         if owner():getHealth() > 0 then
             if name == "sendlasers" then
@@ -1257,13 +1249,11 @@ if CLIENT then
                     end
                     render.setFont(CustomFont)
                     render.drawText(w/2-render.getTextSize(text)*0.5,h-h*0.05,(text):sub(0,math.clamp(textAddTime,0,textCount)),TEXT_ALIGN.LEFT)
-                    if hasLanguageInstalled == true then
-                        for i = textAddTime, textCount do
-                            local SymbolMat = GetSymbol(textEX[i])
-                            if SymbolMat != nil then
-                                render.setMaterial(SymbolMat)
-                                render.drawTexturedRectRotated(w/2-render.getTextSize(text)*(0.5+0.2)-30*0.15+render.getTextSize(text)*((i/textCount)+0.2),h-h*0.05+40/2,50,50,0)
-                            end
+                    for i = textAddTime, textCount do
+                        local SymbolMat = GetSymbol(textEX[i])
+                        if SymbolMat != nil then
+                            render.setMaterial(SymbolMat)
+                            render.drawTexturedRectRotated(w/2-render.getTextSize(text)*(0.5+0.2)-30*0.15+render.getTextSize(text)*((i/textCount)+0.2),h-h*0.05+40/2,50,50,0)
                         end
                     end
                 end
