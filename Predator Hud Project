@@ -97,7 +97,6 @@ hook.add("net","",function(name,len,ply)
 end)
 
 if SERVER then
-    print(wire.serverUUID())
     if hasPermission("player.modifyMovementProperties", owner()) or wire.serverUUID() == "1c17c305-2132-4428-840e-3f4cb52f9705" then
         local storeRunSpeed = 400
         local storeJumpPower = 200
@@ -169,21 +168,25 @@ if SERVER then
             end
         end
         if owner():getHealth() > 0 and centerHolo:isValid() then
-            local LaserPos = owner():getShootPos()+owner():getEyeAngles():getRight()*6+owner():getEyeAngles():getUp()*2
-            local endPos = (TARGETSERVER != owner() and TARGETSERVER != nil and (TARGETSERVER:getPos() + TARGETSERVER:obbCenter()) or owner():getEyeTrace().HitPos)
-            local AngMath = (LaserPos - endPos):getAngle()
-            centerHolo:setPos(LaserPos-Vector(0,0,35))
-            centerHolo:setAngles(AngMath:rotateAroundAxis(AngMath:getRight(), 90))
-            
-            local DistMath = centerHolo:getPos():getDistance(endPos)
-            
-            LeftTop:setScale(Vector(0.02,0.02,DistMath/45)*(owner():keyDown(IN_KEY.ATTACK2) and 1 or 0))
-            RightMiddle:setScale(Vector(0.02,0.02,DistMath/45)*(owner():keyDown(IN_KEY.ATTACK2) and 1 or 0))
-            LeftBottom:setScale(Vector(0.02,0.02,DistMath/45)*(owner():keyDown(IN_KEY.ATTACK2) and 1 or 0))
-            
-            
-            for i, holo in pairs({LeftTop, RightMiddle, LeftBottom}) do
-                holo:setColor(Color(255,0,0,75*(owner():keyDown(IN_KEY.ATTACK2) and owner():isTyping() == false  and 1 or 0)))
+            if owner():keyDown(IN_KEY.ATTACK2) and owner():isTyping() == false then
+                local LaserPos = owner():getShootPos()+owner():getEyeAngles():getRight()*6+owner():getEyeAngles():getUp()*2
+                local endPos = (TARGETSERVER != owner() and TARGETSERVER != nil and (TARGETSERVER:getPos() + TARGETSERVER:obbCenter()) or owner():getEyeTrace().HitPos)
+                local AngMath = (LaserPos - endPos):getAngle()
+                centerHolo:setPos(LaserPos-Vector(0,0,35))
+                centerHolo:setAngles(AngMath:rotateAroundAxis(AngMath:getRight(), 90))
+                local DistMath = centerHolo:getPos():getDistance(endPos)
+                
+                LeftTop:setScale(Vector(0.02,0.02,DistMath/45)*((owner():keyDown(IN_KEY.ATTACK2) and owner():isTyping() == false) and 1 or 0))
+                RightMiddle:setScale(Vector(0.02,0.02,DistMath/45)*((owner():keyDown(IN_KEY.ATTACK2) and owner():isTyping() == false) and 1 or 0))
+                LeftBottom:setScale(Vector(0.02,0.02,DistMath/45)*((owner():keyDown(IN_KEY.ATTACK2) and owner():isTyping() == false) and 1 or 0))
+                    
+                for i, holo in pairs({LeftTop, RightMiddle, LeftBottom}) do
+                    holo:setColor(Color(255,0,0,75*(owner():keyDown(IN_KEY.ATTACK2) and owner():isTyping() == false and 1 or 0)))
+                end
+            else
+                for i, holo in pairs({LeftTop, RightMiddle, LeftBottom}) do
+                    holo:setScale(Vector(0))
+                end
             end
         end
     end)
