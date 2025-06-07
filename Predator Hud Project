@@ -64,6 +64,20 @@
     
 ================================================================================================================================
 ]]--
+--============================================================================================================================--
+
+
+
+local NamePatterns = {"naki","dstmnaki","[dstm]naki","[dstm] naki"}
+--NAMES TO DETECT IN TRANSLATOR, SEPARATE USING COMMANS, i.e {naki, dstmnaki}
+
+
+--============================================================================================================================--
+
+if #NamePatterns == 0 then
+    print("NO NAME PATTERNS ADDED, USING DEFAULT PLAYER NAME, CONSIDER ADDING SOME AT LINE 71!")
+    NamePatterns = {owner():getName()}
+end
 local plasmaholo = {}
 local TARGETSERVER = owner()
 local TARGETSERVERSET = owner()
@@ -544,8 +558,14 @@ if CLIENT then
     
     local chatbuffer = {}
     hook.add("PlayerChat","",function(ply,text,_,_)
-        if ply == owner() or string.find(string.lower(text), "naki", 0, nil) then
-            table.insert(chatbuffer,-1,ply == owner() and text or ply:getName()..": "..text)
+        if ply == owner() then
+            table.insert(chatbuffer,-1,text)
+        else
+            for i, namepattern in pairs(NamePatterns) do
+                if string.find(string.lower(text), string.lower(namepattern), 0, nil) then
+                    table.insert(chatbuffer,-1,ply:getName()..": "..text)
+                end
+            end
         end
     end)
     local CustomFont = render.createFont("TargetID", 30, 400, false, false, true, false, 0, false, false)
