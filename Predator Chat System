@@ -112,7 +112,7 @@ function runEverything(HudActive,useAssets)
         function GetSymbol(char)
             if not char then return nil end
             local mat = charMap[string.lower(char)]
-            return mat or symbols[math.random(0, 25)]
+            return mat or nil
         end
 
         function randspeechsnd()
@@ -215,7 +215,7 @@ function runEverything(HudActive,useAssets)
                 if useAssets then
                     for i = textAddTime, textCount do
                         local sym = GetSymbol(textEX[i])
-                        if sym then
+                        if sym != nil then
                             render.setMaterial(sym)
                             local offset = render.getTextSize(text)*(i/textCount + 0.2)
                             render.drawTexturedRectRotated(w/2 - render.getTextSize(text)*0.7 + offset, h - h*0.05 + 20, 50, 50, 0)
