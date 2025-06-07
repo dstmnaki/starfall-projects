@@ -133,11 +133,21 @@ function runEverything(HudActive,useAssets)
             return lastVocals
         end
 
-        hook.add("net", "ClientReceive", function(name, len, ply)
+        hook.add("net", "ClientReceive", function(name, len, _)
             if name == "sendToClient" then
                 local data = net.readTable()
-                local msg = data[1]:getName() .. ": " .. data[2]
-                table.insert(chatbuffer, msg)
+                local ply = data[1]
+                local message = data[2]
+                if ply != nil then
+                    if ply != player() then
+                        table.insert(chatbuffer, ply:getName() .. ": " ..message)
+                    else
+                        table.insert(chatbuffer, "You: " ..message)
+                    end
+                    
+                else
+                    table.insert(chatbuffer, message)
+                end
             end
             if name == "sendBackToJoined" then
                 local data = net.readString()
