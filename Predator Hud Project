@@ -302,6 +302,7 @@ if CLIENT then
     local textFinished = false
     local lastText = ""
     local textCount = 0
+    local lastVocals = ""
     
     function shootPlasmaCaster()
         if plasmacasterct == nil then plasmacasterct = 0 end
@@ -356,7 +357,11 @@ if CLIENT then
             "cpthazama/avp/predator/speech/p04_plz_03_pe.ogg",
             "cpthazama/avp/predator/speech/p04_plz_04_pe.ogg",
         }
-        return table.random(t)
+        local copy = table.copy(t)
+        table.removeByValue(copy, lastVocals)
+        local out = table.random(copy)
+        lastVocals = out
+        return out
     end
     
     hook.add("think","",function()
