@@ -72,6 +72,11 @@ hook.add("net","",function(name,len,ply)
     if name == "sendcloak" then
         local bool = net.readBool()
         owner():setMaterial(bool and "models/shadertest/predator" or "")
+        if SERVER then
+            if hasPermission("entities.setRenderProperty", owner()) then
+                owner():setDrawShadow(not bool)
+            end
+        end
     end
     if SERVER then
         if name == "sendProjectileToServer" then
