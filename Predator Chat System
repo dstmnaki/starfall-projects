@@ -188,7 +188,7 @@ function runEverything(HudActive,useAssets)
                     table.remove(chatbuffer, 1)
                     lastText = ""
                 end
-                render.drawText(w/2 + render.getTextSize(text)*0.5, h - h*0.05, text:sub(textRemoveTime, textCount), TEXT_ALIGN.RIGHT)
+                render.drawText(w/2 + render.getTextSize(text)*0.5, h - h*0.2, text:sub(textRemoveTime, textCount), TEXT_ALIGN.RIGHT)
             else
                 if textFinished then
                     if timer.curtime() - textTransitionCT >= 1 then
@@ -208,14 +208,14 @@ function runEverything(HudActive,useAssets)
                         end
                     end
                 end
-                render.drawText(w/2 - render.getTextSize(text)*0.5, h - h*0.05, text:sub(1, math.clamp(textAddTime, 0, textCount)), TEXT_ALIGN.LEFT)
+                render.drawText(w/2 - render.getTextSize(text)*0.5, h - h*0.2, text:sub(1, math.clamp(textAddTime, 0, textCount)), TEXT_ALIGN.LEFT)
                 if useAssets then
                     for i = textAddTime, textCount do
                         local sym = GetSymbol(textEX[i])
                         if sym != nil then
                             render.setMaterial(sym)
                             local offset = render.getTextSize(text)*(i/textCount + 0.2)
-                            render.drawTexturedRectRotated(w/2 - render.getTextSize(text)*0.7 + offset, h - h*0.05 + 20, 50, 50, 0)
+                            render.drawTexturedRectRotated(w/2 - render.getTextSize(text)*0.7 + offset, h - h*0.2 + 20, 50, 50, 0)
                         end
                     end
                 end
