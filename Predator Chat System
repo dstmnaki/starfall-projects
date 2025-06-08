@@ -155,10 +155,6 @@ function runEverything(HudActive,useAssets)
                 table.insert(chatbuffer, msg)
             end
         end)
-
-        hook.add("PlayerChat", "BlockCommandEcho", function(ply, text)
-            if ply == owner() and text:sub(1,5) == ".say " then return false end
-        end)
         
         local holo = hologram.create(chip():getPos(), Angle(0,0,0), "models/hunter/blocks/cube025x025x025.mdl", Vector(0,0,0))
         
