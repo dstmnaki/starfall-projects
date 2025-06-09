@@ -311,6 +311,8 @@ if CLIENT then
         if name == "sendSpearBack" then
             CANTOSS = true
             HasSpear = true
+            owner():emitSound("cpthazama/avp/predator/hud/pred_pick_up_0"..math.round(math.rand(4,6))..".ogg", 100, 100, 1, CHANNEL_AUTO)
+            
         end
     end)
     if player() ~= owner() then return end
@@ -467,6 +469,9 @@ if CLIENT then
     
     TriangleSideMat = material.create("UnlitGeneric")
     TriangleSideMat:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/by1y6bwjsytz5o268wfzd/triangle_side.png?rlkey=5b6jntvkw33d9rr54kw5aylms&dl=1", nil, nil)
+    
+    PlasmaHighlightMat = material.createFromImage("hud/cpthazama/avp/avp_p_wps_plasma_highlight_v3.png", "noclamp smooth")
+    SpearHighlightMat = material.createFromImage("hud/cpthazama/avp/avp_p_wps_realspear_highlight_v2.png", "noclamp smooth")
     
     hook.add("HUDShouldDraw", "", function(str)
         if str == "CHudCrosshair" then
@@ -889,6 +894,21 @@ if CLIENT then
             
             local pos = Vector(w/2,h/2,0)+Vector(0,-10,0):getRotated(Angle(0,120,0))
             render.drawTexturedRectRotatedFast(pos.x, pos.y, 25, 40, -120)
+            
+            
+            render.setMaterial(equipmentSelected and SpearHighlightMat or PlasmaHighlightMat)
+            if equipmentSelected then
+                if HasSpear then
+                    render.setColor(thermalOn and Color(125*0.8,165*0.8,255*0.8) or Color(255,0,0))
+                else
+                    render.setColor(Color(125,125,125,75))
+                end
+            else
+                render.setColor(thermalOn and Color(125*0.8,165*0.8,255*0.8) or Color(255,0,0))
+            end
+            
+            render.drawTexturedRectRotated(w/2, h-h*0.16, h*(equipmentSelected and 0.15 or 0.08), h*(equipmentSelected and 0.15 or 0.08),0)
+            
             
             --TRACKING TRIANGLES
             if TRACKING and not equipmentSelected then
