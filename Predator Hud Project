@@ -29,7 +29,7 @@
                           SHOULD YOU EXCEED CPU QUOTA (sf_timebuffer_cl_owner 0.25 AND sf_timebuffer_cl 0.25)
     
     
-                               ! ! ! R E Q U I R E S   A V P   2 0 1 0   S N P C S   P A C K ! ! !
+                        ! ! ! R E Q U I R E S   A V P   2 0 1 0   S N P C S   P A C K   &   S Y M B O L S ! ! !
                                 https://steamcommunity.com/sharedfiles/filedetails/?id=3491940716
     
     
@@ -38,17 +38,14 @@
                                                     
                                  R -------------------------------------------------------- CLOAK
                                  F ----------------------------------------------- TOGGLE THERMAL
+                                 T ------------------------------------------------ SWITCH WEAPON
                                  MOUSE1 -------------------------------------------------- ATTACK
-                                 MOUSE1 (WHILE TRACKING) --------------------- FIRE PLASMA CASTER
-                                 MOUSE3 (WHILE TRACKING AND LOCKED ON) --- ASSIGN/UNASSIGN TARGET
+                                 MOUSE1 (WHILE TRACKING) --------- FIRE PLASMA CASTER/THROW SPEAR
+                                 MOUSE3 (WHILE TRACKING) ----------------- ASSIGN/UNASSIGN TARGET
                                  MOUSE3 (WHILE LOCKED ON) ----------------------- UNASSIGN TARGET
                                  MOUSE2 --------------------------------------------------- TRACK
                                  MOUSE4 ------------------- ZOOM (MOUSE WHEEL TO ZOOM IN AND OUT)
-    
-    
-               NOTE THE THERMAL VISION RUNS VIA CONCMD, YOU CAN CHECK THE COMMAND AT LINE 351 AND BELOW, IF YOU NEED TO
-    
-    
+                                
     
                                                         - C R E D I T S -
     
@@ -87,6 +84,11 @@ hook.add("net","",function(name,len,ply)
             This:setTrails(25, 5, 0.2, "trails/laser", Color(0,255,255), nil, nil)
             This:setColor(Color(0,255,255))
             table.insert(plasmaholo, -1, This)
+        end
+        if name == "sendSpearToServer" then
+            Spear = hologram.create(owner():getShootPos()+owner():getEyeAngles():getRight()*7, (owner():getEyeTrace().HitPos - (owner():getShootPos()+owner():getEyeAngles():getRight()*7)):getAngle(), "models/props_junk/harpoon002a.mdl", Vector(1,1,1))
+            Spear:setTrails(25, 5, 0.2, "trails/laser", Color(255,255,255,75), nil, nil)
+            SpearTossed = true
         end
         if name == "slash" then
             if owner():getShootPos():getDistance(owner():getEyeTrace().HitPos) < 50 then
@@ -175,7 +177,42 @@ if SERVER then
                         net.start("BOOM but CLIENT")
                         net.writeVector(lastPos)
                         net.send()
-                        --owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_bolt_explosion_0"..math.round(math.rand(1,5))..".ogg", 100, 100, 1, CHANNEL_AUTO)
+                    end
+                end
+            end
+        end
+        if Spear != nil and Spear:isValid() and SpearTossed then
+            if runMeOnce == nil then runMeOnce = false end
+            if runMeOnce != true then
+                local tr = trace.line(Spear:getPos(),Spear:getPos()+Spear:getForward()*50,owner(), nil, nil, false)
+                local lastPos = tr.HitPos
+                Spear:setPos(lastPos)
+                if tr.Hit then
+                    if tr.Entity and (tr.Entity:isNPC() or tr.Entity:isPlayer()) then
+                        if hasPermission("entities.applyDamage", tr.Entity) then
+                            tr.Entity:applyDamage(300, owner(), chip(), DAMAGE.SNIPER, owner():getPos())
+                        end
+                        runMeOnce = (tr.Entity:getHealth() > 0)
+                        if runMeOnce == true then
+                            timer.create("sendSpearBack", 3, 1, function()
+                                net.start("sendSpearBack")
+                                net.writeFloat(0)
+                                net.send(owner(),false)
+                                Spear:remove()
+                                SpearTossed = false
+                                runMeOnce = false
+                            end)
+                        end
+                    else
+                        runMeOnce = true
+                        timer.create("sendSpearBack", 3, 1, function()
+                            net.start("sendSpearBack")
+                            net.writeFloat(0)
+                            net.send(owner(),false)
+                            Spear:remove()
+                            SpearTossed = false
+                            runMeOnce = false
+                        end)
                     end
                 end
             end
@@ -210,51 +247,6 @@ if SERVER then
     end)
 end
 if CLIENT then
-    
-    hook.add("net","",function(name,len,ply)
-        if owner():getHealth() > 0 then
-            if name == "sendlasers" then
-                if player() == owner() then
-                    for i, holo in pairs(net.readTable()) do
-                        if holo:isValid() then
-                            holo:setNoDraw(true)
-                        end
-                    end
-                end
-            end
-            if name == "BOOM but CLIENT" then
-                local lastPos = net.readVector()
-                eff = effect.create()
-                eff:setOrigin(lastPos)
-                eff:play("explosion")
-            end
-        end
-    end)
-    if player() ~= owner() then return end
-    hook.add("PlayerChat", "", function(ply, text, team, isdead)
-        if ply == owner() and (text:sub(1,3) == ".a " or text:sub(1,3) == ".t ") then return false end
-    end)
-    enableHud(owner(), true)
-    
-    local centerHolo = hologram.create(chip():getPos(), Angle(0,0,0), "models/props_c17/oildrum001.mdl", Vector(0))
-    centerHolo:setParent(owner())
-    
-    local LeftTop = hologram.create(centerHolo:localToWorld(Vector(1,0,0):rotateAroundAxis(Vector(0,0,1),120)), Angle(0,0,0), "models/sprops/misc/cones/size_3/cone_36x36.mdl", Vector(0.02,0.02,1/45))
-    LeftTop:setParent(centerHolo)
-    
-    local RightMiddle = hologram.create(centerHolo:localToWorld(Vector(1,0,0):rotateAroundAxis(Vector(0,0,1),0)), Angle(0,0,0), "models/sprops/misc/cones/size_3/cone_36x36.mdl", Vector(0.02,0.02,1/45))
-    RightMiddle:setParent(centerHolo)
-    
-    local LeftBottom = hologram.create(centerHolo:localToWorld(Vector(1,0,0):rotateAroundAxis(Vector(0,0,1),-120)), Angle(0,0,0), "models/sprops/misc/cones/size_3/cone_36x36.mdl", Vector(0.02,0.02,1/45))
-    LeftBottom:setParent(centerHolo)
-    
-    for i, holo in pairs({LeftTop, RightMiddle, LeftBottom}) do
-        holo:suppressEngineLighting(true)
-        holo:setMaterial("models/debug/debugwhite")
-    end
-    
-    local vmHolo = hologram.create(Vector(0,0,0), Angle(0,0,0), "models/cpthazama/avp/predators/hud.mdl", Vector(1,1,1))
-    vmHolo:setParent(owner():getActiveWeapon())
     
     local thermalOn = false
     local visionChangeVal = 1
@@ -294,6 +286,58 @@ if CLIENT then
     local ZOOMINVAL = 0
     local zoomingLast = 0
     local LOCKTARGETLAST = false
+    local SPEARSTATE = "in"
+    local CANTOSS = true
+    local HasSpear = true
+    
+    hook.add("net","",function(name,len,ply)
+        if owner():getHealth() > 0 then
+            if name == "sendlasers" then
+                if player() == owner() then
+                    for i, holo in pairs(net.readTable()) do
+                        if holo:isValid() then
+                            holo:setNoDraw(true)
+                        end
+                    end
+                end
+            end
+            if name == "BOOM but CLIENT" then
+                local lastPos = net.readVector()
+                eff = effect.create()
+                eff:setOrigin(lastPos)
+                eff:play("explosion")
+            end
+        end
+        if name == "sendSpearBack" then
+            CANTOSS = true
+            HasSpear = true
+        end
+    end)
+    if player() ~= owner() then return end
+    hook.add("PlayerChat", "", function(ply, text, team, isdead)
+        if ply == owner() and (text:sub(1,3) == ".a " or text:sub(1,3) == ".t ") then return false end
+    end)
+    enableHud(owner(), true)
+    
+    local centerHolo = hologram.create(chip():getPos(), Angle(0,0,0), "models/props_c17/oildrum001.mdl", Vector(0))
+    centerHolo:setParent(owner())
+    
+    local LeftTop = hologram.create(centerHolo:localToWorld(Vector(1,0,0):rotateAroundAxis(Vector(0,0,1),120)), Angle(0,0,0), "models/sprops/misc/cones/size_3/cone_36x36.mdl", Vector(0.02,0.02,1/45))
+    LeftTop:setParent(centerHolo)
+    
+    local RightMiddle = hologram.create(centerHolo:localToWorld(Vector(1,0,0):rotateAroundAxis(Vector(0,0,1),0)), Angle(0,0,0), "models/sprops/misc/cones/size_3/cone_36x36.mdl", Vector(0.02,0.02,1/45))
+    RightMiddle:setParent(centerHolo)
+    
+    local LeftBottom = hologram.create(centerHolo:localToWorld(Vector(1,0,0):rotateAroundAxis(Vector(0,0,1),-120)), Angle(0,0,0), "models/sprops/misc/cones/size_3/cone_36x36.mdl", Vector(0.02,0.02,1/45))
+    LeftBottom:setParent(centerHolo)
+    
+    for i, holo in pairs({LeftTop, RightMiddle, LeftBottom}) do
+        holo:suppressEngineLighting(true)
+        holo:setMaterial("models/debug/debugwhite")
+    end
+    
+    local vmHolo = hologram.create(Vector(0,0,0), Angle(0,0,0), "models/cpthazama/avp/predators/hud.mdl", Vector(1,1,1))
+    vmHolo:setParent(owner():getActiveWeapon())
     
     function shootPlasmaCaster()
         if plasmacasterct == nil then plasmacasterct = 0 end
@@ -346,7 +390,7 @@ if CLIENT then
             if input.isMouseDown(MOUSE.MOUSE1) and blockAttack != true and canAttack and owner():isTyping() == false and WPNOK then
                 blockAttack = true
                 if input.isMouseDown(MOUSE.MOUSE2) and not input.isMouseDown(MOUSE.MOUSE4) and not owner():isTyping() and WPNOK then
-                    if not AnimationPlaying and Animation == "" then
+                    if not AnimationPlaying and Animation == "" and not equipmentSelected then
                         shootPlasmaCaster()
                     end
                 else
@@ -470,7 +514,17 @@ if CLIENT then
             WPNOK = owner():getActiveWeapon():getClass() == "none"
             vmHolo:setPos(owner():getShootPos())
             vmHolo:setAngles(Angle(owner():getEyeAngles().pitch-15*math.clamp(math.sin(math.rad(FRAME*180))*2,0,1)*((Animation == "assigntarget" or Animation == "unassigntarget" and AnimationPlaying) and 1 or 0), owner():getEyeAngles().yaw, 0))
-            
+            if equipmentSelected == nil then equipmentSelected = false end
+            if switchEquipmentFirst == nil then switchEquipmentFirst = false end
+            if input.isKeyDown(KEY.T) then
+                if switchEquipmentFirst != true then
+                    switchEquipmentFirst = true
+                    equipmentSelected = !equipmentSelected
+                    owner():emitSound((not equipmentSelected and "cpthazama/avp/predator/focus/predator_targetinfo_off_01.ogg" or "cpthazama/avp/predator/focus/predator_targetinfo_on_01.ogg"), 100, 100, 1, CHANNEL_AUTO)
+                end
+            else
+                switchEquipmentFirst = false
+            end
             local cloakButton = input.isKeyDown(KEY.R) and owner():isTyping() == false 
             if cloakButton ~= lastCloakButtonState and cloakButton and cantogglecloak then
                 startRandomIdleAnim = false
@@ -505,56 +559,114 @@ if CLIENT then
             
             if not AnimationPlaying and Animation == "" then
                 if owner():isOnGround() then
-                    if owner():getVelocity():setZ(0):getLength()/52>3 and not owner():isSprinting() then
-                        FRAME = FRAME + 0.015*timer.frametime()*66
-                        if FRAME >= 1 then
+                    if SPEARSTATE != "in" or (equipmentSelected and input.isMouseDown(MOUSE.MOUSE2) and HasSpear) then
+                        if resetFrame == nil then resetFrame = false end
+                        if resetFrame != true then
+                            resetFrame = true
                             FRAME = 0
+                            owner():emitSound("cpthazama/avp/weapons/predator/spear/prd_spear_draw.ogg", 100, 100, 1, CHANNEL_AUTO)
                         end
-                        sway = math.sin(FRAME * 2 * 3.14)*0.2
-                        sway2 = math.sin(FRAME * 2 * 3.14 * 2)*0.2
-                        vmHolo:setAnimation("predator_hud_claws_walk", FRAME, 0)
-                        startRandomIdleAnim = false
-                        timer.stop("random_idle")
-                        sprintFirst = false
-                    elseif owner():getVelocity():setZ(0):getLength()/52>3 and owner():isSprinting() then
-                        FRAME = FRAME + 0.025*timer.frametime()*66
-                        if FRAME >= 1 then
-                            FRAME = 0
-                        end
-                        sway = math.sin(FRAME * 2 * 3.14)
-                        sway2 = math.sin(FRAME * 2 * 3.14 * 2)
-                        vmHolo:setAnimation("predator_hud_claws_sprint", FRAME, nil)
-                        startRandomIdleAnim = false
-                        timer.stop("random_idle")
-                        if sprintFirst != true then
-                            sprintFirst = true
-                            owner():emitSound("cpthazama/avp/predator/adrenalin/adrenalin_turn_on_05.ogg", 100, 100, 1, CHANNEL_AUTO)
-                        end
-                    else
-                        FRAME = 0
                         sway = 0
                         sway2 = 0
-                        sprintFirst = false
-                        vmHolo:setAnimation("predator_hud_claws_rest", nil, 1)
-                        if startRandomIdleAnim != true and not BLOCKIDLERANDOMIZER then
-                            startRandomIdleAnim = true
-                            timer.create("random_idle", math.rand(5,18), 0, function()
-                                local selectanim = math.round(math.rand(1,3))
-                                if selectanim == 1 then
-                                    Animation = "idle_stretch"
-                                    AnimationPlaying = true
-                                elseif selectanim == 2 then
-                                    Animation = "idle_inspect"
-                                    AnimationPlaying = true
-                                elseif selectanim == 3 then
-                                    Animation = "idle_wipe"
-                                    AnimationPlaying = true
+                        if SPEARSTATE == "throw" then
+                            FRAME = FRAME + 0.04*timer.frametime()*66
+                            FRAME = math.clamp(FRAME,0,1)
+                            if FRAME >= 1 and SPEARSTATE != "in" then
+                                SPEARSTATE = "in"
+                                FRAME = 0
+                                resetFrame = false
+                            end
+                            if FRAME >= 0.5 and HasSpear then
+                                vmHolo:setBodygroup(vmHolo:lookupBodygroup("equipment"), 0)
+                                HasSpear = false
+                                net.start("sendSpearToServer")
+                                net.writeFloat(0)
+                                net.send()
+                                owner():emitSound("cpthazama/avp/weapons/predator/crossbow/crossbowfire_0"..math.round(math.rand(1,5))..".ogg", 100, 100, 1, CHANNEL_AUTO)
+                            end
+                            vmHolo:setAnimation("predator_hud_spear_throw", FRAME, 0)
+                        else
+                            if input.isMouseDown(MOUSE.MOUSE2)  then
+                                FRAME = FRAME + 0.04*timer.frametime()*66*(SPEARSTATE != "out" and 1 or 0)
+                                FRAME = math.clamp(FRAME,0,1)
+                                if FRAME >= 0.99 and SPEARSTATE != "out" then
+                                    SPEARSTATE = "out"
+                                    FRAME = 0
+                                    CANTOSS = true
                                 end
-                                originLerp = Vector(0,0,0)
-                                anglesLerp = Angle(0,0,0)
-                                manipulatepos = Vector(0,0,0)
-                                manipulateang = Angle(0,0,0)
-                            end)
+                                vmHolo:setAnimation("predator_hud_spear_extend", math.clamp(FRAME,SPEARSTATE == "out" and 1 or 0,1), 0)
+                                vmHolo:setBodygroup(vmHolo:lookupBodygroup("equipment"), 4)
+                                if CANTOSS and input.isMouseDown(MOUSE.MOUSE1) then
+                                    CANTOSS = false
+                                    FRAME = 0
+                                    SPEARSTATE = "throw"
+                                end
+                            else
+                                CANTOSS = false
+                                FRAME = FRAME + 0.04*timer.frametime()*66
+                                FRAME = math.clamp(FRAME,0,1)
+                                if FRAME >= 1 and SPEARSTATE != "in" then
+                                    SPEARSTATE = "in"
+                                    FRAME = 0
+                                    resetFrame = false
+                                    vmHolo:setBodygroup(vmHolo:lookupBodygroup("equipment"), 0)
+                                end
+                                vmHolo:setAnimation("predator_hud_spear_extend", 1-FRAME, 0)
+                            end
+                        end
+                    else
+                        vmHolo:setBodygroup(vmHolo:lookupBodygroup("equipment"), 0)
+                        if owner():getVelocity():setZ(0):getLength()/52>3 and not owner():isSprinting() then
+                            FRAME = FRAME + 0.015*timer.frametime()*66
+                            if FRAME >= 1 then
+                                FRAME = 0
+                            end
+                            sway = math.sin(FRAME * 2 * 3.14)*0.2
+                            sway2 = math.sin(FRAME * 2 * 3.14 * 2)*0.2
+                            vmHolo:setAnimation("predator_hud_claws_walk", FRAME, 0)
+                            startRandomIdleAnim = false
+                            timer.stop("random_idle")
+                            sprintFirst = false
+                        elseif owner():getVelocity():setZ(0):getLength()/52>3 and owner():isSprinting() then
+                            FRAME = FRAME + 0.025*timer.frametime()*66
+                            if FRAME >= 1 then
+                                FRAME = 0
+                            end
+                            sway = math.sin(FRAME * 2 * 3.14)
+                            sway2 = math.sin(FRAME * 2 * 3.14 * 2)
+                            vmHolo:setAnimation("predator_hud_claws_sprint", FRAME, nil)
+                            startRandomIdleAnim = false
+                            timer.stop("random_idle")
+                            if sprintFirst != true then
+                                sprintFirst = true
+                                owner():emitSound("cpthazama/avp/predator/adrenalin/adrenalin_turn_on_05.ogg", 100, 100, 1, CHANNEL_AUTO)
+                            end
+                        else
+                            FRAME = 0
+                            sway = 0
+                            sway2 = 0
+                            sprintFirst = false
+                            vmHolo:setAnimation("predator_hud_claws_rest", nil, 1)
+                            if startRandomIdleAnim != true and not BLOCKIDLERANDOMIZER then
+                                startRandomIdleAnim = true
+                                timer.create("random_idle", math.rand(5,18), 0, function()
+                                    local selectanim = math.round(math.rand(1,3))
+                                    if selectanim == 1 then
+                                        Animation = "idle_stretch"
+                                        AnimationPlaying = true
+                                    elseif selectanim == 2 then
+                                        Animation = "idle_inspect"
+                                        AnimationPlaying = true
+                                    elseif selectanim == 3 then
+                                        Animation = "idle_wipe"
+                                        AnimationPlaying = true
+                                    end
+                                    originLerp = Vector(0,0,0)
+                                    anglesLerp = Angle(0,0,0)
+                                    manipulatepos = Vector(0,0,0)
+                                    manipulateang = Angle(0,0,0)
+                                end)
+                            end
                         end
                     end
                 else
@@ -779,7 +891,7 @@ if CLIENT then
             render.drawTexturedRectRotatedFast(pos.x, pos.y, 25, 40, -120)
             
             --TRACKING TRIANGLES
-            if TRACKING then
+            if TRACKING and not equipmentSelected then
                 if TARGET == nil then
                     local players = find.allPlayers()
                     local npcs = find.byClass("npc_*")
