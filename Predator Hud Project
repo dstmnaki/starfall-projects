@@ -509,7 +509,7 @@ if CLIENT then
     end
     
     hook.add("drawhud", "", function()
-        if owner():getHealth() > 0 then
+        if owner():getHealth() > 0 and owner():getActiveWeapon() != nil then
             if TARGETLOCK == nil or TARGETLOCK == owner() then TARGETLOCK2 = false end
             WPNOK = owner():getActiveWeapon():getClass() == "none"
             vmHolo:setPos(owner():getShootPos())
