@@ -24,6 +24,7 @@
                                          nsf_permission game.blastDamage usergroups 1
                                    nsf_permission player.modifyMovementProperties usergroups 1
                                     nsf_permission player.modifyMovementProperties entities 1
+                                          sf_permission entities.setHealth entities 1
                     (THESE ALLOW YOU TO BLOCK FALL DAMAGE, CREATE EXPLOSIONS AND MODIFY MOVEMENT SPEED & JUMP HEIGHT)
 
                           SHOULD YOU EXCEED CPU QUOTA (sf_timebuffer_cl_owner 0.25 AND sf_timebuffer_cl 0.25)
