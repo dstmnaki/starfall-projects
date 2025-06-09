@@ -539,13 +539,15 @@ if CLIENT then
                 switchEquipmentFirst = false
             end
             if healFirst == nil then healFirst = false end
-            if input.isKeyDown(KEY.H) and not AnimationPlaying and Animation != "heal" and owner():isTyping() == false and owner():getHealth() < owner():getMaxHealth() then
+            if input.isKeyDown(KEY.H) and not AnimationPlaying and Animation != "heal" and owner():isTyping() == false and owner():getHealth() < owner():getMaxHealth() and healthStabsLeft > 0 then
                 if healFirst != true then
                     healFirst = true
                     AnimationPlaying = true
                     Animation = "heal"
                     healFirstSFX = false
                     healSecondSFX = false
+                    healthStabsCT = timer.curtime()
+                    healthStabsLeft = healthStabsLeft - 1
                 end
             else
                 healFirst = false
