@@ -516,7 +516,7 @@ if CLIENT then
             vmHolo:setAngles(Angle(owner():getEyeAngles().pitch-15*math.clamp(math.sin(math.rad(FRAME*180))*2,0,1)*((Animation == "assigntarget" or Animation == "unassigntarget" and AnimationPlaying) and 1 or 0), owner():getEyeAngles().yaw, 0))
             if equipmentSelected == nil then equipmentSelected = false end
             if switchEquipmentFirst == nil then switchEquipmentFirst = false end
-            if input.isKeyDown(KEY.T) then
+            if input.isKeyDown(KEY.T) and not input.isMouseDown(MOUSE.MOUSE2) then
                 if switchEquipmentFirst != true then
                     switchEquipmentFirst = true
                     equipmentSelected = !equipmentSelected
