@@ -39,6 +39,7 @@
                                  R -------------------------------------------------------- CLOAK
                                  F ----------------------------------------------- TOGGLE THERMAL
                                  T ------------------------------------------------ SWITCH WEAPON
+                                 H --------------------------------------------------------- HEAL
                                  MOUSE1 -------------------------------------------------- ATTACK
                                  MOUSE1 (WHILE TRACKING) --------- FIRE PLASMA CASTER/THROW SPEAR
                                  MOUSE3 (WHILE TRACKING) ----------------- ASSIGN/UNASSIGN TARGET
@@ -100,6 +101,9 @@ hook.add("net","",function(name,len,ply)
         end
         if name == "target" then
             TARGETSERVERSET = net.readEntity()
+        end
+        if name == "sendHeal" and hasPermission("entities.setHealth", owner()) then
+            owner():setHealth(math.clamp(owner():getHealth()+owner():getMaxHealth()*0.3,0,owner():getMaxHealth()))
         end
     end
 end)
@@ -521,7 +525,7 @@ if CLIENT then
             vmHolo:setAngles(Angle(owner():getEyeAngles().pitch-15*math.clamp(math.sin(math.rad(FRAME*180))*2,0,1)*((Animation == "assigntarget" or Animation == "unassigntarget" and AnimationPlaying) and 1 or 0), owner():getEyeAngles().yaw, 0))
             if equipmentSelected == nil then equipmentSelected = false end
             if switchEquipmentFirst == nil then switchEquipmentFirst = false end
-            if input.isKeyDown(KEY.T) and not input.isMouseDown(MOUSE.MOUSE2) and owner():isTyping() == false then
+            if input.isKeyDown(KEY.T) and not input.isMouseDown(MOUSE.MOUSE2) and owner():isTyping() == false and not AnimationPlaying and Animation == "" then
                 if switchEquipmentFirst != true then
                     switchEquipmentFirst = true
                     equipmentSelected = !equipmentSelected
@@ -529,6 +533,18 @@ if CLIENT then
                 end
             else
                 switchEquipmentFirst = false
+            end
+            if healFirst == nil then healFirst = false end
+            if input.isKeyDown(KEY.H) and not AnimationPlaying and Animation != "heal" and owner():isTyping() == false and owner():getHealth() < owner():getMaxHealth() then
+                if healFirst != true then
+                    healFirst = true
+                    AnimationPlaying = true
+                    Animation = "heal"
+                    healFirstSFX = false
+                    healSecondSFX = false
+                end
+            else
+                healFirst = false
             end
             local cloakButton = input.isKeyDown(KEY.R) and owner():isTyping() == false 
             if cloakButton ~= lastCloakButtonState and cloakButton and cantogglecloak then
@@ -751,6 +767,31 @@ if CLIENT then
                         canAttack = true
                     end
                     vmHolo:setAnimation(selectedATTACK, FRAME, 0)
+                    startRandomIdleAnim = false
+                    timer.stop("random_idle")
+                end
+                if Animation == "heal" then
+                    FRAME = FRAME + 0.01*timer.frametime()*66
+                    if FRAME >= 1 then
+                        Animation = ""
+                        AnimationPlaying = false
+                        FRAME = 0
+                        canAttack = true
+                    end
+                    if FRAME >= 0.25 and healFirstSFX != true then
+                        healFirstSFX = true
+                        owner():emitSound("cpthazama/avp/predator/health/prd_health_twist_01.ogg", 100, 100, 1, CHANNEL_AUTO)
+                    end
+                    if FRAME >= 0.6 and healSecondSFX != true then
+                        healSecondSFX = true
+                        owner():emitSound("cpthazama/avp/predator/health/prd_health_jab_01.ogg", 100, 100, 1, CHANNEL_AUTO)
+                        owner():emitSound("cpthazama/avp/predator/vocals/prd_health_pain_scream_01.ogg", 100, 100, 1, CHANNEL_AUTO)
+                        net.start("sendHeal")
+                        net.writeFloat(0)
+                        net.send()
+                    end
+                    vmHolo:setAnimation("predator_hud_plasma_healthstab", FRAME, 0)
+                    vmHolo:setBodygroup(vmHolo:lookupBodygroup("equipment"), 1)
                     startRandomIdleAnim = false
                     timer.stop("random_idle")
                 end
@@ -1269,7 +1310,7 @@ if CLIENT then
     end)
     hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
         if owner():getHealth() > 0 then
-            if AnimationPlaying and Animation != "cloaktoggle" and Animation != "attack_light" and Animation != "assigntarget" and Animation != "unassigntarget" then
+            if AnimationPlaying and Animation != "cloaktoggle" and Animation != "attack_light" and Animation != "heal" and Animation != "assigntarget" and Animation != "unassigntarget" then
                 anglesLerp = math.lerpAngle(0.2,anglesLerp, manipulateang and manipulateang or ang)
                 originLerp = math.lerpVector(0.2, originLerp, manipulatepos and manipulatepos or pos)
                 fovLerp = math.lerp(0.2, fovLerp, manipulatefov and manipulatefov or 80)
