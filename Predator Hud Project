@@ -3,21 +3,21 @@
 --@shared
 --[[
 ================================================================================================================================
-    
-    
+
+
                                      P R E D A T O R   H U D   P R O J E C T   b y   N a k i
-    
-    
+
+
     ========================================================================================================================
     !!!                                                                                                                  !!!
     !!!     DESIGNED TO WORK ON BUILDSTRUCT AND A.P.E.S ONLY ANY OTHER SERVER MAY NOT WORK DUE TO PERMISSION SETTINGS    !!!
     !!!       CFC HAS PARTIAL SUPPORT (HIGHER RANK 'DEVOTEE' MAY BE REQUIRED FOR SOME FUNCTIONS TO WORK, 300 HOURS)      !!!
     !!!                                                                                                                  !!!
     ========================================================================================================================
-    
-    
+
+
                                - F O R   S I N G L E P L A Y E R   U S E   I N S T R U C T I O N S -
-    
+
                                                   RUN THE FOLLOWING COMMANDS
                                         nsf_permission entities.blockDamage entities 1
                                        nsf_permission entities.blockDamage usergroups 1
@@ -25,17 +25,17 @@
                                    nsf_permission player.modifyMovementProperties usergroups 1
                                     nsf_permission player.modifyMovementProperties entities 1
                     (THESE ALLOW YOU TO BLOCK FALL DAMAGE, CREATE EXPLOSIONS AND MODIFY MOVEMENT SPEED & JUMP HEIGHT)
-    
+
                           SHOULD YOU EXCEED CPU QUOTA (sf_timebuffer_cl_owner 0.25 AND sf_timebuffer_cl 0.25)
-    
-    
+
+
                         ! ! ! R E Q U I R E S   A V P   2 0 1 0   S N P C S   P A C K   &   S Y M B O L S ! ! !
                                 https://steamcommunity.com/sharedfiles/filedetails/?id=3491940716
-    
-    
-    
+
+
+
                                                        - C O N T R O L S -
-                                                    
+
                                  R -------------------------------------------------------- CLOAK
                                  F ----------------------------------------------- TOGGLE THERMAL
                                  T ------------------------------------------------ SWITCH WEAPON
@@ -47,19 +47,19 @@
                                  MOUSE2 --------------------------------------------------- TRACK
                                  MOUSE4 ------------------- ZOOM (MOUSE WHEEL TO ZOOM IN AND OUT)
                                 
-    
+
                                                         - C R E D I T S -
-    
+
                       HUGE THANKS TO CPT. HAZAMA FOR CREATING THE AVP 2010 SNPC PACK, ALL ASSETS BELONG TO THEM
                        I TAKE CREDIT FOR THIS CODE, SHARING IS PERMITTED, LINK THIS GITHUB FOR FUTURE UPDATES
+
                 
-                
-                
+
                                                   - G I T H U B   M I R R O R -
-                                                
+
                           https://github.com/dstmnaki/starfall-projects/blob/main/Predator%20Hud%20Project
-    
-    
+
+
 ================================================================================================================================
 ]]--
 
