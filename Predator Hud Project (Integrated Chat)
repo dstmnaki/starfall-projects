@@ -38,7 +38,7 @@
                                                        - C O N T R O L S -
 
                                  R -------------------------------------------------------- CLOAK
-                                 F ------------------------------------------------ CYCLE VISIONS
+                                 F ----------------------------------------------- TOGGLE THERMAL
                                  T ------------------------------------------------ SWITCH WEAPON
                                  H --------------------------------------------------------- HEAL
                                  MOUSE1 -------------------------------------------------- ATTACK
@@ -521,9 +521,10 @@ if CLIENT then
         elseif thermalOn == 2 then
             concmd("pp_colormod 0; pp_texturize \"\"")
         elseif thermalOn == 3 then
-            concmd("pp_texturize \"\""..(USEFLIR and "; flir_toggle" or ""))
+            concmd("pp_texturize \"hud/cpthazama/avp/scope_gradient.png\"; pp_colormod 1; pp_colormod_addb 0; pp_colormod_addg 0; pp_colormod_addr 0; pp_colormod_color -1; pp_colormod_contrast 1; pp_colormod_mulb 0; pp_colormod_mulg 255; pp_colormod_mulr 255")
         elseif thermalOn == 4 then
             thermalOn = 0
+            concmd("pp_texturize \"\"; pp_colormod 0"..(USEFLIR and "; flir_toggle" or ""))
         end
     end
     hook.add("Removed", "", function()
