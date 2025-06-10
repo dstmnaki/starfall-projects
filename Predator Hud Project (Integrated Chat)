@@ -38,7 +38,7 @@
                                                        - C O N T R O L S -
 
                                  R -------------------------------------------------------- CLOAK
-                                 F ----------------------------------------------- TOGGLE THERMAL
+                                 F ------------------------------------------------ CYCLE VISIONS
                                  T ------------------------------------------------ SWITCH WEAPON
                                  H --------------------------------------------------------- HEAL
                                  MOUSE1 -------------------------------------------------- ATTACK
@@ -307,7 +307,7 @@ if CLIENT then
     end)
     if player() ~= owner() then return end
     
-    local thermalOn = false
+    local thermalOn = 0
     local visionChangeVal = 1
     local visionChangeVal2 = 1
     local SIZE1 = 0
@@ -514,16 +514,20 @@ if CLIENT then
     end)
     local USEFLIR = true
     function changeVision()
-        thermalOn = !thermalOn
+        thermalOn = thermalOn +1
         owner():emitSound("cpthazama/avp/predator/vision/vision_change_02.ogg", 100, 100, 1, CHANNEL_AUTO)
-        if thermalOn == true then
+        if thermalOn == 1 then
             concmd("pp_texturize \"hud/cpthazama/avp/thermal.png\"; pp_colormod 1; pp_colormod_addb 0; pp_colormod_addg 0; pp_colormod_addr 0; pp_colormod_color 1; pp_colormod_contrast 1; pp_colormod_mulb 0; pp_colormod_mulg 0; pp_colormod_mulr 0"..(USEFLIR and "; flir_toggle" or ""))
-        else
-            concmd("pp_texturize \"\"; pp_colormod 0"..(USEFLIR and "; flir_toggle" or ""))
+        elseif thermalOn == 2 then
+            concmd("pp_colormod 0; pp_texturize \"\"")
+        elseif thermalOn == 3 then
+            concmd("pp_texturize \"\""..(USEFLIR and "; flir_toggle" or ""))
+        elseif thermalOn == 4 then
+            thermalOn = 0
         end
     end
     hook.add("Removed", "", function()
-        if thermalOn then
+        if thermalOn == 1 or thermalOn == 2 or thermalOn == 3 then
             concmd("pp_texturize \"\"; pp_colormod 0"..(USEFLIR and "; flir_toggle" or ""))
         end
         if cloakstate then
@@ -552,6 +556,8 @@ if CLIENT then
     SpearHighlightMat = material.createFromImage("hud/cpthazama/avp/avp_p_wps_realspear_highlight_v2.png", "noclamp smooth")
     
     healthStabMat = material.createFromImage("gui/point.png", "smooth")
+    
+    thermalOverlayMat = material.load("models/shadertest/predator")
     
     hook.add("HUDShouldDraw", "", function(str)
         if str == "CHudCrosshair" then
@@ -924,7 +930,7 @@ if CLIENT then
             local w, h = render.getGameResolution()
             
             render.setMaterial(ZoomMat)
-            render.setColor(thermalOn and Color(125*0.8,165*0.8,255*0.8,255*ZoomVal) or Color(255,0,0,255*ZoomVal))
+            render.setColor(thermalOn != 0 and Color(125*0.8,165*0.8,255*0.8,255*ZoomVal) or Color(255,0,0,255*ZoomVal))
             render.drawTexturedRect(0, 0, w, h)
             
             render.setMaterial(nil)
@@ -932,11 +938,11 @@ if CLIENT then
             render.drawRect(0, 0, w, h)
             
             render.setMaterial(BaseMat)
-            render.setColor(thermalOn and Color(125*0.8,165*0.8,255*0.8) or Color(255,0,0))
+            render.setColor(thermalOn != 0 and Color(125*0.8,165*0.8,255*0.8) or Color(255,0,0))
             render.drawTexturedRect(0, 0, w, h)
             
             render.setMaterial(CloakMat)
-            render.setColor(thermalOn and Color(125*0.8,165*0.8,255*0.8, 75*(cloakstate and 1 or 0)) or Color(255,0,0, 75*(cloakstate and 1 or 0)))
+            render.setColor(thermalOn != 0 and Color(125*0.8,165*0.8,255*0.8, 75*(cloakstate and 1 or 0)) or Color(255,0,0, 75*(cloakstate and 1 or 0)))
             render.drawTexturedRect(0, 0, w, h)
             
             visionChangeVal = visionChangeVal + 0.15*timer.frametime()*66
@@ -945,14 +951,14 @@ if CLIENT then
             visionChangeVal2 = visionChangeVal2 + (0.12-0.1*visionChangeVal2)*0.75*timer.frametime()*66
             visionChangeVal2 = math.clamp(visionChangeVal2,0,1)
             
-            render.setColor(thermalOn and Color(125*0.8,165*0.8,255*0.8,255*math.clamp(2-visionChangeVal*2,0,1)) or Color(255,0,0,255*math.clamp(2-visionChangeVal*2,0,1)))
+            render.setColor(thermalOn != 0 and Color(125*0.8,165*0.8,255*0.8,255*math.clamp(2-visionChangeVal*2,0,1)) or Color(255,0,0,255*math.clamp(2-visionChangeVal*2,0,1)))
             
             render.setMaterial(VisionChangeMat)
             render.drawTexturedRect((w-w*visionChangeVal)-w*0.25, 0, h*2.15, h*2.15)
             
             
             render.setMaterial(EnergyBarBGMat)
-            render.setColor(thermalOn and Color(0,0,255,75) or Color(175,255,255,75))
+            render.setColor(thermalOn != 0 and Color(0,0,255,75) or Color(175,255,255,75))
             render.drawTexturedRectRotated(w*0.25, h-h*0.1, -w*0.3, h*0.12,1)
             
             render.setMaterial(EnergyBarMat)
@@ -967,12 +973,12 @@ if CLIENT then
                 local sizeX = math.lerp(i/26,startData[3],endData[3])
                 local sizeY = math.lerp(i/26,startData[4],endData[4])
                 local rotation = math.lerp(i/26,startData[5],endData[5])
-                render.setColor(thermalOn and Color(175*0.7, 255*0.7, 255*0.7, 255 * ((i / 26) <= ENERGY and 1 or 0.05)) or Color(175, 255, 255, 255 * ((i / 26) <= ENERGY and 1 or 0.05)))
+                render.setColor(thermalOn != 0 and Color(175*0.7, 255*0.7, 255*0.7, 255 * ((i / 26) <= ENERGY and 1 or 0.05)) or Color(175, 255, 255, 255 * ((i / 26) <= ENERGY and 1 or 0.05)))
                 render.drawTexturedRectRotated(posX,posY ,sizeX ,sizeY ,rotation)
             end
             
             render.setMaterial(EnergyBarBGMat)
-            render.setColor(thermalOn and Color(255,200,0)*0.7 or Color(255,200,0))
+            render.setColor(thermalOn != 0 and Color(255,200,0)*0.7 or Color(255,200,0))
             render.drawTexturedRectRotated(w-w*0.25, h-h*0.1, w*0.3, h*0.12,-1)
             
             render.setStencilEnable(true)
@@ -995,14 +1001,19 @@ if CLIENT then
             render.setStencilFailOperation( STENCIL.KEEP )
             
             render.setMaterial(HealthBarMat)
-            render.setColor(thermalOn and Color(255,200,0)*0.7 or Color(255,200,0))
+            render.setColor(thermalOn != 0 and Color(255,200,0)*0.7 or Color(255,200,0))
             render.drawTexturedRectRotated(w-w*0.25, h-h*0.1, w*0.3, h*0.12,-1)
             
             render.setStencilEnable(false)
             
+            render.overrideBlend(true,1,1,1,1,1,1)
+            render.setMaterial(thermalOverlayMat)
+            render.setColor(Color(75,75,75,125)*(visionChangeVal2*((thermalOn == 2 or thermalOn == 3) and 1 or 0)))
+            render.drawRect(0, 0, w*((thermalOn == 2 or thermalOn == 3) and 1 or 0), h*((thermalOn == 2 or thermalOn == 3) and 1 or 0))
+            render.overrideBlend(false)
             
             -- CROSSHAIR
-            render.setColor(thermalOn and Color(125*0.8,165*0.8,255*0.8, 255*(1-ZoomVal)) or Color(0,255,255, 255*(1-ZoomVal)))
+            render.setColor(thermalOn != 0 and Color(125*0.8,165*0.8,255*0.8, 255*(1-ZoomVal)) or Color(0,255,255, 255*(1-ZoomVal)))
             
             render.setMaterial(TriangleSideMat)
             local pos = Vector(w/2,h/2,0)+Vector(0,-10,0):getRotated(Angle(0,0,0))
@@ -1018,12 +1029,12 @@ if CLIENT then
             render.setMaterial(equipmentSelected and SpearHighlightMat or PlasmaHighlightMat)
             if equipmentSelected then
                 if HasSpear then
-                    render.setColor(thermalOn and Color(125*0.8,165*0.8,255*0.8) or Color(255,0,0))
+                    render.setColor(thermalOn != 0 and Color(125*0.8,165*0.8,255*0.8) or Color(255,0,0))
                 else
                     render.setColor(Color(125,125,125,75))
                 end
             else
-                render.setColor(thermalOn and Color(125*0.8,165*0.8,255*0.8) or Color(255,0,0))
+                render.setColor(thermalOn != 0 and Color(125*0.8,165*0.8,255*0.8) or Color(255,0,0))
             end
             
             render.drawTexturedRectRotated(w/2, h-h*0.16, h*(equipmentSelected and 0.15 or 0.08), h*(equipmentSelected and 0.15 or 0.08),0)
@@ -1035,7 +1046,7 @@ if CLIENT then
                 healthStabsLeft = math.clamp(healthStabsLeft,0,3)
             end
             render.setMaterial(healthStabMat)
-            render.setColor(thermalOn and Color(255,200,0,125)*0.7 or Color(255,200,0,125))
+            render.setColor(thermalOn != 0 and Color(255,200,0,125)*0.7 or Color(255,200,0,125))
             if healthStabsLeft > 0 then
                 render.drawTexturedRectRotated(w-w*0.14,h-h*0.135,h*0.07,h*0.05,180+7)
             end
@@ -1181,7 +1192,7 @@ if CLIENT then
                 end
                 TARGETFOUND = TARGETFOUND + 0.05*(TARGET != nil and 1 or -1)*timer.frametime()*66
                 TARGETFOUND = math.clamp(TARGETFOUND,0,1)
-                render.setColor(thermalOn and Color(125*0.8,165*0.8,255*0.8) or Color(255,0,0))
+                render.setColor(thermalOn != 0 and Color(125*0.8,165*0.8,255*0.8) or Color(255,0,0))
                 ROTATION = (ROTATION+(0.3+TARGETFOUND*0.7)*timer.frametime()*66)*(LOCKTARGET2 == false and 1 or 0)
                 LOCKTARGETVAL = LOCKTARGETVAL+0.1*(LOCKTARGET2 != false and 1 or -1)*timer.frametime()*66
                 LOCKTARGETVAL = math.clamp(LOCKTARGETVAL,0,1)
@@ -1332,14 +1343,14 @@ if CLIENT then
             trackingVal = math.clamp(trackingVal,0,1)
             
             render.setMaterial(HighlightMat)
-            render.setColor(thermalOn and Color(125*0.8,165*0.8,255*0.8, 125*math.clamp(trackingVal*1.5,0,1)) or Color(255,0,0, 125*math.clamp(trackingVal*1.5,0,1)))
+            render.setColor(thermalOn != 0 and Color(125*0.8,165*0.8,255*0.8, 125*math.clamp(trackingVal*1.5,0,1)) or Color(255,0,0, 125*math.clamp(trackingVal*1.5,0,1)))
             render.drawTexturedRect(w-h/2.5*trackingVal, h/4, h/2, h/2)
             
             render.setMaterial(TargetPlayerMat)
             if trackingVal >= 1 then
                 local TARGET2 = zooming and aimEntity or TARGET
                 if TARGET2:isValid() then
-                    render.setColor(thermalOn and Color(125,125,125, 255*math.clamp(-1+trackingVal*2,0,1)) or Color(255,255,255, 255*math.clamp(-1+trackingVal*2,0,1)))
+                    render.setColor(thermalOn != 0 and Color(125,125,125, 255*math.clamp(-1+trackingVal*2,0,1)) or Color(255,255,255, 255*math.clamp(-1+trackingVal*2,0,1)))
                     render.drawTexturedRect(w-h/4, h/3.5, h/8, h/8)
                     
                     render.setFont("DermaLarge")
