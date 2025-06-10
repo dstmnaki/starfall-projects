@@ -594,7 +594,7 @@ if CLIENT then
     end
     
     hook.add("drawhud", "", function()
-        if owner():getHealth() > 0 and owner():getActiveWeapon() != nil then
+        if owner():getHealth() > 0 and owner():getActiveWeapon() != nil and isValid(owner():getActiveWeapon()) then
             if TARGETLOCK == nil or TARGETLOCK == owner() then TARGETLOCK2 = false end
             WPNOK = owner():getActiveWeapon():getClass() == "none"
             vmHolo:setPos(owner():getShootPos())
@@ -657,7 +657,7 @@ if CLIENT then
             end
             
             if not AnimationPlaying and Animation == "" then
-                if owner():isOnGround() then
+                if owner():isOnGround() or (equipmentSelected and input.isMouseDown(MOUSE.MOUSE2) and HasSpear) then
                     if SPEARSTATE != "in" or (equipmentSelected and input.isMouseDown(MOUSE.MOUSE2) and HasSpear) then
                         if resetFrame == nil then resetFrame = false end
                         if resetFrame != true then
