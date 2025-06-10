@@ -260,6 +260,9 @@ if CLIENT then
     
     if player() == owner() then
         
+        CANTOSS = true
+        HasSpear = true
+        
         chatbuffer = {}
         lastVocals = ""
         lastText = ""
@@ -343,8 +346,6 @@ if CLIENT then
     local zoomingLast = 0
     local LOCKTARGETLAST = false
     local SPEARSTATE = "in"
-    local CANTOSS = true
-    local HasSpear = true
     local healthStabsLeft = 0
     local healthStabsCT = 0
     
