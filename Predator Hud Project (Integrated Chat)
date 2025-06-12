@@ -1097,6 +1097,24 @@ if CLIENT then
             
             render.setStencilEnable(false)
             
+            
+            if timer.curtime() - healthStabsCT > 15 and healthStabsLeft < 3 then
+                healthStabsCT = timer.curtime()
+                healthStabsLeft = healthStabsLeft + 1
+                healthStabsLeft = math.clamp(healthStabsLeft,0,3)
+            end
+            render.setMaterial(healthStabMat)
+            render.setColor(thermalOn != 0 and Color(255,200,0,125)*0.7 or Color(255,200,0,125))
+            if healthStabsLeft > 0 then
+                render.drawTexturedRectRotated(w-w*0.14,h-h*0.135,h*0.07,h*0.05,180+7)
+            end
+            if healthStabsLeft > 1 then
+                render.drawTexturedRectRotated(w-w*0.14-h*0.07,h-h*0.142,h*0.07,h*0.05,180+5)
+            end
+            if healthStabsLeft > 2 then
+                render.drawTexturedRectRotated(w-w*0.14-h*0.14,h-h*0.147,h*0.07,h*0.05,180+3)
+            end
+            
             render.overrideBlend(true,1,1,1,1,1,1)
             render.setMaterial(thermalOverlayMat)
             render.setColor(Color(75,75,75,125)*(visionChangeVal2*((thermalOn == 2 or thermalOn == 3) and 1 or 0)))
@@ -1129,24 +1147,6 @@ if CLIENT then
             end
             
             render.drawTexturedRectRotated(w/2, h-h*0.16, h*(equipmentSelected and 0.15 or 0.08), h*(equipmentSelected and 0.15 or 0.08),0)
-            
-            
-            if timer.curtime() - healthStabsCT > 15 and healthStabsLeft < 3 then
-                healthStabsCT = timer.curtime()
-                healthStabsLeft = healthStabsLeft + 1
-                healthStabsLeft = math.clamp(healthStabsLeft,0,3)
-            end
-            render.setMaterial(healthStabMat)
-            render.setColor(thermalOn != 0 and Color(255,200,0,125)*0.7 or Color(255,200,0,125))
-            if healthStabsLeft > 0 then
-                render.drawTexturedRectRotated(w-w*0.14,h-h*0.135,h*0.07,h*0.05,180+7)
-            end
-            if healthStabsLeft > 1 then
-                render.drawTexturedRectRotated(w-w*0.14-h*0.07,h-h*0.142,h*0.07,h*0.05,180+5)
-            end
-            if healthStabsLeft > 2 then
-                render.drawTexturedRectRotated(w-w*0.14-h*0.14,h-h*0.147,h*0.07,h*0.05,180+3)
-            end
             
             --TRACKING TRIANGLES
             if TRACKING and not equipmentSelected then
