@@ -4,7 +4,7 @@
 --@include katlibs/assetloader.txt
 --@include katlibs/coroutineutils.txt
 --@shared
-#https://github.com/solarembra/katlibs
+--https://github.com/solarembra/katlibs
 
 if SERVER then
     local seat = prop.createSeat(chip():getPos()+Vector(0,0,10), Angle(0,90,0), "models/nova/airboat_seat.mdl", true)
