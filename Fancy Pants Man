@@ -10,8 +10,21 @@ if SERVER then
     local seat = prop.createSeat(chip():getPos()+Vector(0,0,10), Angle(0,90,0), "models/nova/airboat_seat.mdl", true)
     local screen = prop.createComponent(chip():getPos()+Vector(-55,0,45), Angle(90,0,0), "starfall_screen", "models/hunter/plates/plate2x2.mdl", true)
     screen:linkComponent(chip())
+    hook.add("ClientInitialized", "", function(ply)
+        net.start("sendseat")
+        net.writeEntity(seat)
+        net.send(ply,false)
+    end)
+    timer.create("sendseat", 1, 1, function()
+        net.start("sendseat")
+        net.writeEntity(seat)
+        net.send(find.allPlayers(),false)
+    end)
 else
-    if owner() ~= player() then return end
+    local SEAT = chip()
+    net.receive("sendseat", function()
+        SEAT = net.readEntity()
+    end)
     require("katlibs/httpqueue.txt")
     require("katlibs/assetloader.txt")
     require("katlibs/coroutineutils.txt")
@@ -360,12 +373,10 @@ else
     end
     -- Hook into the game loop
     hook.add("render", "render everything", function()
-        if assetsDownloaded then
+        if assetsDownloaded and player():inVehicle() and player():getVehicle() == SEAT then
             -- Update game logic
             local deltaTime = timer.frametime() -- Time elapsed since the last frame
-            if player():inVehicle() then
-                handleInput(cube, deltaTime)
-            end
+            handleInput(cube, deltaTime)
             updatePhysics(cube, deltaTime)
             updateCollisions(cube, world)
             -- Render the world
