@@ -216,7 +216,7 @@ else
         else
             cube.vel.x = cube.vel.x/(cube.isGrounded and 1.1 or 1.0025)
         end
-        if input.isKeyDown(KEY.D) and cube.collideRight or input.isKeyDown(KEY.A) and cube.collideLeft then
+        if cube.vel.x > 0 and cube.collideRight or cube.vel.x < 0 and cube.collideLeft then
             cube.vel.x = 0
         end
         cube.vel.x = math.clamp(cube.vel.x,-MOVE_SPEED,MOVE_SPEED)
@@ -366,6 +366,13 @@ else
             updateCollisions(cube, world)
             -- Render the world
             renderWorld()
+            
+            render.setColor(Color(75,75,75))
+            
+            render.drawText(16,15,"Fancy Pants Man Demo by Naki",nil)
+            render.drawText(16,30,"A/D - Move",nil)
+            render.drawText(16,45,"Space - Jump",nil)
+            render.drawText(16,60,"Alt - Crouch",nil)
         end
     end)
 end
