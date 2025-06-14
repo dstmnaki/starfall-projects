@@ -171,6 +171,7 @@ function checkCollision(cube, obstacle)
                 cube.isGrounded = true
                 cube.pos.y = obstacleTop - ph
                 cube.vel.y = 0
+                owner():emitSound("player/footsteps/sand1.wav", 100, 100, 1, CHANNEL_AUTO)
             end
         end
     end
@@ -225,6 +226,7 @@ function handleInput(cube, deltaTime)
             end
             cube.isGrounded = false
             blockSpace = true
+            owner():emitSound("physics/flesh/flesh_impact_hard2.wav", 100, 100, 1, CHANNEL_AUTO)
         end
     else
         blockSpace = false
@@ -324,6 +326,9 @@ function renderWorld()
                     if cube.runCycle > #animationData["runFrames"] then
                         cube.runCycle = 1
                     end
+                    if cube.runCycle == 1 or cube.runCycle == 4 or cube.runCycle == 7 then
+                        owner():emitSound("player/footsteps/sand1.wav", 100, 100, 1, CHANNEL_AUTO)
+                    end
                 end
                 u1, v1, u2, v2 = getFrame(animationData["runFrames"][cube.runCycle])
             end
@@ -341,7 +346,7 @@ function renderWorld()
             u1, v1, u2, v2 = getFrame(animationData["jumpFrames"][cube.jumpCycle])
         end
     end
-    render.drawTexturedRectUV(cube.pos.x - cube.size.x / 2,cube.pos.y,cube.size.x,cube.size.y,u1, v1, u2, v2)
+    render.drawTexturedRectUV(cube.pos.x - cube.size.x / 2,cube.pos.y+cube.size.y*0.1,cube.size.x,cube.size.y,u1, v1, u2, v2)
     render.setMaterial(materials["world_top.png"])
     render.drawTexturedRect(0,0,512,512)
 end
