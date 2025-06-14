@@ -322,7 +322,7 @@ else
                             if cube.crouch then
                                 cube.crouchCycle = math.clamp(cube.crouchCycle,0,2)
                             else
-                                cube.crouchCycle = math.clamp(cube.crouchCycle,2,5)
+                                cube.crouchCycle = math.clamp(cube.crouchCycle,2,4)
                             end
                         end
                         u1, v1, u2, v2 = getFrame(animationData["crouchFrames"][cube.crouchCycle]+1)
