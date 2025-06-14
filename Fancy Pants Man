@@ -11,6 +11,7 @@ if SERVER then
     local screen = prop.createComponent(chip():getPos()+Vector(-55,0,45), Angle(90,0,0), "starfall_screen", "models/hunter/plates/plate2x2.mdl", true)
     screen:linkComponent(chip())
 else
+    if owner() ~= player() then return end
     require("katlibs/httpqueue.txt")
     require("katlibs/assetloader.txt")
     require("katlibs/coroutineutils.txt")
