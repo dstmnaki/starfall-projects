@@ -223,10 +223,8 @@ else
         
         if input.isKeyDown(KEY.D) and not cube.collideRight and not cube.crouch then
             cube.vel.x = cube.vel.x + MOVE_SPEED*(cube.isGrounded and 0.1 or 0.01)
-            cube.leftRight = false
         elseif input.isKeyDown(KEY.A) and not cube.collideLeft and not cube.crouch then
             cube.vel.x = cube.vel.x - MOVE_SPEED*(cube.isGrounded and 0.1 or 0.01)
-            cube.leftRight = true
         else
             cube.vel.x = cube.vel.x/(cube.isGrounded and 1.1 or 1.0025)
         end
@@ -245,9 +243,6 @@ else
                 cube.isGrounded = false
                 blockSpace = true
                 owner():emitSound("physics/flesh/flesh_impact_hard2.wav", 100, 100, 1, CHANNEL_AUTO)
-                if cube.collideLeft or cube.collideRight then
-                    cube.leftRight = not cube.leftRight
-                end
             end
         else
             blockSpace = false
@@ -264,6 +259,7 @@ else
         if math.abs(cube.vel.x) >= 5 then
             cube.idleCT = timer.curtime()
             cube.isStayingStill = false
+            cube.leftRight = cube.vel.x<0
         else
             cube.vel.x = 0
         end
