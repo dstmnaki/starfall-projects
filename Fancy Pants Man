@@ -199,7 +199,7 @@ else
     -- Player Input and Movement
     function handleInput(cube, deltaTime)
         -- Horizontal movement
-        cube.crouch = input.isKeyDown(KEY.ALT)
+        cube.crouch = input.isKeyDown(KEY.S)
         if cube.crouch ~= cube.crouchLast then
             cube.crouchCT = timer.curtime()
             if cube.crouch then
@@ -376,7 +376,7 @@ else
             render.drawText(16,15,"Fancy Pants Man Demo by Naki",nil)
             render.drawText(16,30,"A/D - Move",nil)
             render.drawText(16,45,"Space - Jump",nil)
-            render.drawText(16,60,"Alt - Crouch",nil)
+            render.drawText(16,60,"S - Crouch",nil)
         end
     end)
 end
