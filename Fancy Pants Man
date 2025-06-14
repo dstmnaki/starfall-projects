@@ -231,6 +231,9 @@ else
                 cube.isGrounded = false
                 blockSpace = true
                 owner():emitSound("physics/flesh/flesh_impact_hard2.wav", 100, 100, 1, CHANNEL_AUTO)
+                if cube.collideLeft or cube.collideRight then
+                    cube.leftRight = not cube.leftRight
+                end
             end
         else
             blockSpace = false
