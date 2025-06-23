@@ -1,0 +1,71 @@
+--@name Nakilibs/Very Explosive Missiles (Tool to test out explosions, Edit & Create them)
+--@author Naki
+--@shared
+--@include Nakilibs/Very_Explosive_Library.txt
+
+require("Nakilibs/Very_Explosive_Library.txt")
+
+if CLIENT then
+    if hasPermission("enablehud",player()) then
+        enableHud(player(), true)
+    end
+else    
+    local isDown = false
+    local yaw = 0
+    local missileFindStatus = "ready"
+    local pos = chip():getPos()
+    local missiles = {}
+    
+    function createBomb(position,velocity)
+        local This = hologram.create(position,velocity:getAngle(),"models/props_phx/mk-82.mdl",Vector(1,1,1))
+        table.insert(missiles,1,{This,velocity})
+    end
+    
+    local effect_table = {
+        angle = Angle(0, 0, 0),
+        size_start = Vector(250),
+        size_end = Vector(2000),
+        color_start = Color(255, 255, 255, 75),
+        color_end = Color(25, 25, 25, 0),
+        duration = 0.2
+    }
+    
+    hook.add("think","",function()
+        if owner():keyDown(IN_KEY.ATTACK2) then
+            if isDown != true and missileFindStatus != "searching" then
+                isDown = true
+                yaw = math.rand(-360,360)
+                pos = owner():getEyeTrace().HitPos
+                missileFindStatus = "searching"
+            end
+        else
+            isDown = false
+        end
+        if missileFindStatus == "searching" then
+            local tr = trace.line(pos+Vector(0,0,25), pos+Vector(0,0,25)+Angle(-80,yaw,0):getForward()*50000, nil, nil, nil, nil)
+            if tr.Hit then
+                if tr.HitSky then
+                    createBomb(tr.HitPos,Angle(80,yaw+180,0):getForward()*100)
+                    missileFindStatus = "ready"
+                else
+                    yaw = math.rand(-360,360)
+                end
+            else
+                yaw = math.rand(-360,360)
+            end
+        end
+        for i = #missiles, 1, -1 do
+            local missile = missiles[i][1]
+            local vel = missiles[i][2]
+            
+            local tr = trace.line(missile:getPos(),missile:getPos()+vel,nil,nil,nil,nil)
+            missile:setPos(tr.HitPos)
+            
+            if tr.Hit then
+                very_explosive_lib_basicExplosion(tr.HitPos-missile:getForward()*15, 500, 500, effect_table)
+                missile:remove()
+                table.remove(missiles,i)
+            end
+        end
+    end)
+end
