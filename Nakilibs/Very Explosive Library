@@ -112,7 +112,7 @@ else -- CLIENT SIDE
     end
     function very_explosive_lib_EF_debrii(EFDEBDATA)
         local origin = EFDEBDATA.position or Vector()
-        local count = math.random(10, 15)
+        local count = math.random(7, 15)
         local lifespan = EFDEBDATA.lifespan or 3
         local model = EFDEBDATA.model or "models/hunter/blocks/cube025x025x025.mdl"
         local size = EFDEBDATA.size or Vector(1, 1, 1)
@@ -141,12 +141,12 @@ else -- CLIENT SIDE
         end
     end
     
-    function createSmokeCloud(position)
+    function createSmokeCloud(position,sizeMult)
         if particle.particleEmittersLeft() > 0 then
             local emitter = particle.create( position, false )
             
             for i = 1, math.rand(5,10) do
-                local smoke = emitter:add( material.load( "particle/smokesprites_0001", "smooth" ), position+Vector(math.rand(-300,300),math.rand(-300,300),math.rand(25,200)), math.rand(125,250), math.rand(500,800), 0, 0, 150, 0, math.rand(2,5) )
+                local smoke = emitter:add( material.load( "particle/smokesprites_0001", "smooth" ), position+Vector(math.rand(-300,300),math.rand(-300,300),math.rand(25,200))*sizeMult, math.rand(125,250)*sizeMult, math.rand(500,800)*sizeMult, 0, 0, 150, 0, math.rand(2,5) )
                 smoke:setColor( Color( 125, 125, 125, 25 ) )
                 smoke:setCollide( true )
                 smoke:setAirResistance( 600 )
@@ -161,7 +161,7 @@ else -- CLIENT SIDE
         very_explosive_lib_EF_debrii({
             position = effectData["position"]
         })
-        createSmokeCloud(effectData["position"])
+        createSmokeCloud(effectData["position"],(effectData["size_start"]:getLength()+effectData["size_end"]:getLength())/2/1500)
     end)
     
     hook.add("think", "very_explosive_lib_client_think", function()
