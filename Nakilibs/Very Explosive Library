@@ -1,6 +1,7 @@
 --@name Nakilibs/Very Explosive Library
 --@author Naki
 --@shared
+-- https://github.com/dstmnaki/starfall-projects/blob/main/Nakilibs/Very%20Explosive%20Library
 
 if SERVER then
     -- CONFIG --
