@@ -15,6 +15,7 @@ else
     local missileFindStatus = "ready"
     local pos = chip():getPos()
     local missiles = {}
+    local iteration = 0
     
     function createBomb(position,velocity)
         local This = hologram.create(position,velocity:getAngle(),"models/props_phx/mk-82.mdl",Vector(1,1,1))
@@ -49,6 +50,7 @@ else
                 if tr.HitSky then
                     createBomb(tr.HitPos,Angle(80,yaw+180,0):getForward()*100)
                     missileFindStatus = "ready"
+                    iteration = 0
                 else
                     yaw = math.rand(-360,360)
                 end
@@ -57,6 +59,7 @@ else
             end
             if iteration >= 50 then
                 missileFindStatus = "ready"
+                iteration = 0
             end
         end
         for i = #missiles, 1, -1 do
