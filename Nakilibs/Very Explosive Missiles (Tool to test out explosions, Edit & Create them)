@@ -9,7 +9,10 @@ if CLIENT then
     if hasPermission("enablehud",player()) then
         enableHud(player(), true)
     end
-else    
+else
+    local hud = prop.createComponent(chip():getPos(), Angle(0,0,0), "starfall_hud", "models/props_combine/breenglobe.mdl", true)
+    hud:linkComponent(chip())
+    
     local isDown = false
     local yaw = 0
     local missileFindStatus = "ready"
@@ -18,7 +21,7 @@ else
     local iteration = 0
     
     function createBomb(position,velocity)
-        local This = hologram.create(position,velocity:getAngle(),"models/props_phx/mk-82.mdl",Vector(1,1,1))
+        local This = hologram.create(position,velocity:getAngle(),"models/props_phx/ww2bomb.mdl",Vector(1,1,1))
         table.insert(missiles,1,{This,velocity})
     end
     
@@ -32,7 +35,7 @@ else
     }
     
     hook.add("think","",function()
-        if owner():keyDown(IN_KEY.ATTACK2) then
+        if owner():keyDown(IN_KEY.ATTACK) then
             if isDown != true and missileFindStatus != "searching" then
                 isDown = true
                 yaw = math.rand(-360,360)
@@ -70,7 +73,7 @@ else
             missile:setPos(tr.HitPos)
             
             if tr.Hit then
-                very_explosive_lib_basicExplosion(tr.HitPos-missile:getForward()*15, 500, 500, effect_table)
+                very_explosive_lib_basicExplosion(tr.HitPos-missile:getForward()*15, 500, 5000, effect_table)
                 missile:remove()
                 table.remove(missiles,i)
             end
