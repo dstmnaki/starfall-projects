@@ -24,6 +24,8 @@ if SERVER then
     
     function very_explosive_lib_createExplosionSimple(position, size, damage)
         game.blastDamage(position, size, damage)
+        game.blastDamage(position, size*1.5, damage/2.5)
+        game.blastDamage(position, size*2.5, damage/5)
     end
     
     function very_explosive_lib_basicExplosion(position, size, damage, EFDATA)
@@ -33,6 +35,27 @@ if SERVER then
         
         EFDATA["position"] = position
         net.start("very_explosive_lib_sendSphereSimpleToClient")
+        net.writeTable(EFDATA)
+        net.send()
+    end
+    
+    function very_explosive_lib_fatmanExplosion(position)
+        if very_explosive_lib_hasPermission then
+            very_explosive_lib_createExplosionSimple(position, 1500, 5000)
+        end
+        
+            
+        local EFDATA = {
+            angle = Angle(0, 0, 0),
+            size_start = Vector(750),
+            size_end = Vector(3500),
+            color_start = Color(255, 255, 255, 75),
+            color_end = Color(25, 25, 25, 0),
+            duration = 0.2
+        }
+        
+        EFDATA["position"] = position
+        net.start("very_explosive_lib_sendSphereFatmanToClient")
         net.writeTable(EFDATA)
         net.send()
     end
@@ -160,6 +183,19 @@ else -- CLIENT SIDE
         very_explosive_lib_EF_sphereSimple(effectData)
         very_explosive_lib_EF_debrii({
             position = effectData["position"]
+        })
+        createSmokeCloud(effectData["position"],(effectData["size_start"]:getLength()+effectData["size_end"]:getLength())/2/1500)
+    end)
+    
+    net.receive("very_explosive_lib_sendSphereFatmanToClient",function()
+        local effectData = net.readTable()
+        very_explosive_lib_EF_sphereSimple(effectData)
+        very_explosive_lib_EF_debrii({
+            position = effectData["position"],
+            size = Vector(2),
+            gravity = Vector(0, 0, -800),
+            min_velocity = 700,
+            max_velocity = 2000
         })
         createSmokeCloud(effectData["position"],(effectData["size_start"]:getLength()+effectData["size_end"]:getLength())/2/1500)
     end)
