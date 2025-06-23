@@ -9,7 +9,7 @@ if SERVER then
         end
     end)
     hook.add("EntityTakeDamage", "", function(target, attacker, inflictor, amount, type, position, force)
-        if GOD then
+        if GOD and target == owner() then
             return true
         end
     end)
