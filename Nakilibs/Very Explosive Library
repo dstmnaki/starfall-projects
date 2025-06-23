@@ -1,217 +1,78 @@
---@name Nakilibs/Very Explosive Library
+--@name Nakilibs/Very Explosive Missiles (Tool to test out explosions, Edit & Create them)
 --@author Naki
 --@shared
+--@include Nakilibs/Very_Explosive_Library.txt
 
-if SERVER then
-    -- CONFIG --
-    
-    
-    very_explosive_lib_notifs = false
-    
-    
-    -- CODE --
-    if hasPermission("game.blastDamage", owner()) then
-        if very_explosive_lib_notifs then
-            print("game.blastDamage permission request successful: permission granted!")
-        end
-        very_explosive_lib_hasPermission = true
-    else
-        if very_explosive_lib_notifs then
-            print("game.blastDamage permission request came back false: permission NOT granted!")
-        end
-        very_explosive_lib_hasPermission = false
-    end
-    
-    function very_explosive_lib_createExplosionSimple(position, size, damage)
-        game.blastDamage(position, size, damage)
-    end
-    
-    function very_explosive_lib_basicExplosion(position, size, damage, EFDATA)
-        if very_explosive_lib_hasPermission then
-            very_explosive_lib_createExplosionSimple(position, size, damage)
-        end
-        
-        EFDATA["position"] = position
-        net.start("very_explosive_lib_sendSphereSimpleToClient")
-        net.writeTable(EFDATA)
-        net.send()
-    end
-else -- CLIENT SIDE
-    
-    very_explosive_lib_EF_TEMP_TABLE = {}
-    very_explosive_lib_EF_TEMP_TABLE.SIMPLE_SPHERE = {}
-    very_explosive_lib_EF_TEMP_TABLE.DEBRIS = {}
-    very_explosive_lib_EF_TEMP_TABLE.EMITTERS = {}
-    
-    very_explosive_lib_shake_amplitude = 0
-    very_explosive_lib_sfx = nil
-    
-    function very_explosive_lib_lerpVector4(t, from, to)
-        return Color(
-            math.lerp(t, from[1], to[1]),
-            math.lerp(t, from[2], to[2]),
-            math.lerp(t, from[3], to[3]),
-            math.lerp(t, from[4], to[4])
-        )
-    end
-    
-    function very_explosive_lib_EF_sphereSimple(EFDATA)
-        local pos = EFDATA.position or chip():getPos()
-        local ang = EFDATA.angle or Angle()
-        local size_start = EFDATA.size_start or Vector(250)
-        local size_end = EFDATA.size_end or Vector(1500)
-        local col_start = EFDATA.color_start or Color(255,255,255,75)
-        local col_end = EFDATA.color_end or Color(50,50,50,0)
-        local duration = EFDATA.duration or 0.2
+require("Nakilibs/Very_Explosive_Library.txt")
 
-        local t0 = timer.curtime()
-        local holo = hologram.create(pos, ang, "models/starfall/holograms/sphere.mdl", size_start)
-        holo:setMaterial("models/debug/debugwhite")
-        holo:setColor(col_start)
-        holo:suppressEngineLighting(true)
-        
-        local expansionDistance = (size_end:getLength() - size_start:getLength())
-        local shockwaveSpeed = expansionDistance / duration
-        
-        local distance = pos:getDistance(eyePos())
-        
-        local delay = distance / shockwaveSpeed
-        
-        local distanceFrac = 1 - math.clamp(distance / (size_end:getLength()*2), 0, 1)
-        
-        
-        timer.simple(delay, function()
-            local holoPlayer = hologram.create(eyePos()+player():getAimVector()*1000/(distanceFrac*25), Angle(), "models/starfall/holograms/sphere.mdl", Vector())
-            if very_explosive_lib_sfx != nil then
-                very_explosive_lib_sfx:destroy()
+if CLIENT then
+    if hasPermission("enablehud",player()) then
+        enableHud(player(), true)
+    end
+else    
+    local isDown = false
+    local yaw = 0
+    local missileFindStatus = "ready"
+    local pos = chip():getPos()
+    local missiles = {}
+    local iteration = 0
+    
+    function createBomb(position,velocity)
+        local This = hologram.create(position,velocity:getAngle(),"models/props_phx/mk-82.mdl",Vector(1,1,1))
+        table.insert(missiles,1,{This,velocity})
+    end
+    
+    local effect_table = {
+        angle = Angle(0, 0, 0),
+        size_start = Vector(250),
+        size_end = Vector(2000),
+        color_start = Color(255, 255, 255, 75),
+        color_end = Color(25, 25, 25, 0),
+        duration = 0.2
+    }
+    
+    hook.add("think","",function()
+        if owner():keyDown(IN_KEY.ATTACK2) then
+            if isDown != true and missileFindStatus != "searching" then
+                isDown = true
+                yaw = math.rand(-360,360)
+                SPREAD = 500
+                pos = owner():getEyeTrace().HitPos+Vector(math.rand(-SPREAD,SPREAD),math.rand(-SPREAD,SPREAD),0):rotateAroundAxis(Vector(0,0,1),math.rand(-360,360))
+                missileFindStatus = "searching"
             end
-            very_explosive_lib_sfx = sound.create(holoPlayer, "ambient/explosions/explode_4.wav", false)
-            very_explosive_lib_sfx:setVolume(1*distanceFrac)
-            very_explosive_lib_sfx:setPitch(100*distanceFrac)
-            very_explosive_lib_sfx:play()
-            holoPlayer:remove()
+        else
+            isDown = false
+        end
+        if missileFindStatus == "searching" then
+            iteration = iteration + 1
+            local tr = trace.line(pos+Vector(0,0,25), pos+Vector(0,0,25)+Angle(-80,yaw,0):getForward()*50000, nil, nil, nil, nil)
+            if tr.Hit then
+                if tr.HitSky then
+                    createBomb(tr.HitPos,Angle(80,yaw+180,0):getForward()*100)
+                    missileFindStatus = "ready"
+                    iteration = 0
+                else
+                    yaw = math.rand(-360,360)
+                end
+            else
+                yaw = math.rand(-360,360)
+            end
+            if iteration >= 50 then
+                missileFindStatus = "ready"
+                iteration = 0
+            end
+        end
+        for i = #missiles, 1, -1 do
+            local missile = missiles[i][1]
+            local vel = missiles[i][2]
             
-            very_explosive_lib_shake_amplitude = 25 * distanceFrac
-        end)
-        
-        table.insert(very_explosive_lib_EF_TEMP_TABLE.SIMPLE_SPHERE, 1, {
-            holo,
-            {size_start, size_end, col_start, col_end, t0, duration}
-        })
-    end
-    
-    function getDebrisMDL()
-        local This = {
-            "models/props_debris/broken_pile001a.mdl",
-            "models/props_debris/plaster_ceilingpile001a.mdl",
-            "models/props_debris/plaster_floorpile001a.mdl",
-            "models/props_debris/concrete_wallpile01a.mdl",
-            "models/props_debris/barricade_short01a.mdl"
-        }
-        return table.random(This)
-    end
-    function very_explosive_lib_EF_debrii(EFDEBDATA)
-        local origin = EFDEBDATA.position or Vector()
-        local count = math.random(7, 15)
-        local lifespan = EFDEBDATA.lifespan or 3
-        local model = EFDEBDATA.model or "models/hunter/blocks/cube025x025x025.mdl"
-        local size = EFDEBDATA.size or Vector(1, 1, 1)
-        local grav = EFDEBDATA.gravity or Vector(0, 0, -800)
-        local minVel = EFDEBDATA.min_velocity or 300
-        local maxVel = EFDEBDATA.max_velocity or 1200
-    
-        for i = 1, count do
-            local dir = Angle(-math.rand(25,60),math.rand(-360,360),0):getForward():getNormalized()
-            local vel = dir * math.random(minVel, maxVel)
-            local angVel = Angle(math.rand(-15,15),math.rand(-15,15),math.rand(-15,15)) * 10
-    
-            local holo = hologram.create(origin, Angle(), getDebrisMDL(), size)
-            holo:setColor(EFDEBDATA.color or Color(125, 125, 125))
-    
-            local spawnTime = timer.curtime()
-            table.insert(very_explosive_lib_EF_TEMP_TABLE.DEBRIS or {}, {
-                holo = holo,
-                pos = origin,
-                vel = vel,
-                ang = Angle(math.rand(-15,15),math.rand(-15,15),math.rand(-15,15)) * 10,
-                angVel = angVel,
-                grav = grav,
-                spawn = spawnTime
-            })
-        end
-    end
-    
-    function createSmokeCloud(position,sizeMult)
-        if particle.particleEmittersLeft() > 0 then
-            local emitter = particle.create( position, false )
+            local tr = trace.line(missile:getPos(),missile:getPos()+vel,nil,nil,nil,nil)
+            missile:setPos(tr.HitPos)
             
-            for i = 1, math.rand(5,10) do
-                local smoke = emitter:add( material.load( "particle/smokesprites_0001", "smooth" ), position+Vector(math.rand(-300,300),math.rand(-300,300),math.rand(25,200))*sizeMult, math.rand(125,250)*sizeMult, math.rand(500,800)*sizeMult, 0, 0, 150, 0, math.rand(2,5) )
-                smoke:setColor( Color( 125, 125, 125, 25 ) )
-                smoke:setCollide( true )
-                smoke:setAirResistance( 600 )
-                smoke:setVelocity(Vector(10))
-            end
-            table.insert(very_explosive_lib_EF_TEMP_TABLE.EMITTERS,1,{emitter,timer.curtime()})
-        end
-    end
-    net.receive("very_explosive_lib_sendSphereSimpleToClient",function()
-        local effectData = net.readTable()
-        very_explosive_lib_EF_sphereSimple(effectData)
-        very_explosive_lib_EF_debrii({
-            position = effectData["position"]
-        })
-        createSmokeCloud(effectData["position"],(effectData["size_start"]:getLength()+effectData["size_end"]:getLength())/2/1500)
-    end)
-    
-    hook.add("think", "very_explosive_lib_client_think", function()
-        local SIMPLE_SPHERE = very_explosive_lib_EF_TEMP_TABLE.SIMPLE_SPHERE
-        for i = #SIMPLE_SPHERE, 1, -1 do
-            local holo, eff = SIMPLE_SPHERE[i][1], SIMPLE_SPHERE[i][2]
-            local t = math.clamp((timer.curtime() - eff[5]) / eff[6], 0, 1)
-
-            holo:setScale(math.lerpVector(t, eff[1], eff[2]))
-            holo:setColor(very_explosive_lib_lerpVector4(t, eff[3], eff[4]))
-
-            if t >= 1 then
-                holo:remove()
-                table.remove(SIMPLE_SPHERE, i)
-            end
-        end
-        
-        local DEBRIS = very_explosive_lib_EF_TEMP_TABLE.DEBRIS
-        for i = #DEBRIS, 1, -1 do
-            local d = DEBRIS[i]
-            local t = timer.curtime() - d.spawn
-            local newPos = d.pos + d.vel * t + d.grav * (t ^ 2) * 0.5
-            local newAng = d.ang + d.angVel * t
-        
-            d.holo:setPos(newPos)
-            d.holo:setAngles(newAng)
-        
-            if newPos.z < d.pos.z - 200 then
-                d.holo:remove()
-                table.remove(DEBRIS, i)
-            end
-        end
-        
-        local emitterT = very_explosive_lib_EF_TEMP_TABLE.EMITTERS
-        for i = #emitterT, 1, -1 do
-            local emitter = emitterT[i][1]
-            local t = timer.curtime()-emitterT[i][2]
-            if t >= 5 then
-                emitter:destroy()
-                table.remove(emitterT, i)
-            end
-        end
-        
-    end)
-    hook.add("drawhud","",function()
-        if render.isHUDActive() and very_explosive_lib_shake_amplitude > 0 then
-            render.screenShake(very_explosive_lib_shake_amplitude, 5, 0.5)
-            very_explosive_lib_shake_amplitude = very_explosive_lib_shake_amplitude / 1.05
-            if very_explosive_lib_shake_amplitude <= 0.01 then
-                very_explosive_lib_shake_amplitude = 0
+            if tr.Hit then
+                very_explosive_lib_basicExplosion(tr.HitPos-missile:getForward()*15, 500, 500, effect_table)
+                missile:remove()
+                table.remove(missiles,i)
             end
         end
     end)
