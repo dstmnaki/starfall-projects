@@ -56,5 +56,7 @@ if SERVER then
         end
     end)
 else
-
+    if hasPermission("enablehud",player()) then
+        enableHud(player(), true)
+    end
 end
