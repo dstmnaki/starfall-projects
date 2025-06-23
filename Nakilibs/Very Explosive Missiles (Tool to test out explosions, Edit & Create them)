@@ -35,7 +35,7 @@ else
     }
     
     hook.add("think","",function()
-        if owner():keyDown(IN_KEY.ATTACK) then
+        if owner():keyDown(IN_KEY.ATTACK) and owner():getActiveWeapon():getClass() == "none" then
             if isDown != true and missileFindStatus != "searching" then
                 isDown = true
                 yaw = math.rand(-360,360)
