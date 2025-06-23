@@ -1,0 +1,60 @@
+--@name Fatman Launcher TEST
+--@author Naki
+--@shared
+--@include Nakilibs/Very_Explosive_Library.txt
+
+require("Nakilibs/Very_Explosive_Library.txt")
+
+
+if SERVER then
+    local hud = prop.createComponent(chip():getPos(), Angle(0,0,0), "starfall_hud", "models/props_combine/breenglobe.mdl", true)
+    hud:linkComponent(chip())
+    
+    local isDown = false
+    local yaw = 0
+    local missileFindStatus = "ready"
+    local pos = chip():getPos()
+    local missiles = {}
+    local iteration = 0
+    local block = false
+    local CT = 0
+    hook.add("think","",function()
+        if owner():getActiveWeapon():isValid() and owner():keyDown(IN_KEY.ATTACK) and owner():getActiveWeapon():getClass() == "none" then
+            if isDown != true and block != true then
+                isDown = true
+                block = true
+                local This = hologram.create(owner():getEyePos()+owner():getEyeAngles():getRight()*5,owner():getEyeAngles(),"models/props_phx/ww2bomb.mdl",Vector(1,1,1))
+                This:setTrails(75, 0, 1, "trails/laser", Color(125,125,125,75), nil, nil)
+                table.insert(missiles,1,{This})
+                SND = sound.create(This, "^thrusters/Hover02.wav", false)
+                SND:setSoundLevel(500)
+                SND:play()
+                CT = timer.curtime()
+            end
+        else
+            isDown = false
+        end
+        for i = #missiles, 1, -1 do
+            
+            local missile = missiles[i][1]
+            local dir = math.lerpAngle(0.0025,missile:getForward():getAngle(),Angle(90,missile:getForward():getAngle().yaw,0)):getForward()
+            if SND != nil then
+                SND:setPitch(100/((1+timer.curtime()-CT)*0.2))
+            end
+            local tr = trace.line(missile:getPos(),missile:getPos()+math.lerpAngle(-math.clamp(missile:getForward():getAngle().pitch/90,-1,0),dir:getAngle(),Vector(0,0,-1):getAngle()):getForward()*30,owner(),nil,nil,nil)
+            missile:setPos(tr.HitPos)
+            missile:setAngles(dir:getAngle():rotateAroundAxis(dir,10+missile:getAngles().roll))
+            if tr.Hit then
+                very_explosive_lib_fatmanExplosion(tr.HitPos-missile:getForward()*15, 500, 5000, effect_table)
+                missile:remove()
+                table.remove(missiles,i)
+                block = false
+                if SND != nil then
+                    SND:destroy()
+                end
+            end
+        end
+    end)
+else
+
+end
