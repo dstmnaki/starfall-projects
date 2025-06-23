@@ -43,6 +43,7 @@ else
             isDown = false
         end
         if missileFindStatus == "searching" then
+            iteration = iteration + 1
             local tr = trace.line(pos+Vector(0,0,25), pos+Vector(0,0,25)+Angle(-80,yaw,0):getForward()*50000, nil, nil, nil, nil)
             if tr.Hit then
                 if tr.HitSky then
@@ -53,6 +54,9 @@ else
                 end
             else
                 yaw = math.rand(-360,360)
+            end
+            if iteration >= 50 then
+                missileFindStatus = "ready"
             end
         end
         for i = #missiles, 1, -1 do
