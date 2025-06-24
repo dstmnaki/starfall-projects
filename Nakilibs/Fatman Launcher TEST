@@ -77,7 +77,7 @@ else
         
         function createModel()
             swepParent = hologram.create(chip():localToWorld(Vector(0,0,25)),chip():localToWorldAngles(Angle(0,0,0)), "models/hunter/blocks/cube025x025x025.mdl")
-            swepParent:setScale(Vector(0.1))
+            swepParent:setScale(Vector())
             swepParent:setParent(chip())
             
             swepParent:setParent(owner():getActiveWeapon())
