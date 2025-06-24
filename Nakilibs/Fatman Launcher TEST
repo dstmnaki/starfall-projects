@@ -143,25 +143,29 @@ else
                 FIREDCT = timer.curtime()
                 if not FIRED then
                     BOMB_MDL:setNoDraw(false)
-                    if SND_Slide != nil and isValid(SND_Slide) then
+                    if SND_Slide != nil then
                         SND_Slide:destroy()
+                        SND_Slide = nil
                     end
                     SND_Slide = sound.create(BOMB_MDL, "physics/metal/canister_scrape_smooth_loop1.wav", false)
                     SND_Slide:setSoundLevel(100)
                     SND_Slide:play()
                     timer.simple(0.5,function()
                         SND_Slide:destroy()
+                        SND_Slide = nil
                     end)
                 else
-                    if SND_Launch != nil and isValid(SND_Launch) then
+                    if SND_Launch != nil then
                         SND_Launch:destroy()
+                        SND_Launch = nil
                     end
                     SND_Launch = sound.create(BOMB_MDL, "npc/dog/dog_pneumatic1.wav", false)
                     SND_Launch:setSoundLevel(100)
                     SND_Launch:play()
                     timer.simple(1,function()
-                        if SND_Launch != nil and isValid(SND_Launch) then
+                        if SND_Launch != nil then
                             SND_Launch:destroy()
+                            SND_Launch = nil
                         end
                     end)
                 end
@@ -195,21 +199,23 @@ else
                                     HINGE:setAngles(swepParent:localToWorldAngles(STORED_ANG:rotateAroundAxis(Vector(1,0,0),-45*math.clamp(math.sin(math.rad(T*180))*1.2,0,1))))
                                     if T >= 1 and LOADED != true then
                                         LOADED = true
-                                        if SND_Loaded != nil and isValid(SND_Loaded) then
+                                        if SND_Loaded != nil then
                                             SND_Loaded:destroy()
+                                            SND_Loaded = nil
                                         end
                                         SND_Loaded = sound.create(BOMB_MDL, "physics/metal/metal_barrel_impact_soft2.wav", false)
                                         SND_Loaded:setSoundLevel(100)
                                         SND_Loaded:play()
                                         timer.simple(1,function()
-                                            if SND_Loaded != nil and isValid(SND_Loaded) then
+                                            if SND_Loaded != nil then
                                                 SND_Loaded:destroy()
+                                                SND_Loaded = nil
                                             end
                                         end)
                                     end
                                 end
-                                if SND_Slide != nil and isValid(SND_Slide) then
-                                    SND_Slide:setPitch(100/(1+T))
+                                if SND_Slide != nil then
+                                    SND_Slide:setPitch(100/(1+T*0.5))
                                 end
                             end
                         end
