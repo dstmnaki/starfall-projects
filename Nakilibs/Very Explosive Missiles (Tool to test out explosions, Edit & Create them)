@@ -28,13 +28,32 @@ else
         table.insert(missiles,1,{This,type,velocity})
     end
     
-    local effect_table = {
+    local effect_table_bombastic = {
         angle = Angle(0, 0, 0),
         size_start = Vector(250),
         size_end = Vector(2000),
         color_start = Color(255, 255, 255, 75),
         color_end = Color(25, 25, 25, 0),
-        duration = 0.2
+        duration = 0.2,
+        sndname = "ambient/explosions/explode_4.wav"
+    }
+    local effect_table_firebomb = {
+        angle = Angle(0, 0, 0),
+        size_start = Vector(250),
+        size_end = Vector(2000),
+        color_start = Color(255, 255, 255, 75),
+        color_end = Color(25, 25, 25, 0),
+        duration = 0.2,
+        sndname = "ambient/explosions/explode_8.wav"
+    }
+    local effect_table_mininuke = {
+        angle = Angle(0, 0, 0),
+        size_start = Vector(250),
+        size_end = Vector(2000),
+        color_start = Color(255, 255, 255, 75),
+        color_end = Color(25, 25, 25, 0),
+        duration = 0.2,
+        sndname = "ambient/explosions/explode_5.wav"
     }
     
     hook.add("think","",function()
@@ -89,11 +108,11 @@ else
             
             if tr.Hit then
                 if type == 0 then
-                    very_explosive_lib_basicExplosion(tr.HitPos-missile:getForward()*15, 500, 5000, effect_table)
+                    very_explosive_lib_basicExplosion(tr.HitPos-missile:getForward()*15, 500, 5000, effect_table_bombastic)
                 elseif type == 1 then
-                    very_explosive_lib_fireExplosion(tr.HitPos-missile:getForward()*15, 500, 5000, effect_table)
+                    very_explosive_lib_fireExplosion(tr.HitPos-missile:getForward()*15, 500, 5000, effect_table_firebomb)
                 elseif type == 2 then
-                    very_explosive_lib_fatmanExplosion(tr.HitPos-missile:getForward()*15, 500, 5000, effect_table)
+                    very_explosive_lib_fatmanExplosion(tr.HitPos-missile:getForward()*15, 500, 5000, effect_table_mininuke)
                 end
                 missile:remove()
                 table.remove(missiles,i)
