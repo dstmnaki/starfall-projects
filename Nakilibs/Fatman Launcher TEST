@@ -214,9 +214,6 @@ else
                                         end)
                                     end
                                 end
-                                if SND_Slide != nil then
-                                    SND_Slide:setPitch(100/(1+T*0.5))
-                                end
                             end
                         end
                     end
