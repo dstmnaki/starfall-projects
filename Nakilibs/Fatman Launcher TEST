@@ -66,6 +66,7 @@ if SERVER then
                 block = false
                 if SND != nil then
                     SND:destroy()
+                    SND = nil
                 end
                 net.start("sendFiredState")
                 net.writeBool(false)
