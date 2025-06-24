@@ -14,15 +14,18 @@ else
     hud:linkComponent(chip())
     
     local isDown = false
+    local isDownR = false
     local yaw = 0
     local missileFindStatus = "ready"
     local pos = chip():getPos()
     local missiles = {}
     local iteration = 0
+    local MODE = 0
+    print("Fire mode: "..select(MODE+1,"Default Bomb","Fire Bomb","Mini-Nuke"))
     
-    function createBomb(position,velocity)
+    function createBomb(position,type,velocity)
         local This = hologram.create(position,velocity:getAngle(),"models/props_phx/ww2bomb.mdl",Vector(1,1,1))
-        table.insert(missiles,1,{This,velocity})
+        table.insert(missiles,1,{This,type,velocity})
     end
     
     local effect_table = {
@@ -46,12 +49,25 @@ else
         else
             isDown = false
         end
+        if owner():keyDown(IN_KEY.RELOAD) and owner():getActiveWeapon():getClass() == "none" then
+            if isDownR != true then
+                isDownR = true
+                MODE = MODE + 1
+                if MODE >= 3 then
+                    MODE = 0
+                end
+                print("Fire mode: "..select(MODE+1,"Default Bomb","Fire Bomb","Mini-Nuke"))
+                
+            end
+        else
+            isDownR = false
+        end
         if missileFindStatus == "searching" then
             iteration = iteration + 1
             local tr = trace.line(pos+Vector(0,0,25), pos+Vector(0,0,25)+Angle(-80,yaw,0):getForward()*50000, nil, nil, nil, nil)
             if tr.Hit then
                 if tr.HitSky then
-                    createBomb(tr.HitPos,Angle(80,yaw+180,0):getForward()*100)
+                    createBomb(tr.HitPos,MODE,Angle(80,yaw+180,0):getForward()*100)
                     missileFindStatus = "ready"
                     iteration = 0
                 else
@@ -67,13 +83,19 @@ else
         end
         for i = #missiles, 1, -1 do
             local missile = missiles[i][1]
-            local vel = missiles[i][2]
-            
+            local vel = missiles[i][3]
+            local type = missiles[i][2]
             local tr = trace.line(missile:getPos(),missile:getPos()+vel,nil,nil,nil,nil)
             missile:setPos(tr.HitPos)
             
             if tr.Hit then
-                very_explosive_lib_basicExplosion(tr.HitPos-missile:getForward()*15, 500, 5000, effect_table)
+                if type == 0 then
+                    very_explosive_lib_basicExplosion(tr.HitPos-missile:getForward()*15, 500, 5000, effect_table)
+                elseif type == 1 then
+                    very_explosive_lib_fireExplosion(tr.HitPos-missile:getForward()*15, 500, 5000, effect_table)
+                elseif type == 2 then
+                    very_explosive_lib_fatmanExplosion(tr.HitPos-missile:getForward()*15, 500, 5000, effect_table)
+                end
                 missile:remove()
                 table.remove(missiles,i)
             end
