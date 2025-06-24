@@ -131,7 +131,7 @@ else -- CLIENT SIDE
         timer.simple(delay, function()
             if very_explosive_lib_sfx then very_explosive_lib_sfx:destroy() end
             local holoPlayer = hologram.create(eyePos()+(eyePos()-pos):getNormalized()*1000/(1+size_end:getLength()/1500)*(1-distanceFrac), Angle(), "models/starfall/holograms/sphere.mdl", Vector())
-            very_explosive_lib_sfx = sound.create(holoPlayer, "ambient/explosions/explode_4.wav", false)
+            very_explosive_lib_sfx = sound.create(holoPlayer, EFDATA.sndname or "ambient/explosions/explode_4.wav", false)
             very_explosive_lib_sfx:setVolume(distanceFrac)
             very_explosive_lib_sfx:setPitch(pitch)
             very_explosive_lib_sfx:play()
@@ -306,6 +306,7 @@ else -- CLIENT SIDE
     
     net.receive("very_explosive_lib_sendSphereFatmanToClient",function()
         local effectData = net.readTable()
+        effectData.sndname = "ambient/explosions/explode_5.wav"
         local EFDATA2 = {
             position = effectData["position"],
             size_start = Vector(2500),
