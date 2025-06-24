@@ -129,7 +129,7 @@ else -- CLIENT SIDE
         local pitch = math.clamp(100 * (0.8 + 0.2 * distanceFrac), 80, 100)
         
         timer.simple(delay, function()
-            if very_explosive_lib_sfx then very_explosive_lib_sfx:destroy() end
+            if very_explosive_lib_sfx != nil then very_explosive_lib_sfx:destroy() very_explosive_lib_sfx = nil end
             local holoPlayer = hologram.create(eyePos()+(eyePos()-pos):getNormalized()*1000/(1+size_end:getLength()/1500)*(1-distanceFrac), Angle(), "models/starfall/holograms/sphere.mdl", Vector())
             very_explosive_lib_sfx = sound.create(holoPlayer, EFDATA.sndname or "ambient/explosions/explode_4.wav", false)
             very_explosive_lib_sfx:setVolume(distanceFrac)
@@ -137,6 +137,12 @@ else -- CLIENT SIDE
             very_explosive_lib_sfx:play()
             
             very_explosive_lib_shake_amplitude = 25 * distanceFrac
+            timer.simple(3,function()
+                if very_explosive_lib_sfx != nil then
+                    very_explosive_lib_sfx:destroy()
+                    very_explosive_lib_sfx = nil
+                end
+            end)
         end)
         
         table.insert(very_explosive_lib_EF_TEMP_TABLE.SIMPLE_SPHERE, 1, {
