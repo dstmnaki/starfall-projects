@@ -121,21 +121,21 @@ else -- CLIENT SIDE
         
         local distance = pos:getDistance(eyePos())
         
-        local delay = distance / shockwaveSpeed
+        local distanceFrac = 1 / (1 + (distance / 3000)^2)
         
-        local distanceFrac = 1 - math.clamp(distance / (size_end:getLength()*2), 0, 1)
+        local soundSpeed = 34300  -- Hammer units per second (343 m/s)
+        local delay = distance / soundSpeed
         
+        local pitch = math.clamp(100 * (0.8 + 0.2 * distanceFrac), 80, 100)
         
         timer.simple(delay, function()
-            local holoPlayer = hologram.create(eyePos()+player():getAimVector()*1000/(distanceFrac*25), Angle(), "models/starfall/holograms/sphere.mdl", Vector())
-            if very_explosive_lib_sfx != nil then
-                very_explosive_lib_sfx:destroy()
-            end
+            if very_explosive_lib_sfx then very_explosive_lib_sfx:destroy() end
+            print(distanceFrac)
+            local holoPlayer = hologram.create(eyePos()+(eyePos()-pos):getNormalized()*1000*(1-distanceFrac), Angle(), "models/starfall/holograms/sphere.mdl", Vector())
             very_explosive_lib_sfx = sound.create(holoPlayer, "ambient/explosions/explode_4.wav", false)
-            very_explosive_lib_sfx:setVolume(1*distanceFrac)
-            very_explosive_lib_sfx:setPitch(100*distanceFrac)
+            very_explosive_lib_sfx:setVolume(distanceFrac)
+            very_explosive_lib_sfx:setPitch(pitch)
             very_explosive_lib_sfx:play()
-            holoPlayer:remove()
             
             very_explosive_lib_shake_amplitude = 25 * distanceFrac
         end)
@@ -393,9 +393,6 @@ else -- CLIENT SIDE
         end
         
     end)
-    if owner() == player() then
-        enableHud(owner(), true)
-    end
     local mat = material.load("models/debug/debugwhite")
     hook.add("postdrawtranslucentrenderables","",function()
         if render.isHUDActive() then
