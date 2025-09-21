@@ -534,7 +534,7 @@ if CLIENT then
     
     hook.add("think","",function()
         if owner():getHealth() > 0 then
-            WPNOK = owner():getActiveWeapon():getClass() == "none"
+            WPNOK = owner():getActiveWeapon() != nil and owner():getActiveWeapon():isValid() and  owner():getActiveWeapon():getClass() == "none"
             
             if input.isMouseDown(MOUSE.MOUSE1) and blockAttack != true and canAttack and owner():isTyping() == false and WPNOK then
                 blockAttack = true
