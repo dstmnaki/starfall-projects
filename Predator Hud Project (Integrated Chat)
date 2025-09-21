@@ -642,6 +642,9 @@ if CLIENT then
         if str == "CHudHealth" then
             return false
         end
+        if str == "CHudBattery" then
+            return false
+        end
         if str == "CHudWeaponSelection" then
             if input.isMouseDown(MOUSE.MOUSE4) and owner():isTyping() == false then
                 return false
