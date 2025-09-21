@@ -582,6 +582,9 @@ if CLIENT then
         end
     end)
     local USEFLIR = true
+    
+    concmd("pp_texturize_scale 0.01") -- i forgot this to 1...my bad guys...
+    
     function changeVision()
         thermalOn = thermalOn +1
         owner():emitSound("cpthazama/avp/predator/vision/vision_change_02.ogg", 100, 100, 1, CHANNEL_AUTO)
@@ -617,10 +620,10 @@ if CLIENT then
     TargetPlayerMat = material.createFromImage("hud/cpthazama/avp/icons/human.png", "noclamp smooth")
     
     VisionChangeMat = material.create("UnlitGeneric")
-    VisionChangeMat:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/3x916i68wp78uzhu7ynqb/vision-change.png?rlkey=s68r2moiocyscrmcyi8x22uog&dl=1", nil, nil)
+    VisionChangeMat:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/3z4y7aq48zj1bkrtaa0fb/vision-change.png?rlkey=xi85zl08cq3lat2uaaxj9qvm8&dl=1", nil, nil)
     
     TriangleSideMat = material.create("UnlitGeneric")
-    TriangleSideMat:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/by1y6bwjsytz5o268wfzd/triangle_side.png?rlkey=5b6jntvkw33d9rr54kw5aylms&dl=1", nil, nil)
+    TriangleSideMat:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/91kbh2h951ickpluwmzwy/betterer-edger.png?rlkey=my7hfigpgk3z86fi0hql976i9&dl=1", nil, nil)
     
     PlasmaHighlightMat = material.createFromImage("hud/cpthazama/avp/avp_p_wps_plasma_highlight_v3.png", "noclamp smooth")
     SpearHighlightMat = material.createFromImage("hud/cpthazama/avp/avp_p_wps_realspear_highlight_v2.png", "noclamp smooth")
