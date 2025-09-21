@@ -707,6 +707,7 @@ if CLIENT then
                     healFirst = true
                     AnimationPlaying = true
                     Animation = "heal"
+                    FRAME = 0
                     healFirstSFX = false
                     healSecondSFX = false
                     healthStabsCT = timer.curtime()
