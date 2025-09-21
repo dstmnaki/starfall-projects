@@ -34,17 +34,17 @@
                                 https://steamcommunity.com/sharedfiles/filedetails/?id=3491940716
 
 
-
                                                        - C O N T R O L S -
 
                                  R -------------------------------------------------------- CLOAK
                                  F ----------------------------------------------- TOGGLE THERMAL
                                  T ------------------------------------------------ SWITCH WEAPON
                                  H --------------------------------------------------------- HEAL
+								 E ------------------------------------------------- PICK UP MINE
                                  MOUSE1 -------------------------------------------------- ATTACK
-                                 MOUSE1 (WHILE TRACKING) --------- FIRE PLASMA CASTER/THROW SPEAR
-                                 MOUSE3 (WHILE TRACKING) ----------------- ASSIGN/UNASSIGN TARGET
-                                 MOUSE3 (WHILE LOCKED ON) ----------------------- UNASSIGN TARGET
+                                 MOUSE1 (W/TRACKING) -- FIRE PLASMA CASTER/THROW SPEAR/THROW MINE
+                                 MOUSE3 (W/TRACKING) --------------------- ASSIGN/UNASSIGN TARGET
+                                 MOUSE3 (W/LOCKED ON) --------------------------- UNASSIGN TARGET
                                  MOUSE2 --------------------------------------------------- TRACK
                                  MOUSE4 ------------------- ZOOM (MOUSE WHEEL TO ZOOM IN AND OUT)
                                 
