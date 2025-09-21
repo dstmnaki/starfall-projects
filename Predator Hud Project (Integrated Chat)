@@ -69,6 +69,112 @@ local plasmaholo = {}
 local TARGETSERVER = owner()
 local TARGETSERVERSET = owner()
 
+if SERVER then
+    function computeExactPitch(spawnPos, targetPos, speed, dt, gSolver)
+        local diff = targetPos - spawnPos
+        local yaw = math.atan2(diff.y, diff.x)
+        local Dxy = Vector(diff.x, diff.y, 0):getLength()
+    
+        -- iterate pitch from -45 to +45 (allow downward toss)
+        local bestPitch = 0
+        local bestError = 1e9
+        for pitch = -45, 45, 0.25 do
+            local pitchRad = math.rad(pitch)
+            local dir = Vector(
+                math.cos(yaw) * math.cos(pitchRad),
+                math.sin(yaw) * math.cos(pitchRad),
+                math.sin(pitchRad)
+            )
+    
+            local pos = spawnPos:clone()
+            local drop = 0
+            local ticks = 0
+            while Vector(pos.x - spawnPos.x, pos.y - spawnPos.y, 0):getLength() < Dxy do
+                pos = pos + dir * speed + Vector(0,0,-drop)
+                drop = drop + gSolver * dt
+                ticks = ticks + 1
+                if ticks > 1000 then break end
+            end
+    
+            local error = math.abs(pos.z - targetPos.z)
+            if error < bestError then
+                bestError = error
+                bestPitch = pitch
+            end
+        end
+    
+        return math.rad(bestPitch), yaw
+    end
+    beams = {}
+    function spawnWallBeams(mineEnt)
+        local minePos = mineEnt:getPos()+mineEnt:getUp()*0.85
+        local mineAng = mineEnt:getAngles()
+        
+        local numBeams = 10
+        local bounces = 1
+        
+        local model = "models/sprops/misc/cones/size_1/cone_12x30.mdl"
+        local coneAngle = 160  -- total degrees
+        local halfCone = coneAngle / 2
+        
+        for i=0,numBeams-1 do
+            local startPos = minePos
+            local traceCount = 0
+            local maxBounces = bounces or 0
+            
+            local conePitch = (-halfCone + coneAngle*i/(numBeams-1))
+            
+            local forwardVec = mineEnt:localToWorldAngles(Angle(conePitch,0,0)):getUp()
+            local modelAng = mineEnt:localToWorldAngles(Angle(conePitch,0,0))
+            
+            local tr = trace.line(startPos, startPos + forwardVec * 2000, owner(), nil, nil, false)
+            local dist = (tr.HitPos - startPos):getLength()
+            local beam = hologram.create(startPos, modelAng, model, Vector(0.03, 0.03, dist/30))
+            beam:setColor(Color(255,0,0,75))
+            beam:suppressEngineLighting(true)
+            beam:setMaterial("models/debug/debugwhite")
+            table.insert(beams, 1, beam)
+            local beamAng = modelAng
+            
+            startPos = tr.HitPos
+            if tr.Hit then
+                while traceCount < maxBounces do
+                    -- 1. reflect incoming forward along hit surface
+                    local inDir = beamAng:getForward()
+                    local hitNormal = tr.HitNormal
+                    local reflDir = (inDir - 2 * inDir:dot(hitNormal) * hitNormal):getNormalized()
+            
+                    -- 2. build matrix: forward = reflected direction, right = mine right
+                    local m = Matrix()
+                    m:setForward(reflDir)
+                    m:setRight(mineAng:getRight())          -- keep flat relative to wall plane
+                    local up = m:getForward():cross(m:getRight()):getNormalized()  -- recompute up to ensure orthogonal
+                    m:setUp(up)
+                    
+                    local ang = m:getAngles()
+            
+                    -- trace along reflected direction
+                    local tr2 = trace.line(startPos, startPos + ang:getUp() * 2000, owner(), nil, nil, false)
+            
+                    -- spawn holo
+                    local dist = (tr2.HitPos - startPos):getLength()
+                    local beam = hologram.create(startPos, ang, model, Vector(0.03, 0.03, dist / 30))
+                    beam:setColor(Color(255,0,0,75))
+                    beam:suppressEngineLighting(true)
+                    beam:setMaterial("models/debug/debugwhite")
+                    table.insert(beams, 1, beam)
+                    if not tr2.Hit then break end
+                    startPos = tr2.HitPos
+                    beamAng = ang
+                    traceCount = traceCount + 1
+                end
+            end
+        end
+    end
+
+
+end
+
 hook.add("net","",function(name,len,ply)
     if name == "sendcloak" then
         local bool = net.readBool()
@@ -91,7 +197,26 @@ hook.add("net","",function(name,len,ply)
         if name == "sendSpearToServer" then
             Spear = hologram.create(owner():getShootPos()+owner():getEyeAngles():getRight()*7, (owner():getEyeTrace().HitPos - (owner():getShootPos()+owner():getEyeAngles():getRight()*7)):getAngle(), "models/props_junk/harpoon002a.mdl", Vector(1,1,1))
             Spear:setTrails(25, 5, 0.2, "trails/laser", Color(255,255,255,75), nil, nil)
+            SpearDir = Spear:getForward()
             SpearTossed = true
+        end
+        if name == "sendMineToServer" then
+            local spawn = owner():getShootPos() + owner():getEyeAngles():getRight()*7
+            local target = owner():getEyeTrace().HitPos
+            local dt = game.getTickInterval()
+            local speed = 30
+            local gSolver = 9.8
+            
+            local pitchRad, yawRad = computeExactPitch(spawn, target, speed, dt, gSolver)
+            local ang = Angle(-math.deg(pitchRad), math.deg(yawRad), 0)
+            
+            Mine = hologram.create(spawn, ang, "models/Combine_Helicopter/helicopter_bomb01.mdl", Vector(0.15,0.15,0.05))
+            MineDir = Mine:getForward()
+            Mine:setTrails(25, 5, 0.2, "trails/laser", Color(255,255,255,75), nil, nil)
+            
+            MineTossed = true
+            MineActivated = false
+            drop = 0
         end
         if name == "slash" then
             if owner():getShootPos():getDistance(owner():getEyeTrace().HitPos) < 50 then
@@ -238,6 +363,74 @@ if SERVER then
                 end
             end
         end
+        if Mine != nil and Mine:isValid() and MineTossed then
+            if runMeOnce2 == nil then runMeOnce2 = false end
+            if dropMine == nil then dropMine = 0 end
+            if runMeOnce2 != true then
+                dropMine = dropMine + 9.8*game.getTickInterval()
+                local tr = trace.line(Mine:getPos(),Mine:getPos()+MineDir*30+Vector(0,0,-dropMine),owner(), nil, nil, false)
+                local lastPos = tr.HitPos
+                local curPos = Mine:getPos()
+                if tr.Hit then
+                    Mine:setPos(tr.HitPos)
+                    
+                    local targetDir = Vector(0,0,-1)  -- direction you want the model to face
+                    local upDir = tr.HitNormal        -- normal of the surface
+                    
+                    -- project forward onto plane perpendicular to upDir
+                    local forward = (targetDir - targetDir:dot(upDir) * upDir):getNormalized()
+                    
+                    -- right = cross(forward, up)
+                    local right = forward:cross(upDir):getNormalized()
+                    -- recompute up to ensure orthogonal
+                    local up = right:cross(forward):getNormalized()
+                    
+                    local m = Matrix()
+                    m:setForward(forward)
+                    m:setRight(right)
+                    m:setUp(up)
+                    
+                    Mine:setAngles(m:getAngles())
+
+                    
+                    runMeOnce2 = true
+                    dropMine = 0
+                    
+                    net.start("sendMineArmedSound")
+                    net.writeFloat(0)
+                    net.send(owner(),false)
+                    
+                    timer.simple(1.5, function()
+                        MineActivated = true
+                        spawnWallBeams(Mine)
+                    end)
+                else
+                    Mine:setAngles((lastPos-curPos):getAngle())
+                    Mine:setPos(lastPos)
+                end
+            elseif MineActivated == true then
+                if owner():keyDown(IN_KEY.USE) and Mine:getPos():getDistance(owner():getEyeTrace().HitPos) < 5 and Mine:getPos():getDistance(owner():getShootPos()) < 150 then
+                    net.start("sendMineBack")
+                    net.writeFloat(0)
+                    net.send(owner(),false)
+                    if beams then
+                        for i = 1, #beams do
+                            local entry = beams[i]
+                            if entry and entry:isValid() then
+                                entry:remove()
+                            end
+                        end
+                    end
+                    timer.simple(0.5,function()
+                        beams = {}
+                    end)
+                    Mine:remove()
+                    MineTossed = false
+                    runMeOnce2 = false
+                    MineActivated = false
+                end
+            end
+        end
         if owner():getHealth() > 0 and centerHolo:isValid() then
             if owner():keyDown(IN_KEY.ATTACK2) and owner():isTyping() == false then
                 local LaserPos = owner():getShootPos()+owner():getEyeAngles():getRight()*6+owner():getEyeAngles():getUp()*2
@@ -342,6 +535,8 @@ if CLIENT then
         end
         CANTOSS = true
         HasSpear = true
+        CANTOSS2 = true
+        HasMine = true
         
         chatbuffer = {}
         lastVocals = ""
@@ -383,6 +578,14 @@ if CLIENT then
             CANTOSS = true
             HasSpear = true
             owner():emitSound("cpthazama/avp/predator/hud/pred_pick_up_0"..math.round(math.rand(4,6))..".ogg", 100, 100, 1, CHANNEL_AUTO)
+        end
+        if name == "sendMineBack" then
+            CANTOSS2 = true
+            HasMine = true
+            owner():emitSound("cpthazama/avp/predator/hud/pred_pick_up_0"..math.round(math.rand(4,6))..".ogg", 100, 100, 1, CHANNEL_AUTO)
+        end
+        if name == "sendMineArmedSound" then
+            owner():emitSound("cpthazama/avp/weapons/predator/mine/prd_mine_arm_01.ogg", 100, 100, 1, CHANNEL_AUTO)
         end
     end)
     if player() ~= owner() then return end
@@ -426,9 +629,10 @@ if CLIENT then
     local zoomingLast = 0
     local LOCKTARGETLAST = false
     local SPEARSTATE = "in"
+    local MINESTATE = "in"
     local healthStabsLeft = 0
     local healthStabsCT = 0
-    
+    local equipmentSelected = 0
     
     local useAssets = file.existsInGame("materials/naki/000.png")
     
@@ -550,7 +754,7 @@ if CLIENT then
             if input.isMouseDown(MOUSE.MOUSE1) and blockAttack != true and canAttack and owner():isTyping() == false and WPNOK then
                 blockAttack = true
                 if input.isMouseDown(MOUSE.MOUSE2) and not input.isMouseDown(MOUSE.MOUSE4) and not owner():isTyping() and WPNOK then
-                    if not AnimationPlaying and Animation == "" and not equipmentSelected then
+                    if not AnimationPlaying and Animation == "" and equipmentSelected == 0  then
                         shootPlasmaCaster()
                     end
                 else
@@ -638,6 +842,7 @@ if CLIENT then
     
     PlasmaHighlightMat = material.createFromImage("hud/cpthazama/avp/avp_p_wps_plasma_highlight_v3.png", "noclamp smooth")
     SpearHighlightMat = material.createFromImage("hud/cpthazama/avp/avp_p_wps_realspear_highlight_v2.png", "noclamp smooth")
+    MineHighlightMat = material.createFromImage("hud/cpthazama/avp/avp_p_wps_mine_highlight_v3.png", "noclamp smooth")
     
     healthStabMat = material.createFromImage("gui/point.png", "smooth")
     
@@ -703,18 +908,20 @@ if CLIENT then
             if TARGETLOCK == nil or TARGETLOCK == owner() then TARGETLOCK2 = false end
             WPNOK = owner():getActiveWeapon():getClass() == "none"
             vmHolo:setPos(owner():getShootPos())
-            vmHolo:setAngles(Angle(owner():getEyeAngles().pitch-15*math.clamp(math.sin(math.rad(FRAME*180))*2,0,1)*((Animation == "assigntarget" or Animation == "unassigntarget" and AnimationPlaying) and 1 or 0), owner():getEyeAngles().yaw, 0))
-            if equipmentSelected == nil then equipmentSelected = false end
+            vmHolo:setAngles(Angle(owner():getEyeAngles().pitch+45*(1-FRAME)*(input.isMouseDown(MOUSE.MOUSE2) and 1 or 0)*((equipmentSelected == 2 and MINESTATE != "out" and HasMine) and 1 or 0)-15*math.clamp(math.sin(math.rad(FRAME*180))*2,0,1)*((Animation == "assigntarget" or Animation == "unassigntarget" and AnimationPlaying) and 1 or 0), owner():getEyeAngles().yaw, 0))
             if switchEquipmentFirst == nil then switchEquipmentFirst = false end
             if input.isKeyDown(KEY.T) and not input.isMouseDown(MOUSE.MOUSE2) and owner():isTyping() == false then
                 if switchEquipmentFirst != true then
                     switchEquipmentFirst = true
-                    equipmentSelected = !equipmentSelected
+                    equipmentSelected = equipmentSelected + 1
+                    if equipmentSelected > 2 then
+                        equipmentSelected = 0
+                    end
                     LOCKTARGET=nil
                     net.start("target")
                     net.writeEntity(owner())
                     net.send()
-                    owner():emitSound((not equipmentSelected and "cpthazama/avp/predator/focus/predator_targetinfo_off_01.ogg" or "cpthazama/avp/predator/focus/predator_targetinfo_on_01.ogg"), 100, 100, 1, CHANNEL_AUTO)
+                    owner():emitSound("", 100, 100, 1, CHANNEL_AUTO)
                 end
             else
                 switchEquipmentFirst = false
@@ -775,8 +982,65 @@ if CLIENT then
                     end
                     vmHolo:setAnimation("predator_hud_battery_interaction", FRAME2*0.2, 0)
                 else
-                    if owner():isOnGround() or (equipmentSelected and input.isMouseDown(MOUSE.MOUSE2) and HasSpear) then
-                        if SPEARSTATE != "in" or (equipmentSelected and input.isMouseDown(MOUSE.MOUSE2) and HasSpear) then
+                    if owner():isOnGround() or (equipmentSelected == 1 and input.isMouseDown(MOUSE.MOUSE2) and HasSpear) then
+                        if MINESTATE != "in" or (equipmentSelected == 2 and input.isMouseDown(MOUSE.MOUSE2) and HasMine) then
+                            if resetFrame2 == nil then resetFrame2 = false end
+                            if resetFrame2 != true then
+                                resetFrame2 = true
+                                FRAME = 0
+                                owner():emitSound("cpthazama/avp/predator/recon/pred_recon_activate_01.ogg", 100, 100, 1, CHANNEL_AUTO)
+                            end
+                            sway = 0
+                            sway2 = 0
+                            if MINESTATE == "throw" then
+                                FRAME = FRAME + 0.04*timer.frametime()*66
+                                FRAME = math.clamp(FRAME,0,1)
+                                if FRAME >= 1 and MINESTATE != "in" then
+                                    MINESTATE = "in"
+                                    FRAME = 0
+                                    resetFrame2 = false
+                                end
+                                if FRAME >= 0.5 and HasMine then
+                                    vmHolo:setBodygroup(vmHolo:lookupBodygroup("equipment"), 0)
+                                    HasMine = false
+                                    net.start("sendMineToServer")
+                                    net.writeFloat(0)
+                                    net.send()
+                                    owner():emitSound("cpthazama/avp/weapons/human/melee/marine_melee_swing_02.ogg", 100, 100, 1, CHANNEL_AUTO)
+                                end
+                                vmHolo:setAnimation("predator_hud_spear_throw", FRAME, 0)
+                            else
+                                if input.isMouseDown(MOUSE.MOUSE2)  then
+                                    FRAME = FRAME + 0.025*timer.frametime()*66*(MINESTATE != "out" and 1 or 0)
+                                    FRAME = math.clamp(FRAME,0,1)
+                                    if FRAME >= 0.99 and MINESTATE != "out" then
+                                        MINESTATE = "out"
+                                        FRAME = 0
+                                        CANTOSS2 = true
+                                    end
+                                    
+                                    vmHolo:setAnimation("predator_hud_predmine_into_fire_test", math.clamp(FRAME,MINESTATE == "out" and 1 or 0,1), 0)
+                                    
+                                    vmHolo:setBodygroup(vmHolo:lookupBodygroup("equipment"), 2)
+                                    if CANTOSS2 and input.isMouseDown(MOUSE.MOUSE1) then
+                                        CANTOSS2 = false
+                                        FRAME = 0
+                                        MINESTATE = "throw"
+                                    end
+                                else
+                                    CANTOSS2 = false
+                                    FRAME = FRAME + 0.04*timer.frametime()*66
+                                    FRAME = math.clamp(FRAME,0,1)
+                                    if FRAME >= 1 and MINESTATE != "in" then
+                                        MINESTATE = "in"
+                                        FRAME = 0
+                                        resetFrame2 = false
+                                        vmHolo:setBodygroup(vmHolo:lookupBodygroup("equipment"), 0)
+                                    end
+                                    vmHolo:setAnimation("predator_hud_predmine_extend", 1-FRAME, 0)
+                                end
+                            end
+                        elseif SPEARSTATE != "in" or (equipmentSelected == 1 and input.isMouseDown(MOUSE.MOUSE2) and HasSpear) then
                             if resetFrame == nil then resetFrame = false end
                             if resetFrame != true then
                                 resetFrame = true
@@ -1054,6 +1318,31 @@ if CLIENT then
             render.setColor(thermalOn != 0 and Color(125*0.8,165*0.8,255*0.8) or Color(255,0,0))
             render.drawTexturedRect(0, 0, w, h)
             
+            
+            
+            render.setMaterial(select(equipmentSelected+1,PlasmaHighlightMat,SpearHighlightMat,MineHighlightMat))
+            if equipmentSelected > 0 then
+                if equipmentSelected == 1 then
+                    if HasSpear then
+                        render.setColor(thermalOn != 0 and Color(125*0.8,165*0.8,255*0.8) or Color(255,0,0))
+                    else
+                        render.setColor(Color(125,125,125,75))
+                    end
+                else
+                    if HasMine then
+                        render.setColor(thermalOn != 0 and Color(125*0.8,165*0.8,255*0.8) or Color(255,0,0))
+                    else
+                        render.setColor(Color(125,125,125,75))
+                    end
+                end
+            else
+                render.setColor(thermalOn != 0 and Color(125*0.8,165*0.8,255*0.8) or Color(255,0,0))
+            end
+            
+            local iconSize = select(equipmentSelected+1,0.08,0.15,0.1)
+            render.drawTexturedRectRotated(w/2, h-h*0.16, h*iconSize, h*iconSize,0)
+            
+            
             render.setMaterial(CloakMat)
             render.setColor(thermalOn != 0 and Color(125*0.8,165*0.8,255*0.8, 75*(cloakstate and 1 or 0)) or Color(255,0,0, 75*(cloakstate and 1 or 0)))
             render.drawTexturedRect(0, 0, w, h)
@@ -1156,22 +1445,8 @@ if CLIENT then
             local pos = Vector(w/2,h/2,0)+Vector(0,-10,0):getRotated(Angle(0,120,0))
             render.drawTexturedRectRotatedFast(pos.x, pos.y, 25, 40, -120)
             
-            
-            render.setMaterial(equipmentSelected and SpearHighlightMat or PlasmaHighlightMat)
-            if equipmentSelected then
-                if HasSpear then
-                    render.setColor(thermalOn != 0 and Color(125*0.8,165*0.8,255*0.8) or Color(255,0,0))
-                else
-                    render.setColor(Color(125,125,125,75))
-                end
-            else
-                render.setColor(thermalOn != 0 and Color(125*0.8,165*0.8,255*0.8) or Color(255,0,0))
-            end
-            
-            render.drawTexturedRectRotated(w/2, h-h*0.16, h*(equipmentSelected and 0.15 or 0.08), h*(equipmentSelected and 0.15 or 0.08),0)
-            
             --TRACKING TRIANGLES
-            if TRACKING and not equipmentSelected then
+            if TRACKING and equipmentSelected == 0 then
                 if TARGET == nil then
                     local players = find.allPlayers()
                     local npcs = find.byClass("npc_*")
