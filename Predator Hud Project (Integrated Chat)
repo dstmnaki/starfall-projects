@@ -699,6 +699,10 @@ if CLIENT then
                 if switchEquipmentFirst != true then
                     switchEquipmentFirst = true
                     equipmentSelected = !equipmentSelected
+                    LOCKTARGET=nil
+                    net.start("target")
+                    net.writeEntity(owner())
+                    net.send()
                     owner():emitSound((not equipmentSelected and "cpthazama/avp/predator/focus/predator_targetinfo_off_01.ogg" or "cpthazama/avp/predator/focus/predator_targetinfo_on_01.ogg"), 100, 100, 1, CHANNEL_AUTO)
                 end
             else
