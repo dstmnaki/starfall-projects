@@ -200,7 +200,7 @@ if SERVER then
                 if tr.Hit then
                     if tr.Entity and (tr.Entity:isNPC() or tr.Entity:isPlayer()) then
                         if hasPermission("entities.applyDamage", tr.Entity) then
-                            tr.Entity:applyDamage(300, owner(), chip(), DAMAGE.SNIPER, owner():getPos())
+                            tr.Entity:applyDamage(300, owner(), chip(), DAMAGE.SNIPER, tr.Entity:getPos())
                         end
                         runMeOnce = (tr.Entity:getHealth() > 0)
                         if runMeOnce == true then
