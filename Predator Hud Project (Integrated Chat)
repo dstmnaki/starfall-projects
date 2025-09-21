@@ -19,11 +19,11 @@
                                - F O R   S I N G L E P L A Y E R   U S E   I N S T R U C T I O N S -
 
                                                   RUN THE FOLLOWING COMMANDS
-                                        nsf_permission entities.blockDamage entities 1
-                                       nsf_permission entities.blockDamage usergroups 1
-                                         nsf_permission game.blastDamage usergroups 1
-                                   nsf_permission player.modifyMovementProperties usergroups 1
-                                    nsf_permission player.modifyMovementProperties entities 1
+                                        sf_permission entities.blockDamage entities 1
+                                       sf_permission entities.blockDamage usergroups 1
+                                         sf_permission game.blastDamage usergroups 1
+                                   sf_permission player.modifyMovementProperties usergroups 1
+                                    sf_permission player.modifyMovementProperties entities 1
                                           sf_permission entities.setHealth entities 1
                     (THESE ALLOW YOU TO BLOCK FALL DAMAGE, CREATE EXPLOSIONS AND MODIFY MOVEMENT SPEED & JUMP HEIGHT)
 
@@ -133,7 +133,7 @@ if SERVER then
         end)
     end
     hook.add("EntityTakeDamage", "", function(target, attacker, inflictor, amount, type, position, force)
-        if target == owner() then -- type == DAMAGE.FALL and 
+        if type == DAMAGE.FALL and target == owner() then
             return true
         end
     end)
