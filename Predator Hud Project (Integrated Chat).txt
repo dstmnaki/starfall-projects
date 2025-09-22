@@ -78,7 +78,7 @@ if SERVER then
         -- iterate pitch from -45 to +45 (allow downward toss)
         local bestPitch = 0
         local bestError = 1e9
-        for pitch = -45, 45, 0.25 do
+        for pitch = -90, 90, 0.25 do
             local pitchRad = math.rad(pitch)
             local dir = Vector(
                 math.cos(yaw) * math.cos(pitchRad),
