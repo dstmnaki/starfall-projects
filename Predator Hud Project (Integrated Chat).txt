@@ -187,13 +187,15 @@ if SERVER then
         end
         
         -- 2. Horizontal forward direction based on mine yaw
-        local forwardFlat = Angle(0, mineEnt:getAngles().yaw, 0):getForward()
+        local forwardFlat = ((furthest-mineEnt:getPos())*Vector(1,1,0)):getNormalized()
         local horizDist = (Vector(furthest.x, furthest.y, mineEnt:getPos().z) - mineEnt:getPos()):getLength()
         
         -- 3. Set trace parameters
         local traceCount = math.ceil(math.abs(lowest.z-highest.z)/30)  -- or 7, configurable
         local stepZ = (highest.z - lowest.z) / (traceCount - 1)
         local zOffset = 15  -- leave a little margin at top/bottom
+        
+        --local debuggerholostuff = hologram.create(Vector(mineEnt:getPos().x,mineEnt:getPos().y,(highest.z+lowest.z)/2) + (forwardFlat * horizDist)/2, Angle(0,forwardFlat:getAngle().yaw,0), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(horizDist,6,math.abs(lowest.z-highest.z))/6)
         
         -- 4. Timer loop (runs 45 times per second)
         timer.create("MineDamageZone", 0.025, 0, function()
@@ -202,9 +204,6 @@ if SERVER then
                     local zPos = lowest.z + zOffset + i * stepZ
                     local start = Vector(mineEnt:getPos().x, mineEnt:getPos().y, zPos)
                     local finish = start + forwardFlat * horizDist  -- goes through full wall
-                    
-                    -- cool filter stuff if i get it to work...
-                    --function(ent) return ent:isPlayer() or ent:isNPC() end
                     
                     local tr = trace.hull(start, finish, -Vector(7.5), Vector(7.5), function(ent) return ent:isPlayer() or ent:isNPC() end, nil, nil, true, false)
                     
