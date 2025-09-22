@@ -1043,8 +1043,8 @@ if CLIENT then
                             sway = 0
                             sway2 = 0
                             if MINESTATE == "throw" then
-                                FRAME = FRAME + 0.04*timer.frametime()*66
-                                FRAME = math.clamp(FRAME,0,1)
+                                FRAME = FRAME + 0.01*timer.frametime()*66
+                                FRAME = math.clamp(FRAME,0.4,1)
                                 if FRAME >= 1 and MINESTATE != "in" then
                                     MINESTATE = "in"
                                     FRAME = 0
@@ -1058,10 +1058,10 @@ if CLIENT then
                                     net.send()
                                     owner():emitSound("cpthazama/avp/weapons/human/melee/marine_melee_swing_02.ogg", 100, 100, 1, CHANNEL_AUTO)
                                 end
-                                vmHolo:setAnimation("predator_hud_spear_throw", FRAME, 0)
+                                vmHolo:setAnimation("predator_hud_predmine_out_fire_test", FRAME, 0)
                             else
                                 if input.isMouseDown(MOUSE.MOUSE2)  then
-                                    FRAME = FRAME + 0.025*timer.frametime()*66*(MINESTATE != "out" and 1 or 0)
+                                    FRAME = FRAME + 0.035*timer.frametime()*66*(MINESTATE != "out" and 1 or 0)
                                     FRAME = math.clamp(FRAME,0,1)
                                     if FRAME >= 0.99 and MINESTATE != "out" then
                                         MINESTATE = "out"
@@ -1069,7 +1069,7 @@ if CLIENT then
                                         CANTOSS2 = true
                                     end
                                     
-                                    vmHolo:setAnimation("predator_hud_predmine_into_fire_test", math.clamp(FRAME,MINESTATE == "out" and 1 or 0,1), 0)
+                                    vmHolo:setAnimation("predator_hud_predmine_into_fire_test", math.clamp(FRAME,MINESTATE == "out" and 0.45 or 0,0.45), 0)
                                     
                                     vmHolo:setBodygroup(vmHolo:lookupBodygroup("equipment"), 2)
                                     if CANTOSS2 and input.isMouseDown(MOUSE.MOUSE1) then
