@@ -40,7 +40,7 @@
                                  F ----------------------------------------------- TOGGLE THERMAL
                                  T ------------------------------------------------ SWITCH WEAPON
                                  H --------------------------------------------------------- HEAL
-								 E ------------------------------------------------- PICK UP MINE
+                                 E ------------------------------------------------- PICK UP MINE
                                  MOUSE1 -------------------------------------------------- ATTACK
                                  MOUSE1 (W/TRACKING) -- FIRE PLASMA CASTER/THROW SPEAR/THROW MINE
                                  MOUSE3 (W/TRACKING) --------------------- ASSIGN/UNASSIGN TARGET
@@ -116,6 +116,7 @@ if SERVER then
         local model = "models/sprops/misc/cones/size_1/cone_12x30.mdl"
         local coneAngle = 160  -- total degrees
         local halfCone = coneAngle / 2
+        local mineDamageBox = {}
         
         for i=0,numBeams-1 do
             local startPos = minePos
@@ -135,6 +136,10 @@ if SERVER then
             beam:setMaterial("models/debug/debugwhite")
             table.insert(beams, 1, beam)
             local beamAng = modelAng
+            
+            if tr.Hit then
+                table.insert(mineDamageBox, tr.HitPos)
+            end
             
             startPos = tr.HitPos
             if tr.Hit then
@@ -170,6 +175,52 @@ if SERVER then
                 end
             end
         end
+        -- 1. Find bounds
+        local lowest, highest, furthest
+        for _, wp in ipairs(mineDamageBox) do
+            if not lowest or wp.z < lowest.z then lowest = wp end
+            if not highest or wp.z > highest.z then highest = wp end
+            local horizDistVec = Vector(wp.x, wp.y, mineEnt:getPos().z) - mineEnt:getPos()
+            if not furthest or horizDistVec:getLength() > (Vector(furthest.x, furthest.y, mineEnt:getPos().z) - mineEnt:getPos()):getLength() then
+                furthest = wp
+            end
+        end
+        
+        -- 2. Horizontal forward direction based on mine yaw
+        local forwardFlat = Angle(0, mineEnt:getAngles().yaw, 0):getForward()
+        local horizDist = (Vector(furthest.x, furthest.y, mineEnt:getPos().z) - mineEnt:getPos()):getLength()
+        
+        -- 3. Set trace parameters
+        local traceCount = math.ceil(math.abs(lowest.z-highest.z)/30)  -- or 7, configurable
+        local stepZ = (highest.z - lowest.z) / (traceCount - 1)
+        local zOffset = 15  -- leave a little margin at top/bottom
+        
+        -- 4. Timer loop (runs 45 times per second)
+        timer.create("MineDamageZone", 0.025, 0, function()
+            if mineEnt and mineEnt:isValid() and mineEnt != nil then
+                for i = 0, traceCount-1 do
+                    local zPos = lowest.z + zOffset + i * stepZ
+                    local start = Vector(mineEnt:getPos().x, mineEnt:getPos().y, zPos)
+                    local finish = start + forwardFlat * horizDist  -- goes through full wall
+                    
+                    -- cool filter stuff if i get it to work...
+                    --function(ent) return ent:isPlayer() or ent:isNPC() end
+                    
+                    local tr = trace.hull(start, finish, -Vector(7.5), Vector(7.5), function(ent) return ent:isPlayer() or ent:isNPC() end, nil, nil, true, false)
+                    
+                    if tr.Hit then
+                        local hitEnt = tr.Entity
+                        if hitEnt:isPlayer() or hitEnt:isNPC() then
+                            if hasPermission("entities.applyDamage", hitEnt) then
+                                hitEnt:applyDamage(hitEnt:getHealth(), owner(), owner(), DAMAGE.PLASMA, mineEnt:getPos())
+                            end
+                        end
+                    end
+                end
+            else
+                timer.stop("MineDamageZone")
+            end
+        end)
     end
 
 
@@ -1620,7 +1671,7 @@ if CLIENT then
             end
             if zooming then
                 aimEntityOG = owner():getEyeTrace().Entity
-                aimEntity = ((aimEntityOG:isNPC() or aimEntityOG:isPlayer()) and aimEntityOG or nil)
+                aimEntity = (((aimEntityOG:isNPC() or aimEntityOG:isPlayer()) and aimEntityOG or nil))
                 if aimEntity == nil then
                     local players = find.allPlayers()
                     local npcs = find.byClass("npc_*")
