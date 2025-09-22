@@ -380,7 +380,7 @@ if SERVER then
         if Spear != nil and Spear:isValid() and SpearTossed then
             if runMeOnce == nil then runMeOnce = false end
             if runMeOnce != true then
-                local tr = trace.line(Spear:getPos(),Spear:getPos()+Spear:getForward()*50,owner(), nil, nil, false)
+                local tr = trace.line(Spear:getPos(),Spear:getPos()+Spear:getForward()*120,owner(), nil, nil, false)
                 local lastPos = tr.HitPos
                 Spear:setPos(lastPos)
                 if tr.Hit then
