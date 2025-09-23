@@ -853,6 +853,7 @@ if CLIENT then
     function changeVision()
         thermalOn = thermalOn +1
         owner():emitSound("cpthazama/avp/predator/vision/vision_change_02.ogg", 100, 100, 1, CHANNEL_AUTO)
+        --[[
         if thermalOn == 1 then
             concmd("pp_texturize \"hud/cpthazama/avp/thermal.png\"; pp_colormod 1; pp_colormod_addb 0; pp_colormod_addg 0; pp_colormod_addr 0; pp_colormod_color 1; pp_colormod_contrast 1; pp_colormod_mulb 0; pp_colormod_mulg 0; pp_colormod_mulr 0"..(USEFLIR and "; flir_toggle" or ""))
         elseif thermalOn == 2 then
@@ -860,6 +861,13 @@ if CLIENT then
         elseif thermalOn == 3 then
             concmd("pp_texturize \"hud/cpthazama/avp/scope_gradient.png\"; pp_colormod 1; pp_colormod_addb 0; pp_colormod_addg 0; pp_colormod_addr 0; pp_colormod_color -1; pp_colormod_contrast 1; pp_colormod_mulb 0; pp_colormod_mulg 255; pp_colormod_mulr 255")
         elseif thermalOn == 4 then
+            thermalOn = 0
+            concmd("pp_texturize \"\"; pp_colormod 0"..(USEFLIR and "; flir_toggle" or ""))
+        end
+        ]]
+        if thermalOn == 1 then
+            concmd("pp_texturize \"hud/cpthazama/avp/thermal.png\"; pp_colormod 1; pp_colormod_addb 0; pp_colormod_addg 0; pp_colormod_addr 0; pp_colormod_color 1; pp_colormod_contrast 1; pp_colormod_mulb 0; pp_colormod_mulg 0; pp_colormod_mulr 0"..(USEFLIR and "; flir_toggle" or ""))
+        else
             thermalOn = 0
             concmd("pp_texturize \"\"; pp_colormod 0"..(USEFLIR and "; flir_toggle" or ""))
         end
