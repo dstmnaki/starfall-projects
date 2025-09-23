@@ -198,7 +198,7 @@ if SERVER then
         --local debuggerholostuff = hologram.create(Vector(mineEnt:getPos().x,mineEnt:getPos().y,(highest.z+lowest.z)/2) + (forwardFlat * horizDist)/2, Angle(0,forwardFlat:getAngle().yaw,0), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(horizDist,6,math.abs(lowest.z-highest.z))/6)
         
         -- 4. Timer loop (runs 45 times per second)
-        timer.create("MineDamageZone", 0.025, 0, function()
+        timer.create("MineDamageZone", 0.01, 0, function()
             if mineEnt and mineEnt:isValid() and mineEnt != nil then
                 for i = 0, traceCount-1 do
                     local zPos = lowest.z + zOffset + i * stepZ
