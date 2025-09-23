@@ -1117,16 +1117,20 @@ if CLIENT then
                                     vmHolo:setAnimation("predator_hud_predmine_into_fire_test", math.clamp(FRAME,MINESTATE == "out" and 0.45 or 0,0.45), 0)
                                     
                                     vmHolo:setBodygroup(vmHolo:lookupBodygroup("equipment"), 2)
-                                    if CANTOSS2 and input.isMouseDown(MOUSE.MOUSE1) then
-                                        if (ENERGY > (1/26)*20) then
-                                            ENERGY=ENERGY - (1/26)*20
-                                            CANTOSS2 = false
-                                            FRAME = 0
-                                            MINESTATE = "throw"
-                                        else
-                                            owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_no_energy_01.ogg", 100, 100, 1, CHANNEL_AUTO)
+                                    if input.isMouseDown(MOUSE.MOUSE1) then
+                                        if CANTOSS2 and blockAttack != true then
+                                            blockAttack = true
+                                            if (ENERGY > (1/26)*20) then
+                                                ENERGY=ENERGY - (1/26)*20
+                                                CANTOSS2 = false
+                                                FRAME = 0
+                                                MINESTATE = "throw"
+                                            else
+                                                owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_no_energy_01.ogg", 100, 100, 1, CHANNEL_AUTO)
+                                            end
                                         end
-                                        
+                                    else
+                                        blockAttack = false
                                     end
                                 else
                                     CANTOSS2 = false
