@@ -1075,7 +1075,7 @@ if CLIENT then
                                 end
                                 vmHolo:setAnimation("predator_hud_predmine_out_fire_test", FRAME, 0)
                             else
-                                if input.isMouseDown(MOUSE.MOUSE2)  then
+                                if input.isMouseDown(MOUSE.MOUSE2) then
                                     FRAME = FRAME + 0.035*timer.frametime()*66*(MINESTATE != "out" and 1 or 0)
                                     FRAME = math.clamp(FRAME,0,1)
                                     if FRAME >= 0.99 and MINESTATE != "out" then
@@ -1088,9 +1088,15 @@ if CLIENT then
                                     
                                     vmHolo:setBodygroup(vmHolo:lookupBodygroup("equipment"), 2)
                                     if CANTOSS2 and input.isMouseDown(MOUSE.MOUSE1) then
-                                        CANTOSS2 = false
-                                        FRAME = 0
-                                        MINESTATE = "throw"
+                                        if (ENERGY > (1/26)*20) then
+                                            ENERGY=ENERGY - (1/26)*20
+                                            CANTOSS2 = false
+                                            FRAME = 0
+                                            MINESTATE = "throw"
+                                        else
+                                            owner():emitSound("cpthazama/avp/weapons/predator/plasma_caster/plasma_caster_no_energy_01.ogg", 100, 100, 1, CHANNEL_AUTO)
+                                        end
+                                        
                                     end
                                 else
                                     CANTOSS2 = false
