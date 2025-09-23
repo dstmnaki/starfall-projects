@@ -950,6 +950,7 @@ if CLIENT then
     end
     local mapReadyFirst = false
     local FRAME2 = 0
+    local PARENTFIRST = false
     hook.add("drawhud", "", function()
         if owner():getHealth() > 0 and owner():getActiveWeapon() != nil and isValid(owner():getActiveWeapon()) then
             if mapReady then
@@ -965,6 +966,12 @@ if CLIENT then
             end
             if TARGETLOCK == nil or TARGETLOCK == owner() then TARGETLOCK2 = false end
             WPNOK = owner():getActiveWeapon():getClass() == "none"
+            
+            if PARENTFIRST != true then
+                PARENTFIRST = true
+                vmHolo:setParent(owner():getActiveWeapon())
+            end
+            
             vmHolo:setPos(owner():getShootPos())
             vmHolo:setAngles(Angle(owner():getEyeAngles().pitch+45*(1-FRAME)*(input.isMouseDown(MOUSE.MOUSE2) and 1 or 0)*((equipmentSelected == 2 and MINESTATE != "out" and HasMine) and 1 or 0)-15*math.clamp(math.sin(math.rad(FRAME*180))*2,0,1)*((Animation == "assigntarget" or Animation == "unassigntarget" and AnimationPlaying) and 1 or 0), owner():getEyeAngles().yaw, 0))
             if switchEquipmentFirst == nil then switchEquipmentFirst = false end
@@ -1913,6 +1920,8 @@ if CLIENT then
                     end
                 end
             end
+        else
+            PARENTFIRST = false
         end
     end)
     
