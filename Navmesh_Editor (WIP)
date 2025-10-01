@@ -1,0 +1,469 @@
+--@name Navmesh_Editor
+--@author Nakkitsunami
+--@shared
+
+if SERVER then
+    local areasData = {}
+    
+    local function sendConnectCallback(id1, id2, ply)
+        net.start("connectAreaCallback")
+        net.writeFloat(id1)
+        net.writeFloat(id2)
+        net.send(ply)
+    end
+    
+    local function sendCreateAreaCallback(success, id, from, to, ply)
+        net.start("createAreaCallback")
+        net.writeBool(success)
+        if success then
+            net.writeFloat(id)
+            net.writeVector(from)
+            net.writeVector(to)
+        end
+        net.send(ply)
+    end
+
+    local function createArea(from, to, ply)
+        local a = navmesh.createNavArea(from, to)
+        if a then
+            local id = a:getID()
+            areasData[id] = { from = from, to = to, connections = areasData[id] and areasData[id].connections or {} }
+            sendCreateAreaCallback(true, id, from, to, ply)
+            return a
+        else
+            sendCreateAreaCallback(false, 0, from, to, ply)
+            return nil
+        end
+    end
+
+    local function connectAreas(id1, id2)
+        if not areasData[id1] or not areasData[id2] then return false end
+        areasData[id1].connections = areasData[id1].connections or {}
+        areasData[id2].connections = areasData[id2].connections or {}
+        local function addIfNot(tbl, v)
+            for _,x in ipairs(tbl) do if x == v then return end end
+            tbl[#tbl+1] = v
+        end
+        addIfNot(areasData[id1].connections, id2)
+        addIfNot(areasData[id2].connections, id1)
+        return true
+    end
+
+    hook.add("net", "navmesh_server_handler", function(name, len, ply)
+        if name == "sendArea" then
+            local from = net.readVector()
+            local to = net.readVector()
+            createArea(from, to, ply)
+
+        elseif name == "connectAreas" then
+            local id1 = net.readFloat()
+            local id2 = net.readFloat()
+            local success = connectAreas(id1, id2)
+            if success then
+                sendConnectCallback(id1, id2, ply)
+            end
+        elseif name == "nearestArea" then
+            local findNearMe = net.readVector()
+            local found = navmesh.getNavArea(findNearMe, 100)
+            net.start("sendNearestToOwner")
+            if found then
+                net.writeFloat(found:getID())
+            end
+            net.send(owner())
+        end
+        
+    end)
+
+else -- CLIENT
+    if player() ~= owner() then return end
+    enableHud(owner(), true)
+
+    local function serializeAreas(mapdata)
+        local lines = {}
+        for id, area in ipairs(mapdata.areas) do
+            local from = area.from
+            local to = area.to
+            local conns = table.concat(area.connections or {}, ",")
+            lines[#lines+1] = string.format("%d %f %f %f %f %f %f %s", id, from.x, from.y, from.z, to.x, to.y, to.z, conns)
+        end
+        return table.concat(lines, "\n")
+    end
+
+    local function deserializeAreas(contents)
+        local map = { areas = {} }
+        if not contents or contents == "" then return map end
+        for line in string.gmatch(contents, "([^\n]+)\n?") do
+            local id, fx, fy, fz, tx, ty, tz, connstr = string.match(line, "^(%d+) ([%-%d%.]+) ([%-%d%.]+) ([%-%d%.]+) ([%-%d%.]+) ([%-%d%.]+) ([%-%d%.]+) ?(.*)$")
+            if id then
+                id = tonumber(id)
+                fx,fy,fz,tx,ty,tz = tonumber(fx),tonumber(fy),tonumber(fz),tonumber(tx),tonumber(ty),tonumber(tz)
+                local conns = {}
+                if connstr and connstr ~= "" then
+                    for s in string.gmatch(connstr, "[^,]+") do
+                        conns[#conns+1] = tonumber(s)
+                    end
+                end
+                map.areas[id] = { from = Vector(fx,fy,fz), to = Vector(tx,ty,tz), connections = conns }
+            end
+        end
+        local compact = { areas = {} }
+        for i=1,#map.areas do compact.areas[i] = map.areas[i] end
+        return compact
+    end
+
+    function sendArea(from, to)
+        net.start("sendArea")
+        net.writeVector(from)
+        net.writeVector(to)
+        net.send()
+    end
+
+    function connectAreas(id1, id2)
+        net.start("connectAreas")
+        net.writeFloat(id1)
+        net.writeFloat(id2)
+        net.send()
+    end
+
+    function getNearestArea(target)
+        net.start("nearestArea")
+        net.writeVector(target)
+        net.send()
+    end
+
+    function saveMap(mapname, mapdata)
+        local serialized = serializeAreas(mapdata)
+        local path = "nakilibs/navmesh/areas/" .. (mapname or "default") .. ".txt"
+        file.write(path, serialized)
+        print("Navmesh saved locally to: "..path)
+    end
+
+    function loadMap(mapname)
+        local path = "nakilibs/navmesh/areas/" .. (mapname or "default") .. ".txt"
+        local contents = file.read(path)
+        local map = deserializeAreas(contents)
+        print("Navmesh loaded locally: "..tostring(mapname))
+        return map
+    end
+
+    local navArea = {}
+
+    local M1 = { Down = false }
+    local R = { Down = false }
+    local Enter = { Down = false }
+
+    local tools = {}
+    tools[1] = "Create New Area"
+    tools[2] = "Connect 2 Areas"
+    tools[3] = "Select Area"
+    tools[8] = "Load File"
+    tools[9] = "Save File"
+
+    local selection = 1
+    local selectCT = 0
+    local controlsOK = false
+    local controlsOKChanged = false
+    local controlsOKCT = 0
+
+    local temp = {}
+    local targetWeapon = "none"
+    local findWeapon = owner():getWeapon(targetWeapon)
+    if findWeapon then
+        input.selectWeapon(findWeapon)
+    else
+        print("Weapon \"none\" not found, select it to proceed..")
+    end
+
+    hook.add("HUDShouldDraw", "navmesh_hud_should_draw", function(str)
+        if owner():getActiveWeapon():getClass() != targetWeapon then return true end
+        if str == "CHudCrosshair" then return false end
+        if str == "CHudWeaponSelection" then
+            if not input.isKeyDown(KEY.LALT) and owner():isTyping() == false then
+                return false
+            else
+                return true
+            end
+        end
+    end)
+
+    hook.add("MouseWheeled","navmesh_wheel",function(delta)
+        if (timer.curtime() - selectCT) < 0.05 or input.isKeyDown(KEY.LALT) or not controlsOK then return end
+        local direction = "down"
+        if delta < 0 then
+            selection = selection + 1
+            direction = "up"
+        elseif delta > 0 then
+            selection = selection - 1
+            direction = "down"
+        end
+        while not tools[selection] do
+            selection = direction == "up" and selection + 1 or selection - 1
+            if selection < 1 then selection = 9 elseif selection > 9 then selection = 1 end
+        end
+        selectCT = timer.curtime()
+        temp = {}
+        if selection == 2 then
+            temp.selectedFirst = true
+        end
+    end)
+
+    local nearestDist = 1e18
+    local function updateNearestCorner()
+        if not (temp.left_front and temp.right_front and temp.left_back and temp.right_back) then return end
+        local tr = owner():getEyeTrace().HitPos
+        nearestDist = 1e18
+        local best = nil
+        local d
+        d = temp.left_front:getDistance(tr)
+        if d < nearestDist then nearestDist = d best = 1 end
+        d = temp.right_front:getDistance(tr)
+        if d < nearestDist then nearestDist = d best = 2 end
+        d = temp.left_back:getDistance(tr)
+        if d < nearestDist then nearestDist = d best = 3 end
+        d = temp.right_back:getDistance(tr)
+        if d < nearestDist then nearestDist = d best = 4 end
+        temp.cornerSelected = best
+    end
+
+    hook.add("think","navmesh_think",function()
+        controlsOK = (owner():isTyping() == false and owner():getActiveWeapon():getClass() == targetWeapon)
+        if controlsOK then
+            if controlsOKChanged != true then
+                controlsOKChanged = true
+                controlsOKCT = timer.curtime()
+                selectCT = timer.curtime()
+            end
+        else
+            controlsOKChanged = false
+        end
+
+        M1["Pressed"] = input.isMouseDown(MOUSE.MOUSE1) and controlsOK
+        R["Pressed"] = input.isKeyDown(KEY.R) and controlsOK
+        Enter["Pressed"] = input.isKeyDown(KEY.ENTER) and controlsOK
+        
+        if Enter["Pressed"] then
+            if Enter["Down"] != true then
+                Enter["Down"] = true
+                if selection == 1 then
+                    if temp.secondPlaced then
+                        sendArea(temp.firstPlaced,temp.secondPlaced)
+                        temp = {}
+                    end
+                elseif selection == 2 then
+                    if temp.selectedFirstID and temp.selectedSecondID then
+                        connectAreas(temp.selectedFirstID, temp.selectedSecondID)
+                        
+                        temp = {}
+                        temp.selectedFirst = true
+                    elseif temp.selectedFirstID or temp.selectedSecondID then
+                        print("Only 1 Area Selected!")
+                    else
+                        print("No Areas Selected!")
+                    end
+                    
+                end
+            end
+        else
+            if Enter["Down"] != false then
+                Enter["Down"] = false
+                
+            end
+        end
+        
+        if R["Pressed"] then
+            if R["Down"] != true then
+                R["Down"] = true
+                if selection == 2 then
+                    temp.selectedFirst = not temp.selectedFirst
+                    print("Selection Type: "..(temp.selectedFirst and "First" or "Second"))
+                end
+            end
+        else
+            if R["Down"] != false then
+                R["Down"] = false
+                
+            end
+        end
+        
+        if M1["Pressed"] then
+            if M1["Down"] != true then
+                M1["Down"] = true
+                if selection == 2 then
+                    getNearestArea(owner():getEyeTrace().HitPos)
+                end
+            end
+            if selection == 1 then
+                if temp.firstPlaced then
+                    if temp.secondPlaced then
+                        -- Drag existing corner
+                        temp.target = owner():getEyeTrace().HitPos
+                        if temp.cornerSelected == 1 then
+                            temp.left_front = Vector(temp.target.x, temp.target.y, temp.storez)
+                            temp.right_front = Vector(temp.right_front.x, temp.target.y, temp.storez)
+                            temp.left_back = Vector(temp.target.x, temp.left_back.y, temp.storez)
+
+                        elseif temp.cornerSelected == 2 then
+                            temp.right_front = Vector(temp.target.x, temp.target.y, temp.storez)
+                            temp.left_front = Vector(temp.left_front.x, temp.target.y, temp.storez)
+                            temp.right_back = Vector(temp.target.x, temp.right_back.y, temp.storez)
+
+                        elseif temp.cornerSelected == 3 then
+                            temp.left_back = Vector(temp.target.x, temp.target.y, temp.storez)
+                            temp.right_back = Vector(temp.right_back.x, temp.target.y, temp.storez)
+                            temp.left_front = Vector(temp.target.x, temp.left_front.y, temp.storez)
+
+                        elseif temp.cornerSelected == 4 then
+                            temp.right_back = Vector(temp.target.x, temp.target.y, temp.storez)
+                            temp.left_back = Vector(temp.left_back.x, temp.target.y, temp.storez)
+                            temp.right_front = Vector(temp.target.x, temp.right_front.y, temp.storez)
+                        end
+
+                        -- Recalculate canonical first/second (top-left / bottom-right) immediately
+                        local minX = math.min(temp.left_front.x, temp.right_front.x, temp.left_back.x, temp.right_back.x)
+                        local maxX = math.max(temp.left_front.x, temp.right_front.x, temp.left_back.x, temp.right_back.x)
+                        local minY = math.min(temp.left_front.y, temp.right_front.y, temp.left_back.y, temp.right_back.y)
+                        local maxY = math.max(temp.left_front.y, temp.right_front.y, temp.left_back.y, temp.right_back.y)
+                        local z = temp.storez or temp.firstPlaced.z
+                        temp.first = Vector(minX, minY, z)
+                        temp.firstPlaced = temp.first
+                        temp.second = Vector(maxX, maxY, z)
+                        temp.secondPlaced = temp.second
+
+                    else
+                        temp.second = owner():getEyeTrace().HitPos
+                    end
+                else
+                    temp.first = owner():getEyeTrace().HitPos
+                end
+            end
+
+            if temp.secondPlaced then updateNearestCorner() end
+        else
+            if M1["Down"] != false then
+                M1["Down"] = false
+                if temp.first then
+                    if temp.second and not temp.secondPlaced then
+                        temp.secondPlaced = Vector(temp.second.x, temp.second.y, temp.storez)
+                        print("Second location placed!")
+                    elseif not temp.firstPlaced then
+                        temp.firstPlaced = temp.first
+                        temp.storez = temp.firstPlaced.z
+                        print("First location placed!")
+                    elseif temp.secondPlaced then
+                        if temp.cornerSelected then
+                            print("Adjusted "..select(temp.cornerSelected,"left front","right front","left back","right back").." corner!")
+                        end
+                    end
+                end
+            end
+
+            if temp.secondPlaced then
+                temp.left_front = temp.firstPlaced
+                temp.right_front = Vector(temp.secondPlaced.x, temp.firstPlaced.y, temp.firstPlaced.z)
+                temp.left_back = Vector(temp.firstPlaced.x, temp.secondPlaced.y, temp.firstPlaced.z)
+                temp.right_back = temp.secondPlaced
+
+                updateNearestCorner()
+            end
+        end
+    end)
+
+    local boxmat = material.createFromImage("gui/contenticon-hovered.png","noclamp smooth")
+    local boxmatselection = material.createFromImage("gui/sm_hover.png","noclamp smooth")
+    local boxSize = 0.075
+    local boxSizeSelected = 0.08
+    local boxHeightOffset = 0.075
+
+    hook.add("drawhud","navmesh_drawhud",function()
+        local w, h = render.getGameResolution()
+        if controlsOK then
+            if input.isKeyDown(KEY.LALT) then selectCT = timer.curtime() end
+            local fade = input.isKeyDown(KEY.LALT) and 0 or math.clamp(3-(timer.curtime()-selectCT)*2,0,1)
+            render.setColor(Color(255,255,255,255*(input.isKeyDown(KEY.LALT) and 1 or fade)))
+            render.drawText(w/2, h - h*boxHeightOffset - h*boxSize*1.1, input.isKeyDown(KEY.LALT) and "Features Blocked & Controls Unlocked!" or tools[selection], TEXT_ALIGN.CENTER)
+
+            render.setColor(Color(255,255,255,255*(0.2+0.8*fade)))
+            render.setMaterial(boxmat)
+            for i = 1, 9 do
+                render.drawTexturedRectRotated(w/2 - h*boxSize * 9/2 + h*boxSize * (i-1) + h*boxSize/2, h - h*boxSize, h*boxSize, h*boxSize,0)
+            end
+            render.setColor(Color(180,180,180,255*(0.1+0.9*fade)))
+            render.setMaterial(boxmatselection)
+            render.drawTexturedRectRotated(w/2 - h*boxSize * 9/2 + h*boxSize * (selection-1) + h*boxSize/2, h - h*boxSize, h*boxSizeSelected, h*boxSizeSelected,0)
+
+            render.setColor(Color(255,255,255,255))
+
+            if temp.left_front then local pos = temp.left_front:toScreen() render.drawCircle(pos["x"], pos["y"], 5) end
+            if temp.right_front then local pos = temp.right_front:toScreen() render.drawCircle(pos["x"], pos["y"], 5) end
+            if temp.left_back then local pos = temp.left_back:toScreen() render.drawCircle(pos["x"], pos["y"], 5) end
+            if temp.right_back then local pos = temp.right_back:toScreen() render.drawCircle(pos["x"], pos["y"], 5) end
+            
+            render.drawCircle(w/2, h/2, 5)
+            
+            for i, area in pairs(navArea) do
+                local from = area[1]
+                local to = area[2]
+                local center = ((from+to)/2)
+                if center:getDistance(owner():getShootPos()) < 1000 then
+                    local screen = center:toScreen()
+                    if screen["visible"] or center:getDistance(owner():getShootPos()) < 200 then
+                        render.drawText(screen["x"],screen["y"],"ID: "..tostring(i), TEXT_ALIGN.LEFT)
+                        
+                        local left_front = from:toScreen()
+                        local right_front = Vector(to.x, from.y, from.z):toScreen()
+                        local left_back = Vector(from.x, to.y, from.z):toScreen()
+                        local right_back = to:toScreen()
+                        
+                        render.drawLine(left_front["x"], left_front["y"], left_back["x"], left_back["y"]) // lf to lb
+                        render.drawLine(right_front["x"], right_front["y"], right_back["x"], right_back["y"]) // rf to rb
+                        render.drawLine(left_front["x"], left_front["y"], right_front["x"], right_front["y"]) // lf to rf
+                        render.drawLine(left_back["x"], left_back["y"], right_back["x"], right_back["y"]) // lb to rb
+                    end
+                end
+            end
+        end
+    end)
+
+    hook.add("net","navmesh_client_net",function(name,len,ply)
+        if name == "createAreaCallback" then
+            local success = net.readBool()
+            if success then
+                local id = net.readFloat()
+                local from = net.readVector()
+                local to = net.readVector()
+                navArea[id] = { from, to }
+                print("Area created with ID: "..id)
+            else
+                print("Failed to create area!")
+            end
+        elseif name == "sendNearestToOwner" then
+            local selectedAreaID = net.readFloat()
+            if selectedAreaID then
+                if temp.selectedFirst == true then
+                    temp.selectedFirstID = selectedAreaID
+                    print("First area ID: "..temp.selectedFirstID)
+                else
+                    temp.selectedSecondID = selectedAreaID
+                    print("First area ID: "..temp.selectedSecondID)
+                end
+            else
+                print("Failed to find suitable area!")
+            end
+        elseif name == "connectAreaCallback" then
+            local id1 = net.readFloat()
+            local id2 = net.readFloat()
+            -- update clients navArea storage
+            if navArea[id1] then
+                navArea[id1].connections = navArea[id1].connections or {}
+                table.insert(navArea[id1].connections, id2)
+            end
+            if navArea[id2] then
+                navArea[id2].connections = navArea[id2].connections or {}
+                table.insert(navArea[id2].connections, id1)
+            end
+            print("Connected area "..id1.." <-> "..id2)
+        else
+            
+        end
+    end)
+end
