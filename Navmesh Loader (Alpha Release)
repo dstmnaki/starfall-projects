@@ -6,20 +6,6 @@ if SERVER then
     local areasData = {}
     local pendingMapData = {}
     local lookupTableIDS = {}
-    
-    local function sendCreateAreaCallback(success, id, lf, rf, lb, rb, token)
-        net.start("createAreaCallback")
-        net.writeBool(success)
-        net.writeFloat(token or 0)
-        if success then
-            net.writeFloat(id)
-            net.writeVector(lf)
-            net.writeVector(rf)
-            net.writeVector(lb)
-            net.writeVector(rb)
-        end
-        net.send(owner())
-    end
 
     local function createArea(from, to, token, originalID)
         local a = navmesh.createNavArea(from + Vector(0,0,25), to + Vector(0,0,25))
@@ -31,16 +17,10 @@ if SERVER then
             local lb = a:getCorner(NAV_CORNER.SOUTH_WEST)
             local rb = a:getCorner(NAV_CORNER.SOUTH_EAST)
             areasData[id] = { lf = lf, rf = rf, lb = lb, rb = rb, connections = areasData[id] and areasData[id].connections or {} }
-            if areasData[id].connections then
-                conntable = " : "..table.concat(areasData[id].connections, " ", 1, nil)
-            else
-                conntable = ""
-            end
             if originalID then
                 lookupTableIDS[tostring(originalID)] = id
             end
             
-            printConsole("Area "..tostring(id)..": "..tostring(from).." "..tostring(to)..conntable)
             return a
         else
             return nil
@@ -146,7 +126,12 @@ if SERVER then
                 for _,c in ipairs(string.explode(",", connStr)) do
                     connections[#connections+1] = tonumber(c)
                 end
-            end
+                conntable = " : "..connStr
+            else
+                conntable = ""
+            end   
+            
+            printConsole("Area "..tostring(id)..": "..tostring(from).." "..tostring(to)..conntable)
             pendingMapData[#pendingMapData+1] = {id = id, from = from, to = to, connections = connections }
         elseif name == "mapUploadComplete" then
             buildMap(pendingMapData)
@@ -162,63 +147,72 @@ else -- CLIENT
     local function loadMap()
         local path = "nakilibs/navmesh/areas/"..(mapname or game.getMap())..".txt"
         local contents = file.read(path)
-        if not contents or contents == "" then return end
+        if not contents or contents == "" then return print("No file was locationed with the name "..mapname..".txt in folder data/sf_filedata/nakilibs/navmesh/areas/ !") end
+        print("File found! Unpacking and sending to server, please wait...")
         local lines = string.explode("\n", contents)
         local id, from, to, connections
         local step = 0
         local load_map_chunks_ct = 0
         local line_step = 1
         local sent = false
-        hook.add("Think","load_map_chunks",function()
+        hook.add("Think", "load_map_chunks", function()
             if timer.curtime() - load_map_chunks_ct > 0.1 then
                 local line = lines[line_step]
-                if step == 0 then
-                    if id and from and to then
-                        net.start("mapChunk")
-                        net.writeUInt(id,16)
-                        net.writeVector(from)
-                        net.writeVector(to)
-                        if connections then
-                            net.writeString(connections or "")
-                        end
-                        net.send()
-                    end
-                    sent = true
-                end
-                if has_coords then
-                    step = 2
-                end
+        
                 if line_step > #lines then
-                    if sent then
-                        net.start("mapUploadComplete")
-                        net.send()
-                        hook.remove("Think","load_map_chunks")
-                    end
-                elseif line and line ~= "" then
+                    net.start("mapUploadComplete")
+                    net.send()
+                    hook.remove("Think", "load_map_chunks")
+                    print("All data sent to server successfully!")
+                    print("Loading "..(#lines/3).." areas...")
+                    return
+                end
+        
+                if line then
                     line = string.trim(line)
-                    if string.startsWith(line,"areaid:") then
-                        id = tonumber(string.sub(line,8))
+        
+                    if string.startsWith(line, "areaid:") then
+                        id = tonumber(string.sub(line, 8))
+                        from, to, connections = nil, nil, nil
                         step = 1
                         line_step = line_step + 1
+        
                     elseif step == 1 then
                         local nums = string.explode(" ", line)
-                        from = Vector(tonumber(nums[1]),tonumber(nums[2]),tonumber(nums[3]))
-                        to   = Vector(tonumber(nums[4]),tonumber(nums[5]),tonumber(nums[6]))
-                        step = 2
-                        line_step = line_step + 1
-                        has_coords = true
-                    elseif step == 2 then
-                        if string.startsWith(line,"areaid:") then
-                            step = 0
-                        elseif has_coords then
-                            connections = line
-                            step = 0
+                        if #nums >= 6 then
+                            from = Vector(tonumber(nums[1]), tonumber(nums[2]), tonumber(nums[3]))
+                            to   = Vector(tonumber(nums[4]), tonumber(nums[5]), tonumber(nums[6]))
+                            step = 2
+                            line_step = line_step + 1
+                        else
                             line_step = line_step + 1
                         end
-                        has_coords = false
+        
+                    elseif step == 2 then
+                        if line ~= "" then
+                            connections = line
+                        else
+                            connections = ""
+                        end
+                        if connections == "nil" then connections = "" end
+                        if id and from and to then
+                            net.start("mapChunk")
+                            net.writeUInt(id, 16)
+                            net.writeVector(from)
+                            net.writeVector(to)
+                            net.writeString(connections or "")
+                            net.send()
+                        end
+        
+                        step = 0
+                        line_step = line_step + 1
+                    else
+                        line_step = line_step + 1
                     end
+                else
+                    line_step = line_step + 1
                 end
-                
+        
                 load_map_chunks_ct = timer.curtime()
             end
         end)
