@@ -6,7 +6,13 @@ if SERVER then
     local areasData = {}
     local pendingMapData = {}
     local lookupTableIDS = {}
-
+    
+    local hasNavmesh = navmesh.getAllNavAreas()
+    
+    if hasNavmesh and #hasNavmesh > 0 then
+        print("This map has navmesh already!")
+    end 
+    
     local function createArea(from, to, token, originalID)
         local a = navmesh.createNavArea(from + Vector(0,0,25), to + Vector(0,0,25))
         if a then
