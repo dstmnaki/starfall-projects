@@ -21,32 +21,32 @@ if SERVER then
         net.send(owner())
     end
 
-    local function createArea(from, to, token, originalID)
+    function createArea(from, to, token, originalID)
         local a = navmesh.createNavArea(from + Vector(0,0,25), to + Vector(0,0,25))
-        if a then
-            a:placeOnGround(NAV_CORNER.NUM_CORNERS)
-            local id = a:getID()
-            local lf = a:getCorner(NAV_CORNER.NORTH_WEST)
-            local rf = a:getCorner(NAV_CORNER.NORTH_EAST)
-            local lb = a:getCorner(NAV_CORNER.SOUTH_WEST)
-            local rb = a:getCorner(NAV_CORNER.SOUTH_EAST)
-            areasData[id] = { lf = lf, rf = rf, lb = lb, rb = rb, connections = areasData[id] and areasData[id].connections or {} }
-            sendCreateAreaCallback(true, id, lf, rf, lb, rb, token)
-            if areasData[id].connections then
-                conntable = " : "..table.concat(areasData[id].connections, " ", 1, nil)
-            else
-                conntable = ""
-            end
-            if originalID then
-                lookupTableIDS[tostring(originalID)] = id
-            end
-            
-            printConsole("Area "..tostring(id)..": "..tostring(from).." "..tostring(to)..conntable)
-            return a
-        else
+        if not a then
             sendCreateAreaCallback(false, 0, Vector(), Vector(), Vector(), Vector(), token)
             return nil
         end
+    
+        a:placeOnGround(NAV_CORNER.NUM_CORNERS)
+        local id = a:getID()
+        local lf = a:getCorner(NAV_CORNER.NORTH_WEST)
+        local rf = a:getCorner(NAV_CORNER.NORTH_EAST)
+        local lb = a:getCorner(NAV_CORNER.SOUTH_WEST)
+        local rb = a:getCorner(NAV_CORNER.SOUTH_EAST)
+    
+        areasData[id] = {
+            lf = lf, rf = rf, lb = lb, rb = rb,
+            connections = areasData[id] and areasData[id].connections or {}
+        }
+    
+        sendCreateAreaCallback(true, id, lf, rf, lb, rb, token)
+    
+        if originalID then
+            lookupTableIDS[tostring(originalID)] = id
+        end
+    
+        return a
     end
     
     local function sendConnectCallback(id1, id2)
@@ -56,34 +56,29 @@ if SERVER then
         net.send(owner())
     end
     
-    local function connectAreas(id1, id2, oneway)
-        if not isnumber(id1) or not isnumber(id2) then return false, "Given IDs are invalid!" end
-        if not areasData[id1] or not areasData[id2] then return false, "Selected areas are invalid!" end
+    function connectAreas(id1, id2, oneway)
+        if not isnumber(id1) or not isnumber(id2) then return false, "Invalid IDs" end
+        if not areasData[id1] or not areasData[id2] then return false, "Areas do not exist" end
+    
         local first = navmesh.getNavAreaByID(id1)
         local second = navmesh.getNavAreaByID(id2)
-        
+    
         areasData[id1].connections = areasData[id1].connections or {}
         areasData[id2].connections = areasData[id2].connections or {}
-        if table.hasValue(areasData[id1].connections, id2) then
-            return false, "Areas are already connected!"
-        else
-            areasData[id1].connections[#areasData[id1].connections+1] = id2
+    
+        if not table.hasValue(areasData[id1].connections, id2) then
+            table.insert(areasData[id1].connections, id2)
         end
-        if not oneway then
-            if table.hasValue(areasData[id2].connections, id1) then
-                return false, "Areas are already connected!"
-            else
-                areasData[id2].connections[#areasData[id2].connections+1] = id1
-            end
-            if first:isValid() and second:isValid() then
-                first:connectTo(second)
-                second:connectTo(first)
-            end
-        else
-            if first and second then
-                first:connectTo(second)
-            end
+        if not oneway and not table.hasValue(areasData[id2].connections, id1) then
+            table.insert(areasData[id2].connections, id1)
         end
+    
+        if first and second then
+            first:connectTo(second)
+            if not oneway then second:connectTo(first) end
+        end
+    
+        sendConnectCallback(id1, id2)
         return true
     end
     
@@ -91,7 +86,7 @@ if SERVER then
         local conn_ct = 0
         local step = 1
         local ids = table.getKeys(data)
-
+    
         hook.add("Think","build_connections",function()
             if timer.curtime() - conn_ct > 0.05 then
                 local id = ids[step]
@@ -101,33 +96,37 @@ if SERVER then
                     net.send(owner())
                     return
                 end
+    
                 local area = data[id]
                 local id_this = lookupTableIDS[tostring(area.id)]
-                for _,conn in ipairs(area.connections or {}) do
+    
+                for _, conn in ipairs(area.connections or {}) do
                     local id_that = lookupTableIDS[tostring(conn)]
-                    local success, reason = connectAreas(id_this, id_that, true)
-                    if success then
-                        sendConnectCallback(id_this, id_that)
-                    else
-                        print("Failed to connect areas: "..reason)
+                    if id_that then
+                        local success, reason = connectAreas(id_this, id_that, true)
+                        if not success then
+                            print("Failed to connect areas: "..reason)
+                        end
                     end
                 end
+    
                 conn_ct = timer.curtime()
                 step = step + 1
             end
         end)
     end
-    
+
     function buildMap(data)
         local build_map_ct = 0
         local build_map_iteration = 1
         local max = table.count(data)
+    
         hook.add("Think","build_map",function()
             if timer.curtime() - build_map_ct > 0.1 then
                 local token = build_map_iteration
                 local area = data[token]
                 if area then
-                    createArea(area.from, area.to, token, area.id)
+                    createArea(area.from, area.to, area.id, area.id)
                 end
                 build_map_ct = timer.curtime()
                 build_map_iteration = build_map_iteration + 1
@@ -138,7 +137,6 @@ if SERVER then
             end
         end)
     end
-
     
     hook.add("net", "navmesh_server_handler", function(name, len, ply)
         if name == "sendArea" then
@@ -174,12 +172,14 @@ if SERVER then
             local to = net.readVector()
             local connStr = net.readString()
             local connections = {}
+        
             if connStr ~= "" then
-                for _,c in ipairs(string.explode(",", connStr)) do
+                for _, c in ipairs(string.explode(",", connStr)) do
                     connections[#connections+1] = tonumber(c)
                 end
             end
-            pendingMapData[#pendingMapData+1] = {id = id, from = from, to = to, connections = connections }
+        
+            pendingMapData[#pendingMapData+1] = {id = id, from = from, to = to, connections = connections}
         elseif name == "mapUploadComplete" then
             buildMap(pendingMapData)
         elseif name == "removeArea" then
@@ -194,6 +194,7 @@ if SERVER then
             end
             net.send(owner())
         end
+
     end)
 
 else -- CLIENT
@@ -207,7 +208,7 @@ else -- CLIENT
         print("Folder structure created [data/sf_filedata/nakilibs/navmesh/]")
     end
     
-    
+    local lookupTable = {}
     
     local mapname = game.getMap()
     local pendingCreates = {}
@@ -215,9 +216,8 @@ else -- CLIENT
     local savedCreateData = {}
     
     local navArea = {}
-    local lookupTableIDS = {}
     
-    local M1 = { Down = false }
+    local M1 = { Down = true }
     local R = { Down = false }
     local Enter = { Down = false }
     
@@ -253,84 +253,98 @@ else -- CLIENT
     function saveMap()
         local lines = {}
         for id, create in pairs(savedCreateData) do
-            if create then
-                if create.from and create.to then
-                    lines[#lines+1] = "areaid:"..id
-                    lines[#lines+1] = string.format("%f %f %f %f %f %f", create.from.x, create.from.y, create.from.z, create.to.x, create.to.y, create.to.z)
-                    if create.connections and #create.connections > 0 then
-                        lines[#lines+1] = table.concat(create.connections, ",")
-                    end
-                end
+            if create and create.from and create.to then
+                lines[#lines+1] = "areaid:"..id
+                lines[#lines+1] = string.format(
+                    "%f %f %f %f %f %f",
+                    create.from.x, create.from.y, create.from.z,
+                    create.to.x, create.to.y, create.to.z
+                )
+                lines[#lines+1] = create.connections and #create.connections > 0 and table.concat(create.connections, ",") or ""
             end
         end
-        file.write("nakilibs/navmesh/areas/"..(mapname or game.getMap())..".txt", table.concat(lines,"\n"))
+        file.write("nakilibs/navmesh/areas/"..mapname..".txt", table.concat(lines,"\n"))
         print("File saved as "..mapname)
     end
-
+    
     local function loadMap()
         local path = "nakilibs/navmesh/areas/"..(mapname or game.getMap())..".txt"
         local contents = file.read(path)
-        if not contents or contents == "" then return end
-        nav = {}
+        if not contents or contents == "" then return print("No file was locationed with the name "..mapname..".txt in folder data/sf_filedata/nakilibs/navmesh/areas/ !") end
+        print("File found! Unpacking and sending to server, please wait...")
+        navAreas = {}
         savedCreateData = {}
+        pendingCreates = {}
         local lines = string.explode("\n", contents)
         local id, from, to, connections
         local step = 0
         local load_map_chunks_ct = 0
         local line_step = 1
         local sent = false
-        hook.add("Think","load_map_chunks",function()
+        hook.add("Think", "load_map_chunks", function()
             if timer.curtime() - load_map_chunks_ct > 0.1 then
                 local line = lines[line_step]
-                if step == 0 then
-                    if id and from and to then
-                        net.start("mapChunk")
-                        net.writeUInt(id,16)
-                        net.writeVector(from)
-                        net.writeVector(to)
-                        savedCreateData[id] = {from = from, to = to}
-                        if connections then
-                            net.writeString(connections or "")
-                            savedCreateData[id].connections = string.explode(",",connections,false)
-                        end
-                        net.send()
-                    end
-                    sent = true
-                end
-                if has_coords then
-                    step = 2
-                end
+        
                 if line_step > #lines then
-                    if sent then
-                        net.start("mapUploadComplete")
-                        net.send()
-                        hook.remove("Think","load_map_chunks")
-                    end
-                elseif line and line ~= "" then
+                    net.start("mapUploadComplete")
+                    net.send()
+                    hook.remove("Think", "load_map_chunks")
+                    print("All data sent to server successfully!")
+                    print("Loading "..(#lines/3).." areas...")
+                    return
+                end
+        
+                if line then
                     line = string.trim(line)
-                    if string.startsWith(line,"areaid:") then
-                        id = tonumber(string.sub(line,8))
+        
+                    if string.startsWith(line, "areaid:") then
+                        id = tonumber(string.sub(line, 8))
+                        from, to, connections = nil, nil, nil
                         step = 1
                         line_step = line_step + 1
+        
                     elseif step == 1 then
                         local nums = string.explode(" ", line)
-                        from = Vector(tonumber(nums[1]),tonumber(nums[2]),tonumber(nums[3]))
-                        to   = Vector(tonumber(nums[4]),tonumber(nums[5]),tonumber(nums[6]))
-                        step = 2
-                        line_step = line_step + 1
-                        has_coords = true
-                    elseif step == 2 then
-                        if string.startsWith(line,"areaid:") then
-                            step = 0
-                        elseif has_coords then
-                            connections = line
-                            step = 0
+                        if #nums >= 6 then
+                            from = Vector(tonumber(nums[1]), tonumber(nums[2]), tonumber(nums[3]))
+                            to   = Vector(tonumber(nums[4]), tonumber(nums[5]), tonumber(nums[6]))
+                            step = 2
+                            line_step = line_step + 1
+                        else
                             line_step = line_step + 1
                         end
-                        has_coords = false
+        
+                    elseif step == 2 then
+                        if line ~= "" then
+                            connections = line
+                        else
+                            connections = ""
+                        end
+                        if connections == "nil" then connections = "" end
+                        if id and from and to then
+                            net.start("mapChunk")
+                            net.writeUInt(id, 16)
+                            net.writeVector(from)
+                            net.writeVector(to)
+                            net.writeString(connections or "")
+                            net.send()
+                            if connections ~= "" then
+                                connections = string.explode(",",connections)
+                            else
+                                connections = {}
+                            end
+                            pendingCreates[id] = { from = from, to = to, connections = connections}
+                        end
+        
+                        step = 0
+                        line_step = line_step + 1
+                    else
+                        line_step = line_step + 1
                     end
+                else
+                    line_step = line_step + 1
                 end
-                
+        
                 load_map_chunks_ct = timer.curtime()
             end
         end)
@@ -403,13 +417,12 @@ else -- CLIENT
                 Enter["Down"] = true
                 if selection == 1 then
                     if temp.secondPlaced then
-                        
                         local origFrom = temp.firstPlaced
                         local origTo = temp.secondPlaced
                         
                         createTokenCounter = createTokenCounter + 1
                         local token = createTokenCounter
-                        pendingCreates[token] = { from = origFrom, to = origTo }
+                        pendingCreates[token] = { from = origFrom, to = origTo, connections = {} }
                         net.start("sendArea")
                         net.writeFloat(token)
                         net.writeVector(origFrom)
@@ -450,7 +463,6 @@ else -- CLIENT
                 R["Down"] = true
                 if selection == 2 then
                     temp.selectedFirst = not temp.selectedFirst
-                    print("Selection Type: "..(temp.selectedFirst and "First" or "Second"))
                 elseif selection == 3 and temp.selectedAreaID then
                     net.start("removeArea")
                     net.writeFloat(temp.selectedAreaID)
@@ -467,7 +479,19 @@ else -- CLIENT
         if M1["Pressed"] then
             if M1["Down"] != true then
                 M1["Down"] = true
-                if selection == 2 or selection == 3 then
+                if selection == 1 then
+                    if not temp.firstPlaced then
+                        temp.firstPlaced = owner():getEyeTrace().HitPos
+                        temp.secondPlaced = temp.firstPlaced
+                        temp.storez = temp.firstPlaced.z
+                        temp.cornerSelected = 4
+                        
+                        temp.left_front = temp.firstPlaced
+                        temp.right_front = Vector(temp.secondPlaced.x, temp.firstPlaced.y, temp.firstPlaced.z)
+                        temp.left_back = Vector(temp.firstPlaced.x, temp.secondPlaced.y, temp.firstPlaced.z)
+                        temp.right_back = temp.secondPlaced
+                    end
+                elseif selection == 2 or selection == 3 then
                     getNearestArea(owner():getEyeTrace().HitPos)
                 end
             end
@@ -518,28 +542,9 @@ else -- CLIENT
         else
             if M1["Down"] != false then
                 M1["Down"] = false
-                if temp.first then
-                    if temp.second and not temp.secondPlaced then
-                        temp.secondPlaced = Vector(temp.second.x, temp.second.y, temp.storez)
-                        print("Second location placed!")
-                    elseif not temp.firstPlaced then
-                        temp.firstPlaced = temp.first
-                        temp.storez = temp.firstPlaced.z
-                        print("First location placed!")
-                    elseif temp.secondPlaced then
-                        if temp.cornerSelected then
-                            print("Adjusted "..select(temp.cornerSelected,"left front","right front","left back","right back").." corner!")
-                        end
-                    end
-                end
             end
-
+            
             if temp.secondPlaced then
-                temp.left_front = temp.firstPlaced
-                temp.right_front = Vector(temp.secondPlaced.x, temp.firstPlaced.y, temp.firstPlaced.z)
-                temp.left_back = Vector(temp.firstPlaced.x, temp.secondPlaced.y, temp.firstPlaced.z)
-                temp.right_back = temp.secondPlaced
-
                 updateNearestCorner()
             end
         end
@@ -583,9 +588,9 @@ else -- CLIENT
                     local rb = area[4]
                     
                     local center = (lf+rf+lb+rb)/4
-                    if center:getDistance(owner():getShootPos()) < 1000 then
+                    if center:getDistance(owner():getShootPos()) < 5000 then
                         local screen = center:toScreen()
-                        if screen["visible"] or center:getDistance(owner():getShootPos()) < 200 then
+                        if screen["visible"] or center:getDistance(owner():getShootPos()) < 500 then
                             render.setColor((temp.selectedAreaID and i == temp.selectedAreaID) and Color(255,0,0,255) or ((temp.selectedFirstID and i == temp.selectedFirstID) or (temp.selectedSecondID and i == temp.selectedSecondID)) and Color(0,255,0,255) or Color(255,255,255,255))
                             render.drawText(screen["x"],screen["y"],"ID: "..tostring(i), TEXT_ALIGN.LEFT)
                             
@@ -625,53 +630,53 @@ else -- CLIENT
                 local rf = net.readVector()
                 local lb = net.readVector()
                 local rb = net.readVector()
+        
                 navArea[id] = { lf, rf, lb, rb }
-                if pendingCreates[token] then
-                    savedCreateData[id] = pendingCreates[token]
-                    lookupTableIDS[tostring(token)] = id
-                    pendingCreates[token] = nil
-                end
+                
+                lookupTable[token] = id
+                
+                savedCreateData[id] = pendingCreates[token]
             else
                 pendingCreates[token] = nil
             end
-
         elseif name == "connectAreaCallback" then
             local id1 = net.readFloat()
             local id2 = net.readFloat()
+        
             if navArea[id1] then
                 navArea[id1].connections = navArea[id1].connections or {}
-                if not table.hasValue(navArea[id1].connections,id2) then table.insert(navArea[id1].connections,id2) end
-                
-                savedCreateData[id1] = savedCreateData[id1] or {}
-                savedCreateData[id1].connections = savedCreateData[id1].connections or {}
-                if not table.hasValue(savedCreateData[id1].connections,id2) then table.insert(savedCreateData[id1].connections,id2) end
+                if not table.hasValue(navArea[id1].connections, id2) then
+                    table.insert(navArea[id1].connections, id2)
+                    table.insert(savedCreateData[id1].connections,id2)
+                end
             end
             if navArea[id2] then
                 navArea[id2].connections = navArea[id2].connections or {}
-                if not table.hasValue(navArea[id2].connections,id1) then table.insert(navArea[id2].connections,id1) end
-                
-                savedCreateData[id2] = savedCreateData[id2] or {}
-                savedCreateData[id2].connections = savedCreateData[id2].connections or {}
-                if not table.hasValue(savedCreateData[id2].connections,id1) then table.insert(savedCreateData[id2].connections,id1) end
+                if not table.hasValue(navArea[id2].connections, id1) then
+                    table.insert(navArea[id2].connections, id1)
+                    table.insert(savedCreateData[id2].connections,id1)
+                end
             end
         elseif name == "mapBuildComplete" then
             print("Navmesh build complete!")
         elseif name == "removeAreaCallback" then
             local id = net.readFloat()
-            if id > 0 then
-                print("Area removed Successfully!")
-                local navAreaEntry = navArea[id]
-                if navAreaEntry then
-                    navArea[id] = {}
-                    print("found in navArea")
+            if navArea[id] then
+                navArea[id] = nil
+            end
+            if savedCreateData[id] then
+                savedCreateData[id] = nil
+            end
+            
+            for _, area in pairs(navArea) do
+                if area.connections then
+                    table.removeByValue(area.connections, id)
                 end
-                local savedAreaEntry = savedCreateData[lookupTableIDS[id]]
-                if savedAreaEntry then
-                    savedCreateData[lookupTableIDS[id]] = {}
-                    print("found in savedCreateData")
+            end
+            for _, area in pairs(savedCreateData) do
+                if area.connections then
+                    table.removeByValue(area.connections, id)
                 end
-            else
-                print("Couldn't remove area!")
             end
         elseif name == "sendNearestToOwner" then
             local ok = net.readBool()
