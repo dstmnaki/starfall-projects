@@ -111,7 +111,7 @@ if SERVER then
             table.insert(areasData[id2].connections, id1)
         end
     
-        if first and second then
+        if first and first != nil and first:isValid() and second and second != nil and second:isValid() then
             first:connectTo(second)
             if not oneway then second:connectTo(first) end
         end
@@ -258,6 +258,8 @@ else -- CLIENT
     local M1 = { Down = true }
     local R = { Down = false }
     local Enter = { Down = false }
+    
+    local initiate = false
     
     local tools = {
         [1] = "Create New Area",
@@ -449,10 +451,16 @@ else -- CLIENT
         else
             controlsOKChanged = false
         end
-
-        M1.Pressed = input.isMouseDown(MOUSE.MOUSE1) and controlsOK and not input.isKeyDown(KEY.LALT)
-        R.Pressed = input.isKeyDown(KEY.R) and controlsOK and not input.isKeyDown(KEY.LALT)
-        Enter.Pressed = input.isKeyDown(KEY.ENTER) and controlsOK and not input.isKeyDown(KEY.LALT)
+        
+        local realM1 = input.isMouseDown(MOUSE.MOUSE1)
+        
+        if not realM1 and not initiate and (timer.curtime() - chip():getCreationTime()) > 0.1 then
+            initiate = true
+        end
+        
+        M1.Pressed = realM1 and controlsOK and not input.isKeyDown(KEY.LALT) and initiate
+        R.Pressed = input.isKeyDown(KEY.R) and controlsOK and not input.isKeyDown(KEY.LALT) and initiate
+        Enter.Pressed = input.isKeyDown(KEY.ENTER) and controlsOK and not input.isKeyDown(KEY.LALT) and initiate
         
         if Enter["Pressed"] then
             if Enter["Down"] != true then
@@ -496,7 +504,6 @@ else -- CLIENT
         else
             if Enter["Down"] != false then
                 Enter["Down"] = false
-                
             end
         end
         
@@ -505,6 +512,7 @@ else -- CLIENT
                 R["Down"] = true
                 if selection == 2 then
                     temp.selectedFirst = not temp.selectedFirst
+                    print("Selection mode: "..(temp.selectedFirst and "First" or "Second"))
                 elseif selection == 3 and temp.selectedAreaID then
                     net.start("removeArea")
                     net.writeFloat(temp.selectedAreaID)
@@ -585,7 +593,6 @@ else -- CLIENT
             if M1["Down"] != false then
                 M1["Down"] = false
             end
-            
             if temp.secondPlaced then
                 updateNearestCorner()
             end
