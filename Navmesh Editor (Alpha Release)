@@ -278,7 +278,7 @@ else -- CLIENT
     local temp = {}
     local targetWeapon = "none"
     local findWeapon = owner():getWeapon(targetWeapon)
-    if findWeapon then
+    if findWeapon and findWeapon != nil and findWeapon:isValid() then
         input.selectWeapon(findWeapon)
     else
         print("Weapon \"none\" not found, select it to proceed..")
