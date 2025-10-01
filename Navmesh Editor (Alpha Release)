@@ -272,7 +272,9 @@ else -- CLIENT
     local controlsOK = false
     local controlsOKChanged = false
     local controlsOKCT = 0
-
+    
+    local stillReading = false
+    
     local temp = {}
     local targetWeapon = "none"
     local findWeapon = owner():getWeapon(targetWeapon)
@@ -306,10 +308,12 @@ else -- CLIENT
     end
     
     local function loadMap()
+        if stillReading then print("Already loading a file, please wait...") return end
         local path = "nakilibs/navmesh/areas/"..(mapname or game.getMap())..".txt"
         local contents = file.read(path)
         if not contents or contents == "" then return print("No file was locationed with the name "..mapname..".txt in folder data/sf_filedata/nakilibs/navmesh/areas/ !") end
         print("File found! Unpacking and sending to server, please wait...")
+        stillReading = true
         navAreas = {}
         savedCreateData = {}
         pendingCreates = {}
@@ -446,9 +450,9 @@ else -- CLIENT
             controlsOKChanged = false
         end
 
-        M1.Pressed = input.isMouseDown(MOUSE.MOUSE1) and controlsOK
-        R.Pressed = input.isKeyDown(KEY.R) and controlsOK
-        Enter.Pressed = input.isKeyDown(KEY.ENTER) and controlsOK
+        M1.Pressed = input.isMouseDown(MOUSE.MOUSE1) and controlsOK and not input.isKeyDown(KEY.LALT)
+        R.Pressed = input.isKeyDown(KEY.R) and controlsOK and not input.isKeyDown(KEY.LALT)
+        Enter.Pressed = input.isKeyDown(KEY.ENTER) and controlsOK and not input.isKeyDown(KEY.LALT)
         
         if Enter["Pressed"] then
             if Enter["Down"] != true then
@@ -588,19 +592,19 @@ else -- CLIENT
         end
     end)
 
-    local boxmat = material.createFromImage("gui/contenticon-hovered.png","noclamp smooth")
-    local boxmatselection = material.createFromImage("gui/sm_hover.png","noclamp smooth")
+    local boxmat = material.createFromImage("gui/contenticon-hovered.png","noclamp")
+    local boxmatselection = material.createFromImage("gui/sm_hover.png","noclamp")
     local boxSize = 0.075
     local boxSizeSelected = 0.08
     local boxHeightOffset = 0.075
     local tool_icons = {}
-    tool_icons[1] = material.createFromImage("icon16/brick_add.png","noclamp smooth")
-    tool_icons[2] = material.createFromImage("icon16/brick_link.png","noclamp smooth")
-    tool_icons[3] = material.createFromImage("icon16/brick_delete.png","noclamp smooth")
-    tool_icons[8] = material.createFromImage("icon16/book_edit.png","noclamp smooth")
-    tool_icons[9] = material.createFromImage("icon16/book_add.png","noclamp smooth")
+    tool_icons[1] = material.createFromImage("icon16/brick_add.png","noclamp")
+    tool_icons[2] = material.createFromImage("icon16/brick_link.png","noclamp")
+    tool_icons[3] = material.createFromImage("icon16/brick_delete.png","noclamp")
+    tool_icons[8] = material.createFromImage("icon16/book_edit.png","noclamp")
+    tool_icons[9] = material.createFromImage("icon16/book_add.png","noclamp")
     
-    local noicon = material.createFromImage("icon16/collision_off.png","noclamp smooth")
+    local noicon = material.createFromImage("icon16/collision_off.png","noclamp")
     
     hook.add("drawhud","navmesh_drawhud",function()
         local w,h = render.getGameResolution()
@@ -611,14 +615,15 @@ else -- CLIENT
             render.drawText(w/2,h - h*boxHeightOffset - h*boxSize*1.1, input.isKeyDown(KEY.LALT) and "Controls Unlocked!" or tools[selection], TEXT_ALIGN.CENTER)
             
             for i = 1, 9 do
-                if i == selection then
+                local isRightTool = (i == selection)
+                if isRightTool then
                     render.setColor(Color(255,255,255,255*(0.2+0.8*fade)))
                 else
                     render.setColor(Color(125,125,125,125*(0.2+0.8*fade)))
                 end
                 if tools[i] then
                     render.setMaterial(tool_icons[i])
-                    render.drawTexturedRectRotated(w/2 - h*boxSize*9/2 + h*boxSize*(i-1) + h*boxSize/2, h - h*boxSize, h*boxSize*0.6, h*boxSize*0.6,0)
+                    render.drawTexturedRectRotated(w/2 - h*boxSize*9/2 + h*boxSize*(i-1) + h*boxSize/2, h - h*boxSize, h*boxSize*(0.55+(isRightTool and 0.1 or 0)), h*boxSize*(0.55+(isRightTool and 0.1 or 0)),0)
                 else
                     render.setMaterial(noicon)
                     render.drawTexturedRectRotated(w/2 - h*boxSize*9/2 + h*boxSize*(i-1) + h*boxSize/2, h - h*boxSize, h*boxSize, h*boxSize,0)
@@ -727,6 +732,7 @@ else -- CLIENT
             end
         elseif name == "mapBuildComplete" then
             print("Navmesh build complete!")
+            stillReading = false
         elseif name == "removeAreaCallback" then
             local id = net.readFloat()
             if navArea[id] then
