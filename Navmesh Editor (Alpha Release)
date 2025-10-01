@@ -2,6 +2,44 @@
 --@author Nakkitsunami
 --@shared
 
+--[[
+
+            Evening, here's my latest project, a starfall navmesh editor intented for starfall nextbots
+            
+            
+            
+            Should be light weight, altho limited to 40 nav areas due to starfall limits
+            
+            !Note sometimes you may hit navmeshes that are locked, i haven't found a way to fix this
+            if it causes your chip to error, it is only on server side, you can still save!
+            
+            
+            Controls:
+            
+            
+            Alt         -------- Unlock controls (Allows you to use mouse wheel, also prevents you from using the editor)
+            
+            Mouse wheel -------- Tool selection
+            Mouse1      -------- Create nav area (Create tool, drag and let go somewhere)
+            Mouse1      -------- Corner adjust (Create tool, after placing second point, look at a corner and hold)
+            Mouse1      -------- Select nav area (Selection tool/Connect tool)
+            Enter       -------- Confirm area (Create tool)
+            Enter       -------- Create connection (Connect tool)
+            R           -------- Delete area (Area selection tool)
+            R           -------- Swap selection mode (Connect tool)
+            
+            
+            Tools:
+            
+            Create tool    ----- Used to create nav areas
+            Connect tool   ----- Connects 2 selected nav areas
+            Selection tool ----- Used to view, edit and remove nav areas (removing is the only feature currently)
+            
+            Load --------------- Loads file from 'data/sf_filedata/nakilibs/navmesh/areas/<map_name>.txt'
+            Save --------------- Saves file to 'data/sf_filedata/nakilibs/navmesh/areas/<map_name>.txt'
+
+]]
+
 if SERVER then
     local areasData = {}
     local pendingMapData = {}
@@ -555,19 +593,49 @@ else -- CLIENT
     local boxSize = 0.075
     local boxSizeSelected = 0.08
     local boxHeightOffset = 0.075
-
+    local tool_icons = {}
+    tool_icons[1] = material.createFromImage("icon16/brick_add.png","noclamp smooth")
+    tool_icons[2] = material.createFromImage("icon16/brick_link.png","noclamp smooth")
+    tool_icons[3] = material.createFromImage("icon16/brick_delete.png","noclamp smooth")
+    tool_icons[8] = material.createFromImage("icon16/book_edit.png","noclamp smooth")
+    tool_icons[9] = material.createFromImage("icon16/book_add.png","noclamp smooth")
+    
+    local noicon = material.createFromImage("icon16/collision_off.png","noclamp smooth")
+    
     hook.add("drawhud","navmesh_drawhud",function()
         local w,h = render.getGameResolution()
         if controlsOK then
             if input.isKeyDown(KEY.LALT) then selectCT = timer.curtime() end
             local fade = input.isKeyDown(KEY.LALT) and 0 or math.clamp(3-(timer.curtime()-selectCT)*2,0,1)
             render.setColor(Color(255,255,255,255*(input.isKeyDown(KEY.LALT) and 1 or fade)))
-            render.drawText(w/2,h - h*boxHeightOffset - h*boxSize*1.1, tools[selection] or "", TEXT_ALIGN.CENTER)
-            render.setColor(Color(255,255,255,255*(0.2+0.8*fade)))
+            render.drawText(w/2,h - h*boxHeightOffset - h*boxSize*1.1, input.isKeyDown(KEY.LALT) and "Controls Unlocked!" or tools[selection], TEXT_ALIGN.CENTER)
+            
+            for i = 1, 9 do
+                if i == selection then
+                    render.setColor(Color(255,255,255,255*(0.2+0.8*fade)))
+                else
+                    render.setColor(Color(125,125,125,125*(0.2+0.8*fade)))
+                end
+                if tools[i] then
+                    render.setMaterial(tool_icons[i])
+                    render.drawTexturedRectRotated(w/2 - h*boxSize*9/2 + h*boxSize*(i-1) + h*boxSize/2, h - h*boxSize, h*boxSize*0.6, h*boxSize*0.6,0)
+                else
+                    render.setMaterial(noicon)
+                    render.drawTexturedRectRotated(w/2 - h*boxSize*9/2 + h*boxSize*(i-1) + h*boxSize/2, h - h*boxSize, h*boxSize, h*boxSize,0)
+                end
+            end
+            
             render.setMaterial(boxmat)
             for i = 1, 9 do
+                if tools[i] then
+                    render.setColor(Color(255,255,255,255*(0.2+0.8*fade)))
+                else
+                    render.setColor(Color(80,80,80,255*(0.2+0.8*fade)))
+                end
                 render.drawTexturedRectRotated(w/2 - h*boxSize*9/2 + h*boxSize*(i-1) + h*boxSize/2, h - h*boxSize, h*boxSize, h*boxSize,0)
             end
+            
+            
             render.setColor(Color(180,180,180,255*(0.1+0.9*fade)))
             render.setMaterial(boxmatselection)
             render.drawTexturedRectRotated(w/2 - h*boxSize*9/2 + h*boxSize*(selection-1) + h*boxSize/2, h - h*boxSize, h*boxSizeSelected, h*boxSizeSelected,0)
