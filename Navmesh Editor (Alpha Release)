@@ -45,6 +45,12 @@ if SERVER then
     local pendingMapData = {}
     local lookupTableIDS = {}
     
+    local hasNavmesh = navmesh.getAllNavAreas()
+    
+    if hasNavmesh and #hasNavmesh > 0 then
+        print("This map has navmesh already!")
+    end 
+    
     local function sendCreateAreaCallback(success, id, lf, rf, lb, rb, token)
         net.start("createAreaCallback")
         net.writeBool(success)
