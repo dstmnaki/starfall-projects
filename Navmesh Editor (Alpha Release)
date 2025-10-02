@@ -261,7 +261,7 @@ else -- CLIENT
         file.createDir("nakilibs/navmesh/areas/")
         local writeData = {}
         table.insert(writeData,"areaid:<number> - Area ID")
-        table.insert(writeData,"x1 y1 z1 x2 y2 z2 - Coordinates (From, To")
+        table.insert(writeData,"x1 y1 z1 x2 y2 z2 - Coordinates (From, To)")
         table.insert(writeData,"<number>,<number>,<number>... - Connections (Number represents an ID of another area)")
         table.insert(writeData,"areaid:1")
         table.insert(writeData,"2 3 4 5 6 7 8")
@@ -269,7 +269,7 @@ else -- CLIENT
         
         local writeData = table.concat(writeData, "\n")
         file.write("nakilibs/navmesh/areas/default.txt", writeData)
-        print("Folder structure created [data/sf_filedata/nakilibs/navmesh/]")
+        print("Folder structure created [data/sf_filedata/nakilibs/navmesh/areas/]")
     end
     
     local lookupTable = {}
