@@ -332,14 +332,15 @@ else -- CLIENT
             end
         end
         file.write("nakilibs/navmesh/areas/"..mapname..".txt", table.concat(lines,"\n"))
-        print("File saved as "..mapname)
+        print("File saved as "..mapname..".txt")
     end
     
     local function loadMap()
         if stillReading then print("Already loading a file, please wait...") return end
         local path = "nakilibs/navmesh/areas/"..(mapname or game.getMap())..".txt"
         local contents = file.read(path)
-        if not contents or contents == "" then return print("No file was locationed with the name "..mapname..".txt in folder data/sf_filedata/nakilibs/navmesh/areas/ !") end
+        if not contents then return print("No file was locationed with the name "..mapname..".txt in folder data/sf_filedata/nakilibs/navmesh/areas/ !") end
+        if contents == "" then return print("File data in "..mapname..".txt corrupted or invalid!") end
         print("File found! Unpacking and sending to server, please wait...")
         stillReading = true
         navAreas = {}
