@@ -259,7 +259,16 @@ else -- CLIENT
     
     if not check_file_path then
         file.createDir("nakilibs/navmesh/areas/")
-        file.write("nakilibs/navmesh/areas/default.txt", "")
+        local writeData = {}
+        table.insert(writeData,"areaid:<number> - Area ID")
+        table.insert(writeData,"x1 y1 z1 x2 y2 z2 - Coordinates (From, To")
+        table.insert(writeData,"<number>,<number>,<number>... - Connections (Number represents an ID of another area)")
+        table.insert(writeData,"areaid:1")
+        table.insert(writeData,"2 3 4 5 6 7 8")
+        table.insert(writeData,"9,10,11,12")
+        
+        local writeData = table.concat(writeData, "\n")
+        file.write("nakilibs/navmesh/areas/default.txt", writeData)
         print("Folder structure created [data/sf_filedata/nakilibs/navmesh/]")
     end
     
