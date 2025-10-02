@@ -117,7 +117,7 @@ if SERVER then
             table.insert(areasData[id2].connections, id1)
         end
     
-        if first and first != nil and first:isValid() and #first > 0 and second and second != nil and second:isValid() and #second > 0 then
+        if first and first != nil and first:isValid() and second and second != nil and second:isValid() then
             first:connectTo(second)
             if not oneway then second:connectTo(first) end
         end
@@ -230,7 +230,7 @@ if SERVER then
             local id = net.readFloat()
             local a = navmesh.getNavAreaByID(id)
             net.start("removeAreaCallback")
-            if a and a != nil and a:isValid() and #a > 0 then
+            if a and a != nil and a:isValid() then
                 a:remove()
                 net.writeFloat(id)
             else
