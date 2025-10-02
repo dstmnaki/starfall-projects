@@ -118,6 +118,14 @@ if SERVER then
         end
     
         if first and first != nil and first:isValid() and second and second != nil and second:isValid() then
+            if type(first) != "NavArea" then
+                print("Error: First area is not a nav area!")
+                return
+            end
+            if type(second) != "NavArea" then
+                print("Error: Second area is not a nav area!")
+                return
+            end
             first:connectTo(second)
             if not oneway then second:connectTo(first) end
         end
@@ -230,10 +238,13 @@ if SERVER then
             local id = net.readFloat()
             local a = navmesh.getNavAreaByID(id)
             net.start("removeAreaCallback")
-            if a and a != nil and a:isValid() then
+            if a and a != nil and a:isValid() and type(a) == "NavArea" then
                 a:remove()
                 net.writeFloat(id)
             else
+                if type(a) != "NavArea" then
+                    print("Error: Selected area is not a nav area!")
+                end
                 net.writeFloat(0)
             end
             net.send(owner())
