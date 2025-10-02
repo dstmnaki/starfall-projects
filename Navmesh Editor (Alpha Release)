@@ -208,7 +208,7 @@ if SERVER then
             end
         elseif name == "nearestArea" then
             local findNearMe = net.readVector()
-            local found = navmesh.getNavArea(findNearMe, 100)
+            local found = navmesh.getNavArea(findNearMe, 250)
             net.start("sendNearestToOwner")
             if found then
                 net.writeBool(true)
@@ -765,7 +765,7 @@ else -- CLIENT
             if savedCreateData[id] then
                 savedCreateData[id] = nil
             end
-            
+            temp.selectedAreaID = nil
             for _, area in pairs(navArea) do
                 if area.connections then
                     table.removeByValue(area.connections, id)
