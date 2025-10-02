@@ -204,7 +204,7 @@ if SERVER then
             if success then
                 sendConnectCallback(id1, id2)
             else
-                print("Failed to connect areas: "..reason)
+                print("Failed to connect areas: "..reason and reason or "Unkown")
             end
         elseif name == "nearestArea" then
             local findNearMe = net.readVector()
