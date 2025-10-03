@@ -14,7 +14,7 @@ if SERVER then
     arrow:setMass(200)
     arrow:setCollisionGroup(COLLISION_GROUP.PLAYER)
     function collide(colData, collider)
-        if arrow:isFrozen() == false and colData.HitEntity:isPlayer() == false and colData.HitEntity:isNPC() == false then
+        if arrow:isFrozen() == false and colData.HitEntity and  colData.HitEntity:isPlayer() == false and colData.HitEntity:isNPC() == false then
             arrow:enableMotion(false)
         end
     end
