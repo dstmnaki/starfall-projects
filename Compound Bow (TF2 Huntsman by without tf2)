@@ -1,0 +1,1274 @@
+--@name Compound Bow
+--@author Naki
+--@shared
+
+local BLOCK_CODE = false
+
+if SERVER then
+    if BLOCK_CODE == true then return end
+    local arrows={timer.curtime()}
+    
+    arrow=prop.create(chip():getPos()+Vector(0,0,0), Angle(0,0,0), "models/sprops/rectangles_thin/size_0/rect_1_5x42x1_5.mdl", true)
+    
+    arrow:setTrails(25, 0, 2, "trails/laser", Color(255,0,0,255), nil, false)
+    arrow:setMass(200)
+    arrow:setCollisionGroup(COLLISION_GROUP.PLAYER)
+    function collide(colData, collider)
+        if arrow:isFrozen() == false and colData.HitEntity:isPlayer() == false and colData.HitEntity:isNPC() == false then
+            arrow:enableMotion(false)
+        end
+    end
+    hook.add("think","remove arrows",function()
+        if arrow:isValid() then
+            arrow:addCollisionListener(collide, "collide")
+            
+        end
+        if timer.curtime() - arrows[1] > 1.5 then
+            if arrow:isValid() then
+                arrow:removeTrails()
+                arrow:enableMotion(false)
+                arrow:setPos(chip():getPos()+Vector(0,0,0))
+                arrow:setNoDraw(true)
+            end
+        end
+    end)
+    hook.add("net", "", function(name, len, ply)
+        if name == "fire" then
+            local GET_DRAW_POWER = net.readFloat()
+            arrow:setTrails(25, 0, 2, "trails/laser", Color(255,0,0,255), nil, false)
+            arrow:setNoDraw(false)
+            arrow:setPos(owner():getShootPos()+owner():getEyeAngles():getForward()*60)
+            arrow:setAngles(owner():getEyeAngles())
+            arrow:enableMotion(true)
+            arrow:getPhysicsObject():setVelocity(arrow:getForward()*1000*GET_DRAW_POWER*(arrow:getMass()/24))
+            arrows={timer.curtime()}
+        end
+    end)
+else
+    if player() == owner() then
+        print("-Use hands (none) with this weapon, Mouse1 to charge, release to fire!")
+        print("-R to undraw")
+        local ATTACK_DOWN = false
+        local DRAW_POWER = 0
+        local PREDRAW = 0
+        local FIRE_ANIM = 0
+        local EQUIP = 0
+        local READY = false
+        local FIRED = false
+        local makeModel = false
+        local Bones = {}
+        local visible = false
+        local models = {}
+        local arrow_models = {}
+        
+        local arrow_hidden = true
+        
+        local materials = {}
+        
+        materials.handle = {"models/debug/debugwhite",Color(125,100,0,255)}
+        materials.metal1 = {"models/debug/debugwhite",Color(75,75,75,255)}
+        materials.metal2 = {"models/debug/debugwhite",Color(125,125,125,255)}
+        materials.metal3 = {"models/debug/debugwhite",Color(105,90,90,255)}
+        materials.rubber = {"models/debug/debugwhite",Color(50,50,50,255)}
+        
+        materials.arrow1 = {"models/debug/debugwhite",Color(50,50,50,255)}
+        materials.arrow2 = {"models/debug/debugwhite",Color(125,125,125,255)}
+        materials.arrow3 = {"models/debug/debugwhite",Color(255,75,0,255)}
+        
+        local size = 0.7
+        
+        function createModel()
+            Bones["Root"] = hologram.create(chip():getPos()+Vector(0,0,64), Angle(), "models/hunter/blocks/cube025x025x025.mdl", Vector())
+            
+            parent = Bones["Root"]
+            holo = hologram.create(parent:localToWorld(Vector(30,-15,-5)), parent:localToWorldAngles(Angle(0,0,0)), "models/hunter/blocks/cube025x025x025.mdl", Vector())
+            holo:setParent(parent)
+            Bones["Handle"] = holo
+            table.insert(models,holo)
+            
+            
+            parent = Bones["Root"]
+            holo = hologram.create(parent:localToWorld(Vector(0,0,0)), parent:localToWorldAngles(Angle(0,0,0)), "models/hunter/blocks/cube025x025x025.mdl", Vector())
+            holo:setParent(parent)
+            Bones["Arrow"] = holo
+            table.insert(models,holo)
+            
+            
+            parent = Bones["Handle"]
+            holo = hologram.create(parent:localToWorld(Vector(0,0,10)), parent:localToWorldAngles(Angle(-15,0,0)), "models/hunter/blocks/cube025x025x025.mdl", Vector())
+            holo:setParent(parent)
+            Bones["Joint_Top_1"] = holo
+            table.insert(models,holo)
+            
+            parent = Bones["Joint_Top_1"]
+            holo = hologram.create(parent:localToWorld(Vector(-1.5,0,7.5)), parent:localToWorldAngles(Angle(15,0,0)), "models/hunter/blocks/cube025x025x025.mdl", Vector())
+            holo:setParent(parent)
+            Bones["Joint_Top_2"] = holo
+            table.insert(models,holo)
+            
+            
+            parent = Bones["Handle"]
+            holo = hologram.create(parent:localToWorld(Vector(0,0,-10)), parent:localToWorldAngles(Angle(15,0,0)), "models/hunter/blocks/cube025x025x025.mdl", Vector())
+            holo:setParent(parent)
+            Bones["Joint_Bottom_1"] = holo
+            table.insert(models,holo)
+            
+            parent = Bones["Joint_Bottom_1"]
+            holo = hologram.create(parent:localToWorld(Vector(-1.5,0,-7.5)), parent:localToWorldAngles(Angle(-15,0,0)), "models/hunter/blocks/cube025x025x025.mdl", Vector())
+            holo:setParent(parent)
+            Bones["Joint_Bottom_2"] = holo
+            table.insert(models,holo)
+            
+            
+            parent = Bones["Handle"]
+            holo = hologram.create(parent:localToWorld(Vector(-12,0,0)), parent:localToWorldAngles(Angle(0,0,0)), "models/hunter/blocks/cube025x025x025.mdl", Vector())
+            holo:setParent(parent)
+            Bones["String_Target_Back"] = holo
+            table.insert(models,holo)
+            
+            parent = Bones["Handle"]
+            holo = hologram.create(parent:localToWorld(Vector(-8,0,0)), parent:localToWorldAngles(Angle(0,0,0)), "models/hunter/blocks/cube025x025x025.mdl", Vector())
+            holo:setParent(parent)
+            Bones["String_Target_Front"] = holo
+            table.insert(models,holo)
+            
+            Bones["Arrow"]:setPos(Bones["String_Target_Front"]:localToWorld(Vector(9*3,0,0)))
+            
+            -- MODEL
+            
+            
+            -- Arrow
+            parent = Bones["Arrow"]
+            holo = hologram.create(parent:localToWorld(Vector(0,0,0)), parent:localToWorldAngles(Angle(90,0,0)), "models/sprops/cylinders/size_2/cylinder_3x18.mdl", Vector(0.22,0.22,3))
+            holo:setMaterial(materials.arrow1[1])
+            holo:setColor(materials.arrow1[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            table.insert(arrow_models,holo)
+            
+            parent = Bones["Arrow"]
+            holo = hologram.create(parent:localToWorld(Vector(9*3,0,0)), parent:localToWorldAngles(Angle(90,0,0)), "models/sprops/misc/cones/size_0/cone_6x12.mdl", Vector(0.12,0.3,0.4))
+            holo:setMaterial(materials.arrow2[1])
+            holo:setColor(materials.arrow2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            table.insert(arrow_models,holo)
+            
+            parent = Bones["Arrow"]
+            holo = hologram.create(parent:localToWorld(Vector(9*3,0,0)), parent:localToWorldAngles(Angle(-90,0,0)), "models/sprops/misc/cones/size_0/cone_6x12.mdl", Vector(0.12,0.3,0.1))
+            holo:setMaterial(materials.arrow2[1])
+            holo:setColor(materials.arrow2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            table.insert(arrow_models,holo)
+            
+            parent = Bones["Arrow"]
+            holo = hologram.create(parent:localToWorld(Vector(-9*3+2,0,-0.25)), parent:localToWorldAngles(Angle(-25,0,0)), "models/sprops/geometry/t_qhex_12.mdl", Vector(0.7,0.05,0.2))
+            holo:setMaterial(materials.arrow3[1])
+            holo:setColor(materials.arrow3[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            table.insert(arrow_models,holo)
+            
+            parent = Bones["Arrow"]
+            holo = hologram.create(parent:localToWorld(Vector(-9*3+2,0,-0.25):rotateAroundAxis(Vector(1,0,0),120)), parent:localToWorldAngles(Angle(-25,0,0):rotateAroundAxis(Vector(1,0,0),120)), "models/sprops/geometry/t_qhex_12.mdl", Vector(0.7,0.05,0.2))
+            holo:setMaterial(materials.arrow3[1])
+            holo:setColor(materials.arrow3[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            table.insert(arrow_models,holo)
+            
+            parent = Bones["Arrow"]
+            holo = hologram.create(parent:localToWorld(Vector(-9*3+2,0,-0.25):rotateAroundAxis(Vector(1,0,0),-120)), parent:localToWorldAngles(Angle(-25,0,0):rotateAroundAxis(Vector(1,0,0),-120)), "models/sprops/geometry/t_qhex_12.mdl", Vector(0.7,0.05,0.2))
+            holo:setMaterial(materials.arrow3[1])
+            holo:setColor(materials.arrow3[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            table.insert(arrow_models,holo)
+            
+            
+            -- Bow
+            
+            -- handle
+            parent = Bones["Handle"]
+            holo = hologram.create(parent:localToWorld(Vector(1-0.25,0,-3)), parent:localToWorldAngles(Angle(2,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.3,0.15,0.7))
+            holo:setMaterial(materials.handle[1])
+            holo:setColor(materials.handle[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = Bones["Handle"]
+            holo = hologram.create(parent:localToWorld(Vector(0.75-0.25,0,-6.5)), parent:localToWorldAngles(Angle(6,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.3,0.15,0.6))
+            holo:setMaterial(materials.handle[1])
+            holo:setColor(materials.handle[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = Bones["Handle"]
+            holo = hologram.create(parent:localToWorld(Vector(1.5-0.25,0,-0.8)), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.55,0.2,0.15))
+            holo:setMaterial(materials.metal1[1])
+            holo:setColor(materials.metal1[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = Bones["Handle"]
+            holo = hologram.create(parent:localToWorld(Vector(1-0.25,0,-8)), parent:localToWorldAngles(Angle(6,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.55,0.2,0.15))
+            holo:setMaterial(materials.metal1[1])
+            holo:setColor(materials.metal1[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = Bones["Handle"]
+            holo = hologram.create(parent:localToWorld(Vector(0.4,-1,4.75)), parent:localToWorldAngles(Angle(-4,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.35,0.15,1.75))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = Bones["Handle"]
+            holo = hologram.create(parent:localToWorld(Vector(0.75,-0.75,0.25-0.75)), parent:localToWorldAngles(Angle(0,0,45)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.38,0.15,0.2))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = Bones["Handle"]
+            holo = hologram.create(parent:localToWorld(Vector(0,-0.75,10)), parent:localToWorldAngles(Angle(0,0,90)), "models/sprops/cylinders/size_5/cylinder_12x3.mdl", Vector(0.2,0.2,0.5))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            
+            -- round things
+            parent = Bones["Handle"]
+            holo = hologram.create(parent:localToWorld(Vector(0,0,10)), parent:localToWorldAngles(Angle(0,0,90)), "models/sprops/cylinders/size_5/cylinder_12x3.mdl", Vector(0.3))
+            holo:setMaterial(materials.metal3[1])
+            holo:setColor(materials.metal3[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = Bones["Handle"]
+            holo = hologram.create(parent:localToWorld(Vector(0,0,-10)), parent:localToWorldAngles(Angle(0,0,90)), "models/sprops/cylinders/size_5/cylinder_12x3.mdl", Vector(0.3))
+            holo:setMaterial(materials.metal3[1])
+            holo:setColor(materials.metal3[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            
+            -- upper joint 1
+            parent = Bones["Joint_Top_1"]
+            holo = hologram.create(parent:localToWorld(Vector(-3*0.5+0.5,-0.8,3*1.5-0.5)), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.5,0.1,1.5))
+            holo:setMaterial(materials.metal1[1])
+            holo:setColor(materials.metal1[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = Bones["Joint_Top_1"]
+            holo = hologram.create(parent:localToWorld(Vector(-3*0.5+0.5,0.8,3*1.5-0.5)), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.5,0.1,1.5))
+            holo:setMaterial(materials.metal1[1])
+            holo:setColor(materials.metal1[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = Bones["Joint_Top_1"]
+            holo = hologram.create(parent:localToWorld(Vector(-3*0.5+0.5-2,-0.8,3*1.5-0.5)), parent:localToWorldAngles(Angle(0,0,180)), "models/sprops/misc/sq_holes/qsqhole_d0_12.mdl", Vector(0.1665,0.2,1.5))
+            holo:setMaterial(materials.metal1[1])
+            holo:setColor(materials.metal1[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = Bones["Joint_Top_1"]
+            holo = hologram.create(parent:localToWorld(Vector(-3*0.5+0.5-2,0.8,3*1.5-0.5)), parent:localToWorldAngles(Angle(0,0,180)), "models/sprops/misc/sq_holes/qsqhole_d0_12.mdl", Vector(0.1665,0.2,1.5))
+            holo:setMaterial(materials.metal1[1])
+            holo:setColor(materials.metal1[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = Bones["Joint_Top_1"]
+            holo = hologram.create(parent:localToWorld(Vector(-2.75,0,1.5)), parent:localToWorldAngles(Angle(15,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.35,0.17,0.3))
+            holo:setMaterial(materials.metal1[1])
+            holo:setColor(materials.metal1[2])
+            holo:setParent(parent)
+            arm_thing = holo
+            table.insert(models,holo)
+            
+            parent = arm_thing
+            holo = hologram.create(parent:localToWorld(Vector(-2,0,0)), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.75,0.17-0.05,0.3-0.05))
+            holo:setMaterial(materials.metal1[1])
+            holo:setColor(materials.metal1[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = arm_thing
+            holo = hologram.create(parent:localToWorld(Vector(-5,0,6*(0.3-0.05))), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(1,0.17-0.05,0.3-0.05))
+            holo:setMaterial(materials.metal1[1])
+            holo:setColor(materials.metal1[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = arm_thing
+            holo = hologram.create(parent:localToWorld(Vector(-7.25,0,6*(0.3-0.05))), parent:localToWorldAngles(Angle(0,0,90)), "models/sprops/cylinders/size_5/cylinder_12x3.mdl", Vector(0.25*0.8,0.25*0.8,0.2))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            Bones["Top_Roller_1"] = holo
+            table.insert(models,holo)
+            
+            parent = arm_thing
+            holo = hologram.create(parent:localToWorld(Vector(-7.25,0.04,6*(0.3-0.05))), parent:localToWorldAngles(Angle(0,90,0)), "models/props_c17/pulleywheels_large01.mdl", Vector(0.075,0.08*0.8,0.08*0.8))
+            holo:setMaterial(materials.rubber[1])
+            holo:setColor(materials.rubber[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            
+            
+            -- bottom joint 1
+            parent = Bones["Joint_Bottom_1"]
+            holo = hologram.create(parent:localToWorld(Vector(-3*0.5+0.5,-0.8,-3*1.5+0.5)), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.5,0.1,1.5))
+            holo:setMaterial(materials.metal1[1])
+            holo:setColor(materials.metal1[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = Bones["Joint_Bottom_1"]
+            holo = hologram.create(parent:localToWorld(Vector(-3*0.5+0.5,0.8,-3*1.5+0.5)), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.5,0.1,1.5))
+            holo:setMaterial(materials.metal1[1])
+            holo:setColor(materials.metal1[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = Bones["Joint_Bottom_1"]
+            holo = hologram.create(parent:localToWorld(Vector(-3*0.5+0.5-2,-0.8,-3*1.5+0.5)), parent:localToWorldAngles(Angle(180,180,180)), "models/sprops/misc/sq_holes/qsqhole_d0_12.mdl", Vector(0.1665,0.2,1.5))
+            holo:setMaterial(materials.metal1[1])
+            holo:setColor(materials.metal1[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = Bones["Joint_Bottom_1"]
+            holo = hologram.create(parent:localToWorld(Vector(-3*0.5+0.5-2,0.8,-3*1.5+0.5)), parent:localToWorldAngles(Angle(180,180,180)), "models/sprops/misc/sq_holes/qsqhole_d0_12.mdl", Vector(0.1665,0.2,1.5))
+            holo:setMaterial(materials.metal1[1])
+            holo:setColor(materials.metal1[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = Bones["Joint_Bottom_1"]
+            holo = hologram.create(parent:localToWorld(Vector(-2.75,0,-1.5)), parent:localToWorldAngles(Angle(-15,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.35,0.17,0.3))
+            holo:setMaterial(materials.metal1[1])
+            holo:setColor(materials.metal1[2])
+            holo:setParent(parent)
+            arm_thing = holo
+            table.insert(models,holo)
+            
+            parent = arm_thing
+            holo = hologram.create(parent:localToWorld(Vector(-2,0,0)), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.75,0.17-0.05,0.3-0.05))
+            holo:setMaterial(materials.metal1[1])
+            holo:setColor(materials.metal1[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = arm_thing
+            holo = hologram.create(parent:localToWorld(Vector(-5,0,-6*(0.3-0.05))), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(1,0.17-0.05,0.3-0.05))
+            holo:setMaterial(materials.metal1[1])
+            holo:setColor(materials.metal1[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = arm_thing
+            holo = hologram.create(parent:localToWorld(Vector(-7.25,0,-6*(0.3-0.05))), parent:localToWorldAngles(Angle(0,0,90)), "models/sprops/cylinders/size_5/cylinder_12x3.mdl", Vector(0.25*0.8,0.25*0.8,0.2))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            Bones["Bottom_Roller_1"] = holo
+            table.insert(models,holo)
+            
+            parent = arm_thing
+            holo = hologram.create(parent:localToWorld(Vector(-7.25,0.04,-6*(0.3-0.05))), parent:localToWorldAngles(Angle(0,90,0)), "models/props_c17/pulleywheels_large01.mdl", Vector(0.075,0.08*0.8,0.08*0.8))
+            holo:setMaterial(materials.rubber[1])
+            holo:setColor(materials.rubber[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            
+            -- upper joint 2
+            parent = Bones["Joint_Top_2"]
+            holo = hologram.create(parent:localToWorld(Vector(0,0,3*0.5-3*0.3)), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.3,0.17,0.5))
+            holo:setMaterial(materials.metal1[1])
+            holo:setColor(materials.metal1[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = Bones["Joint_Top_2"]
+            holo = hologram.create(parent:localToWorld(Vector(0,0,5)), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.2,0.15,1))
+            holo:setMaterial(materials.metal3[1])
+            holo:setColor(materials.metal3[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = Bones["Joint_Top_2"]
+            holo = hologram.create(parent:localToWorld(Vector(0,0,7.7)+Vector(0,0,3*0.225):rotateAroundAxis(Vector(0,1,0),45)), parent:localToWorldAngles(Angle(45,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.2,0.15,0.3))
+            holo:setMaterial(materials.metal3[1])
+            holo:setColor(materials.metal3[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = Bones["Joint_Top_2"]
+            holo = hologram.create(parent:localToWorld(Vector(0,0,7.7)+Vector(-1,0,2):rotateAroundAxis(Vector(0,1,0),45)), parent:localToWorldAngles(Angle(45,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(2.5,0.2,0.2))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            top_bar = holo
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(10,0,-1.5)), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/geometry/qhex_12.mdl", Vector(0.5,0.4,0.4))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(7,0,-1.5)), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.7,0.2,0.35))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(4,0,-1.5)), parent:localToWorldAngles(Angle(180,0,0)), "models/sprops/geometry/qhex_12.mdl", Vector(0.5,0.4,0.4))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(8,0,-0.25)), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(1,0.4*0.7,0.35))
+            holo:setMaterial(materials.rubber[1])
+            holo:setColor(materials.rubber[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(12,0,-0.25)), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/geometry/qdisc_12.mdl", Vector(0.35,0.8*0.7,0.35))
+            holo:setMaterial(materials.rubber[1])
+            holo:setColor(materials.rubber[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(-5.7,0,-0.95)), parent:localToWorldAngles(Angle(180,0,0)), "models/sprops/geometry/hhex_12.mdl", Vector(0.3,0.4,0.15))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(-5.7,0,-2)), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.1,0.2,0.3))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(-5.7,0,-2.75)), parent:localToWorldAngles(Angle(0,0,90)), "models/sprops/cylinders/size_5/cylinder_12x3.mdl", Vector(0.25*0.8,0.25*0.8,0.2))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            Bones["Top_Roller_2"] = holo
+            table.insert(models,holo)
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(-5.7,0,-2.75)), parent:localToWorldAngles(Angle(0,90,0)), "models/props_c17/pulleywheels_large01.mdl", Vector(0.075,0.08*0.8,0.08*0.8))
+            holo:setMaterial(materials.rubber[1])
+            holo:setColor(materials.rubber[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(-7.25,3*0.2-3*0.05,-0.025)-Vector(3,0,0):rotateAroundAxis(Vector(0,1,0),10)), parent:localToWorldAngles(Angle(10,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(1,0.05,0.2))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            top_bar2 = holo
+            
+            parent = top_bar2
+            holo = hologram.create(parent:localToWorld(Vector(-2.8,0,-0.04)-Vector(3*0.5,0,0):rotateAroundAxis(Vector(0,1,0),20)), parent:localToWorldAngles(Angle(20,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(1*0.5,0.05,0.2))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(-7.25,-3*0.2+3*0.05,-0.025)-Vector(3,0,0):rotateAroundAxis(Vector(0,1,0),10)), parent:localToWorldAngles(Angle(10,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(1,0.05,0.2))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            top_bar2 = holo
+            
+            parent = top_bar2
+            holo = hologram.create(parent:localToWorld(Vector(-2.8,0,-0.04)-Vector(3*0.5,0,0):rotateAroundAxis(Vector(0,1,0),20)), parent:localToWorldAngles(Angle(20,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(1*0.5,0.05,0.2))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(-16,0,2.75)), parent:localToWorldAngles(Angle(0,0,90)), "models/sprops/cylinders/size_5/cylinder_12x3.mdl", Vector(0.25*0.8,0.25*0.8,0.6))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(-16,0,2.75)+Vector(0,0,12*0.075):rotateAroundAxis(Vector(0,1,0),30-45)), parent:localToWorldAngles(Angle(30-45,0,0)), "models/sprops/geometry/hring_24.mdl", Vector(0.15,0.25,0.15))
+            holo:setMaterial(materials.rubber[1])
+            holo:setColor(materials.rubber[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            Bones["String_Attach_Top_1"] = holo
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(-16,0,2.75)+Vector(0,0,12*0.075):rotateAroundAxis(Vector(0,1,0),30-45-90)), parent:localToWorldAngles(Angle(30-45-90,0,0)), "models/sprops/geometry/hring_24.mdl", Vector(0.15,0.25,0.15))
+            holo:setMaterial(materials.rubber[1])
+            holo:setColor(materials.rubber[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            Bones["String_Attach_Top_2"] = holo
+            
+            
+            
+            -- bottom joint 2
+            parent = Bones["Joint_Bottom_2"]
+            holo = hologram.create(parent:localToWorld(Vector(0,0,-3*0.5+3*0.3)), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.3,0.17,0.5))
+            holo:setMaterial(materials.metal1[1])
+            holo:setColor(materials.metal1[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = Bones["Joint_Bottom_2"]
+            holo = hologram.create(parent:localToWorld(Vector(0,0,-5)), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.2,0.15,1))
+            holo:setMaterial(materials.metal3[1])
+            holo:setColor(materials.metal3[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = Bones["Joint_Bottom_2"]
+            holo = hologram.create(parent:localToWorld(Vector(0,0,-7.7)+Vector(0,0,-3*0.225):rotateAroundAxis(Vector(0,1,0),-45)), parent:localToWorldAngles(Angle(-45,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.2,0.15,0.3))
+            holo:setMaterial(materials.metal3[1])
+            holo:setColor(materials.metal3[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = Bones["Joint_Bottom_2"]
+            holo = hologram.create(parent:localToWorld(Vector(0,0,-7.7)+Vector(-1,0,-2):rotateAroundAxis(Vector(0,1,0),-45)), parent:localToWorldAngles(Angle(-45,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(2.5,0.2,0.2))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            top_bar = holo
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(10,0,1.5)), parent:localToWorldAngles(Angle(0,0,180)), "models/sprops/geometry/qhex_12.mdl", Vector(0.5,0.4,0.4))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(7,0,1.5)), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.7,0.2,0.35))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(4,0,1.5)), parent:localToWorldAngles(Angle(180,0,180)), "models/sprops/geometry/qhex_12.mdl", Vector(0.5,0.4,0.4))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(8,0,0.25)), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(1,0.4*0.7,0.35))
+            holo:setMaterial(materials.rubber[1])
+            holo:setColor(materials.rubber[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(12,0,0.25)), parent:localToWorldAngles(Angle(0,0,180)), "models/sprops/geometry/qdisc_12.mdl", Vector(0.35,0.8*0.7,0.35))
+            holo:setMaterial(materials.rubber[1])
+            holo:setColor(materials.rubber[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(-5.7,0,0.95)), parent:localToWorldAngles(Angle(180,0,180)), "models/sprops/geometry/hhex_12.mdl", Vector(0.3,0.4,0.15))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(-5.7,0,2)), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.1,0.2,0.3))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(-5.7,0,2.75)), parent:localToWorldAngles(Angle(0,0,90)), "models/sprops/cylinders/size_5/cylinder_12x3.mdl", Vector(0.25*0.8,0.25*0.8,0.2))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            Bones["Bottom_Roller_2"] = holo
+            table.insert(models,holo)
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(-5.7,0,2.75)), parent:localToWorldAngles(Angle(0,90,0)), "models/props_c17/pulleywheels_large01.mdl", Vector(0.075,0.08*0.8,0.08*0.8))
+            holo:setMaterial(materials.rubber[1])
+            holo:setColor(materials.rubber[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(-7.25,3*0.2-3*0.05,0.025)-Vector(3,0,0):rotateAroundAxis(Vector(0,1,0),-10)), parent:localToWorldAngles(Angle(-10,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(1,0.05,0.2))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            top_bar2 = holo
+            
+            parent = top_bar2
+            holo = hologram.create(parent:localToWorld(Vector(-2.8,0,0.04)-Vector(3*0.5,0,0):rotateAroundAxis(Vector(0,1,0),-20)), parent:localToWorldAngles(Angle(-20,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(1*0.5,0.05,0.2))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(-7.25,-3*0.2+3*0.05,0.025)-Vector(3,0,0):rotateAroundAxis(Vector(0,1,0),-10)), parent:localToWorldAngles(Angle(-10,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(1,0.05,0.2))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            top_bar2 = holo
+            
+            parent = top_bar2
+            holo = hologram.create(parent:localToWorld(Vector(-2.8,0,0.04)-Vector(3*0.5,0,0):rotateAroundAxis(Vector(0,1,0),-20)), parent:localToWorldAngles(Angle(-20,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(1*0.5,0.05,0.2))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(-16,0,-2.75)), parent:localToWorldAngles(Angle(0,0,90)), "models/sprops/cylinders/size_5/cylinder_12x3.mdl", Vector(0.25*0.8,0.25*0.8,0.6))
+            holo:setMaterial(materials.metal2[1])
+            holo:setColor(materials.metal2[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(-16,0,-2.75)+Vector(0,0,12*0.075):rotateAroundAxis(Vector(0,1,0),-30-45)), parent:localToWorldAngles(Angle(-30-45,0,0)), "models/sprops/geometry/hring_24.mdl", Vector(0.15,0.25,0.15))
+            holo:setMaterial(materials.rubber[1])
+            holo:setColor(materials.rubber[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            Bones["String_Attach_Bottom_1"] = holo
+            
+            parent = top_bar
+            holo = hologram.create(parent:localToWorld(Vector(-16,0,-2.75)+Vector(0,0,12*0.075):rotateAroundAxis(Vector(0,1,0),-30-45-90)), parent:localToWorldAngles(Angle(-30-45-90,0,0)), "models/sprops/geometry/hring_24.mdl", Vector(0.15,0.25,0.15))
+            holo:setMaterial(materials.rubber[1])
+            holo:setColor(materials.rubber[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            Bones["String_Attach_Bottom_2"] = holo
+            
+            -- STRING
+            
+            -- top
+            parent = Bones["String_Attach_Top_1"]
+            holo = hologram.create(parent:localToWorld(Vector(10.5,1,-6)*0.15), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector())
+            holo:setParent(parent)
+            table.insert(models,holo)
+            Bones["String_Start_Top_Back"] = holo
+            
+            parent = Bones["String_Attach_Top_2"]
+            holo = hologram.create(parent:localToWorld(Vector(-10.5,-1,-6)*0.15), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector())
+            holo:setParent(parent)
+            table.insert(models,holo)
+            Bones["String_Start_Top_Front"] = holo
+            
+            parent = Bones["Top_Roller_2"]
+            holo = hologram.create(parent:localToWorld(Vector(0,1.25,0):rotateAroundAxis(Vector(0,0,1),-45)), parent:localToWorldAngles(Angle(0,-45,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector())
+            holo:setParent(parent)
+            table.insert(models,holo)
+            Bones["String_Point_Top_Front_1"] = holo
+            
+            parent = Bones["Top_Roller_1"]
+            holo = hologram.create(parent:localToWorld(Vector(1.15,0.6,0)), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector())
+            holo:setParent(parent)
+            table.insert(models,holo)
+            Bones["String_Point_Top_Front_2"] = holo
+            
+            parent = Bones["Top_Roller_1"]
+            holo = hologram.create(parent:localToWorld(Vector(1.15,0,0):rotateAroundAxis(Vector(0,0,1),-90)), parent:localToWorldAngles(Angle(0,-90,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector())
+            holo:setParent(parent)
+            table.insert(models,holo)
+            Bones["String_Point_Top_Front_3"] = holo
+            
+            parent = Bones["Top_Roller_1"]
+            holo = hologram.create(parent:localToWorld(Vector(-1.25,0,0)), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector())
+            holo:setParent(parent)
+            table.insert(models,holo)
+            Bones["String_Point_Top_Back_1"] = holo
+            
+            
+            -- bottom
+            parent = Bones["String_Attach_Bottom_1"]
+            holo = hologram.create(parent:localToWorld(Vector(10.5,1,-6)*0.15), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector())
+            holo:setParent(parent)
+            table.insert(models,holo)
+            Bones["String_Start_Bottom_Front"] = holo
+            
+            parent = Bones["String_Attach_Bottom_2"]
+            holo = hologram.create(parent:localToWorld(Vector(-10.5,-1,-6)*0.15), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector())
+            holo:setParent(parent)
+            table.insert(models,holo)
+            Bones["String_Start_Bottom_Back"] = holo
+            
+            parent = Bones["Bottom_Roller_2"]
+            holo = hologram.create(parent:localToWorld(Vector(0,-1.25,0):rotateAroundAxis(Vector(0,0,1),45)), parent:localToWorldAngles(Angle(0,45,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector())
+            holo:setParent(parent)
+            table.insert(models,holo)
+            Bones["String_Point_Bottom_Front_1"] = holo
+            
+            parent = Bones["Bottom_Roller_1"]
+            holo = hologram.create(parent:localToWorld(Vector(1.15,-0.6,0)), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector())
+            holo:setParent(parent)
+            table.insert(models,holo)
+            Bones["String_Point_Bottom_Front_2"] = holo
+            
+            parent = Bones["Bottom_Roller_1"]
+            holo = hologram.create(parent:localToWorld(Vector(1.15,0,0):rotateAroundAxis(Vector(0,0,1),90)), parent:localToWorldAngles(Angle(0,90,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector())
+            holo:setParent(parent)
+            table.insert(models,holo)
+            Bones["String_Point_Bottom_Front_3"] = holo
+            
+            parent = Bones["Bottom_Roller_1"]
+            holo = hologram.create(parent:localToWorld(Vector(-1.25,0,0)), parent:localToWorldAngles(Angle(0,0,0)), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector())
+            holo:setParent(parent)
+            table.insert(models,holo)
+            Bones["String_Point_Bottom_Back_1"] = holo
+            
+            
+            -- string model
+            
+            -- front top
+            parent = Bones["String_Start_Top_Back"]
+            holo = hologram.create(Vector(), Angle(), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.03,0.03,0.03))
+            holo:setMaterial(materials.rubber[1])
+            holo:setColor(materials.rubber[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            start_pos = Bones["String_Start_Top_Front"]:getPos()
+            end_pos = Bones["String_Point_Top_Front_1"]:getPos()
+            
+            Length = (start_pos-end_pos):getLength()
+            
+            holo:setPos((start_pos+end_pos)/2)
+            holo:setAngles((start_pos-end_pos):getAngleEx(Bones["Handle"]:getForward()))
+            holo:setScale(Vector(Length/6,0.03,0.03))
+            
+            parent = Bones["Handle"]
+            holo = hologram.create(Vector(), Angle(), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.03,0.03,0.03))
+            holo:setMaterial(materials.rubber[1])
+            holo:setColor(materials.rubber[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            Bones["String_Top_Front_2"] = holo
+            
+            start_pos = Bones["String_Point_Top_Front_1"]:getPos()
+            end_pos = Bones["String_Point_Top_Front_2"]:getPos()
+            
+            Length = (start_pos-end_pos):getLength()
+            
+            holo:setPos((start_pos+end_pos)/2)
+            holo:setAngles((start_pos-end_pos):getAngleEx(Bones["Handle"]:getForward()))
+            holo:setScale(Vector(Length/6,0.03,0.03))
+            
+            parent = Bones["Handle"]
+            holo = hologram.create(Vector(), Angle(), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.03,0.03,0.03))
+            holo:setMaterial(materials.rubber[1])
+            holo:setColor(materials.rubber[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            Bones["String_Top_Front_3"] = holo
+            
+            start_pos = Bones["String_Point_Top_Front_2"]:getPos()
+            end_pos = Bones["String_Target_Front"]:getPos()
+            
+            Length = (start_pos-end_pos):getLength()
+            
+            holo:setPos((start_pos+end_pos)/2)
+            holo:setAngles((start_pos-end_pos):getAngleEx(Bones["Handle"]:getForward()))
+            holo:setScale(Vector(Length/6,0.03,0.03))
+            
+            
+            -- front bottom
+            parent = Bones["String_Start_Bottom_Back"]
+            holo = hologram.create(Vector(), Angle(), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.03,0.03,0.03))
+            holo:setMaterial(materials.rubber[1])
+            holo:setColor(materials.rubber[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            
+            start_pos = Bones["String_Start_Bottom_Front"]:getPos()
+            end_pos = Bones["String_Point_Bottom_Front_1"]:getPos()
+            
+            Length = (start_pos-end_pos):getLength()
+            
+            holo:setPos((start_pos+end_pos)/2)
+            holo:setAngles((start_pos-end_pos):getAngleEx(Bones["Handle"]:getForward()))
+            holo:setScale(Vector(Length/6,0.03,0.03))
+            
+            parent = Bones["Handle"]
+            holo = hologram.create(Vector(), Angle(), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.03,0.03,0.03))
+            holo:setMaterial(materials.rubber[1])
+            holo:setColor(materials.rubber[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            Bones["String_Bottom_Front_2"] = holo
+            
+            start_pos = Bones["String_Point_Bottom_Front_1"]:getPos()
+            end_pos = Bones["String_Point_Bottom_Front_2"]:getPos()
+            
+            Length = (start_pos-end_pos):getLength()
+            
+            holo:setPos((start_pos+end_pos)/2)
+            holo:setAngles((start_pos-end_pos):getAngleEx(Bones["Handle"]:getForward()))
+            holo:setScale(Vector(Length/6,0.03,0.03))
+            
+            parent = Bones["Handle"]
+            holo = hologram.create(Vector(), Angle(), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.03,0.03,0.03))
+            holo:setMaterial(materials.rubber[1])
+            holo:setColor(materials.rubber[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            Bones["String_Bottom_Front_3"] = holo
+            
+            start_pos = Bones["String_Point_Bottom_Front_2"]:getPos()
+            end_pos = Bones["String_Target_Front"]:getPos()
+            
+            Length = (start_pos-end_pos):getLength()
+            
+            holo:setPos((start_pos+end_pos)/2)
+            holo:setAngles((start_pos-end_pos):getAngleEx(Bones["Handle"]:getForward()))
+            holo:setScale(Vector(Length/6,0.03,0.03))
+            
+            
+            -- back top
+            parent = Bones["Handle"]
+            holo = hologram.create(Vector(), Angle(), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.03,0.03,0.03))
+            holo:setMaterial(materials.rubber[1])
+            holo:setColor(materials.rubber[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            Bones["String_Top_Back_1"] = holo
+            
+            start_pos = Bones["String_Start_Top_Back"]:getPos()
+            end_pos = Bones["String_Point_Top_Back_1"]:getPos()
+            
+            Length = (start_pos-end_pos):getLength()
+            
+            holo:setPos((start_pos+end_pos)/2)
+            holo:setAngles((start_pos-end_pos):getAngleEx(Bones["Handle"]:getForward()))
+            holo:setScale(Vector(Length/6,0.03,0.03))
+            
+            parent = Bones["Handle"]
+            holo = hologram.create(Vector(), Angle(), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.03,0.03,0.03))
+            holo:setMaterial(materials.rubber[1])
+            holo:setColor(materials.rubber[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            Bones["String_Top_Back_2"] = holo
+            
+            start_pos = Bones["String_Point_Top_Back_1"]:getPos()
+            end_pos = Bones["String_Target_Back"]:getPos()
+            
+            Length = (start_pos-end_pos):getLength()
+            
+            holo:setPos((start_pos+end_pos)/2)
+            holo:setAngles((start_pos-end_pos):getAngleEx(Bones["Handle"]:getForward()))
+            holo:setScale(Vector(Length/6,0.03,0.03))
+            
+            
+            -- back bottom
+            parent = Bones["Handle"]
+            holo = hologram.create(Vector(), Angle(), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.03,0.03,0.03))
+            holo:setMaterial(materials.rubber[1])
+            holo:setColor(materials.rubber[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            Bones["String_Bottom_Back_1"] = holo
+            
+            start_pos = Bones["String_Start_Bottom_Back"]:getPos()
+            end_pos = Bones["String_Point_Bottom_Back_1"]:getPos()
+            
+            Length = (start_pos-end_pos):getLength()
+            
+            holo:setPos((start_pos+end_pos)/2)
+            holo:setAngles((start_pos-end_pos):getAngleEx(Bones["Handle"]:getForward()))
+            holo:setScale(Vector(Length/6,0.03,0.03))
+            
+            parent = Bones["Handle"]
+            holo = hologram.create(Vector(), Angle(), "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", Vector(0.03,0.03,0.03))
+            holo:setMaterial(materials.rubber[1])
+            holo:setColor(materials.rubber[2])
+            holo:setParent(parent)
+            table.insert(models,holo)
+            Bones["String_Bottom_Back_2"] = holo
+            
+            start_pos = Bones["String_Point_Bottom_Back_1"]:getPos()
+            end_pos = Bones["String_Target_Back"]:getPos()
+            
+            Length = (start_pos-end_pos):getLength()
+            
+            holo:setPos((start_pos+end_pos)/2)
+            holo:setAngles((start_pos-end_pos):getAngleEx(Bones["Handle"]:getForward()))
+            holo:setScale(Vector(Length/6,0.03,0.03))
+            
+            for i, holo in pairs(models) do
+                local parent = holo:getParent()
+                local relativePos = parent:worldToLocal(holo:getPos())
+                holo:setPos(parent:localToWorld(relativePos*size))
+                holo:setScale(holo:getScale()*size)
+                holo:setNoDraw(true)
+            end
+            
+            makeModel = true
+        end
+        
+        function updateStrings()
+            -- Front String
+            
+            local handle = Bones["Handle"]
+            local front_pos = Bones["String_Target_Front"]:getPos()
+            local back_pos = Bones["String_Target_Back"]:getPos()
+            
+            local front_limit = (Bones["String_Point_Top_Front_2"]:getPos()+Bones["String_Point_Bottom_Front_2"]:getPos())/2
+            local back_limit = (Bones["String_Point_Top_Front_2"]:getPos()+Bones["String_Point_Bottom_Front_2"]:getPos())/2
+            
+            local front_limit_front = (Bones["String_Point_Top_Front_1"]:getPos()+Bones["String_Point_Bottom_Front_1"]:getPos())/2
+            
+            local dist_front_limit_front = handle:worldToLocal(front_limit_front).x
+            
+            
+            local dist_front_target = handle:worldToLocal(front_pos).x-dist_front_limit_front
+            local dist_back_target = handle:worldToLocal(back_pos).x
+            
+            local dist_front_limit = handle:worldToLocal(front_limit).x-dist_front_limit_front
+            local dist_back_limit = handle:worldToLocal(back_limit).x
+            
+            local mixFront = math.clamp(dist_front_limit_front+dist_front_target-dist_front_limit + 1*size,-1000,dist_front_limit_front)-dist_front_limit_front
+            local mixBack = math.clamp(dist_back_target + 2.5*size,-1000,dist_back_limit)-dist_back_limit
+            
+            holo = Bones["String_Top_Front_2"]
+            
+            start_pos = Bones["String_Point_Top_Front_1"]:getPos()
+            end_pos = Bones["String_Point_Top_Front_2"]:getPos()
+            end_pos2 = front_pos
+            
+            end_pos = (mixFront < 0 and end_pos or end_pos2)
+            
+            Length = (start_pos-end_pos):getLength()
+            
+            holo:setPos((start_pos+end_pos)/2)
+            holo:setAngles((start_pos-end_pos):getAngleEx(Bones["Handle"]:getForward()))
+            holo:setScale(Vector(Length/6,0.03,0.03))
+            
+            
+            
+            holo = Bones["String_Top_Front_3"]
+            
+            if mixFront < 0 then
+                start_pos = Bones["Top_Roller_1"]:localToWorld(Vector(1.15*size,0,0):rotateAroundAxis(Vector(0,0,1),-105*math.abs(mixFront)/15*size,0,1))
+                end_pos = front_pos
+                
+                Length = (start_pos-end_pos):getLength()
+                
+                holo:setPos((start_pos+end_pos)/2)
+                holo:setAngles((start_pos-end_pos):getAngleEx(Bones["Handle"]:getForward()))
+                holo:setScale(Vector(Length/6,0.03,0.03))
+            else
+                holo:setScale(Vector())
+            end
+            
+            
+            holo = Bones["String_Bottom_Front_2"]
+            
+            start_pos = Bones["String_Point_Bottom_Front_1"]:getPos()
+            end_pos = Bones["String_Point_Bottom_Front_2"]:getPos()
+            end_pos2 = front_pos
+            
+            end_pos = (mixFront < 0 and end_pos or end_pos2)
+            
+            Length = (start_pos-end_pos):getLength()
+            
+            holo:setPos((start_pos+end_pos)/2)
+            holo:setAngles((start_pos-end_pos):getAngleEx(Bones["Handle"]:getForward()))
+            holo:setScale(Vector(Length/6,0.03,0.03))
+            
+            
+            
+            holo = Bones["String_Bottom_Front_3"]
+            
+            if mixFront < 0 then
+                start_pos = Bones["Bottom_Roller_1"]:localToWorld(Vector(1.15*size,0,0):rotateAroundAxis(Vector(0,0,1),105*math.abs(mixFront)/15*size,0,1))
+                end_pos = front_pos
+                
+                Length = (start_pos-end_pos):getLength()
+                
+                holo:setPos((start_pos+end_pos)/2)
+                holo:setAngles((start_pos-end_pos):getAngleEx(Bones["Handle"]:getForward()))
+                holo:setScale(Vector(Length/6,0.03,0.03))
+            else
+                holo:setScale(Vector())
+            end
+            
+            
+            
+            -- Back String
+            holo = Bones["String_Top_Back_1"]
+            
+            start_pos = Bones["String_Start_Top_Back"]:getPos()
+            end_pos = Bones["String_Point_Top_Back_1"]:getPos()
+            end_pos2 = back_pos
+            
+            end_pos = (mixBack < 0 and end_pos2 or end_pos)
+            
+            Length = (start_pos-end_pos):getLength()
+            
+            holo:setPos((start_pos+end_pos)/2)
+            holo:setAngles((start_pos-end_pos):getAngleEx(Bones["Handle"]:getForward()))
+            holo:setScale(Vector(Length/6,0.03,0.03))
+            
+            
+            
+            holo = Bones["String_Top_Back_2"]
+            
+            if mixBack == 0 then
+                start_pos = Bones["String_Point_Top_Back_1"]:getPos()
+                end_pos = back_pos
+                
+                Length = (start_pos-end_pos):getLength()
+                
+                holo:setPos((start_pos+end_pos)/2)
+                holo:setAngles((start_pos-end_pos):getAngleEx(Bones["Handle"]:getForward()))
+                holo:setScale(Vector(Length/6,0.03,0.03))
+            else
+                holo:setScale(Vector())
+            end
+            
+            
+            
+            
+            holo = Bones["String_Bottom_Back_1"]
+            
+            start_pos = Bones["String_Start_Bottom_Back"]:getPos()
+            end_pos = Bones["String_Point_Bottom_Back_1"]:getPos()
+            end_pos2 = back_pos
+            
+            end_pos = (mixBack < 0 and end_pos2 or end_pos)
+            
+            Length = (start_pos-end_pos):getLength()
+            
+            holo:setPos((start_pos+end_pos)/2)
+            holo:setAngles((start_pos-end_pos):getAngleEx(Bones["Handle"]:getForward()))
+            holo:setScale(Vector(Length/6,0.03,0.03))
+            
+            
+            
+            holo = Bones["String_Bottom_Back_2"]
+            
+            if mixBack == 0 then
+                start_pos = Bones["String_Point_Bottom_Back_1"]:getPos()
+                end_pos = back_pos
+                
+                Length = (start_pos-end_pos):getLength()
+                
+                holo:setPos((start_pos+end_pos)/2)
+                holo:setAngles((start_pos-end_pos):getAngleEx(Bones["Handle"]:getForward()))
+                holo:setScale(Vector(Length/6,0.03,0.03))
+            else
+                holo:setScale(Vector())
+            end
+            
+            return mixFront
+        end
+        
+        if BLOCK_CODE then
+            createModel()
+        end
+        hook.add("calcview","drawviewmodel",function()
+            if BLOCK_CODE == true then return end
+            if owner():isAlive() then
+                if makeModel == false then
+                    createModel()
+                    --Bones["Root"]:setParent(owner():getActiveWeapon())
+                    Bones["Root"]:setPos(owner():getShootPos())
+                    Bones["Root"]:setAngles(owner():getEyeAngles())
+                end
+            else
+                makeModel = false
+                if Bones["Root"]:isValid() then
+                    Bones["Root"]:remove()
+                end
+            end
+            if owner():isAlive() and owner():getActiveWeapon():isValid() then
+                if Bones["Root"]:isValid() and makeModel then
+                    Bones["Root"]:setPos(math.lerpVector(1,Bones["Root"]:getPos(),owner():getShootPos()))
+                    Bones["Root"]:setAngles(math.slerpQuaternion(Bones["Root"]:getAngles():getQuaternion(), owner():getEyeAngles():getQuaternion(), 0.1):getEulerAngle())
+                    if owner():getActiveWeapon():getClass() == "none" then
+                        if visible != true then
+                            visible = true
+                            for i, holo in pairs(models) do
+                                holo:setNoDraw(false)
+                            end
+                            owner():getActiveWeapon():emitSound(")weapons/crossbow/reload1.wav",100,100,1,CHAN_WEAPON)
+                        end
+                        
+                        if Return == true then
+                            ATTACK_DOWN=false
+                            DRAW_POWER=DRAW_POWER - 0.0125*timer.frametime()*100
+                            DRAW_POWER=math.clamp(DRAW_POWER,0,1)
+                            if DRAW_POWER == 0 then
+                                Return = false
+                            end
+                        else
+                            if input.isMouseDown(MOUSE.MOUSE1) and FIRE_ANIM == 0 and PREDRAW == 1 and EQUIP == 1 then
+                                if Return != true then
+                                    if ATTACK_DOWN == false then
+                                        -- couldn't find any good sound files...
+                                    end
+                                    if input.isKeyDown(KEY.R) then
+                                        Return = true
+                                    end
+                                    ATTACK_DOWN=true
+                                    DRAW_POWER=DRAW_POWER + 0.01*timer.frametime()*100
+                                    DRAW_POWER=math.clamp(DRAW_POWER,0,1)
+                                end
+                            else
+                                if ATTACK_DOWN == true and DRAW_POWER > 0 then
+                                    owner():getActiveWeapon():emitSound(")weapons/crossbow/fire1.wav",100,100,1,CHAN_WEAPON)
+                                    net.start("fire")
+                                    net.writeFloat(DRAW_POWER)
+                                    net.send()
+                                    PREDRAW = 0
+                                    for i, holo in pairs(arrow_models) do
+                                        holo:setNoDraw(true)
+                                    end
+                                    arrow_hidden = true
+                                    READY = false
+                                    FIRED = true
+                                end
+                                ATTACK_DOWN=false
+                                if DRAW_POWER == 0 then
+                                    if EQUIP < 1 then
+                                        EQUIP = EQUIP + 0.01*timer.frametime()*100
+                                        EQUIP = math.clamp(EQUIP,0,1)
+                                        PREDRAW = 1
+                                        if EQUIP >= 1 then
+                                            EQUIPPED = true
+                                            DRAW_POWER=0
+                                            READY = true
+                                            FIRED = false
+                                        end
+                                    else
+                                        PREDRAW = PREDRAW + 0.1*timer.frametime()*100
+                                        PREDRAW = math.clamp(PREDRAW,0,1)
+                                    end
+                                else
+                                    FIRE_ANIM=FIRE_ANIM + (0.02 - 0.01*math.clamp((1-FIRE_ANIM)*2,0,1))*timer.frametime()*100
+                                    FIRE_ANIM=math.clamp(FIRE_ANIM,0,1)
+                                    if FIRE_ANIM >= 0.25 and arrow_hidden != false then
+                                        arrow_hidden = false
+                                        for i, holo in pairs(arrow_models) do
+                                            holo:setNoDraw(false)
+                                        end
+                                        owner():getActiveWeapon():emitSound(")weapons/crossbow/reload1.wav",100,100,1,CHAN_WEAPON)
+                                    end
+                                    if FIRE_ANIM >= 1 then
+                                        DRAW_POWER=0
+                                        FIRE_ANIM=0
+                                        PREDRAW = 0
+                                        READY = true
+                                        FIRED = false
+                                    end
+                                end
+                            end
+                        end
+                        
+                        local handle = Bones["Handle"]
+                        
+                        local joint_top_1 = Bones["Joint_Top_1"]
+                        local joint_top_2 = Bones["Joint_Top_2"]
+                        local joint_bottom_1 = Bones["Joint_Bottom_1"]
+                        local joint_bottom_2 = Bones["Joint_Bottom_2"]
+                        
+                        
+                        local point_front = Bones["String_Target_Front"]
+                        local point_back = Bones["String_Target_Back"]
+                        
+                        
+                        drawDist = -7.4080200195313 - 4*PREDRAW - 30*math.clamp(math.clamp(math.clamp(DRAW_POWER*5-(DRAW_POWER+DRAW_POWER)*2,0,1)+DRAW_POWER/(10-DRAW_POWER*9)+math.clamp(-24+DRAW_POWER*25,0,1),0,1)-math.clamp(FIRE_ANIM*math.clamp(DRAW_POWER*100,15,25),0,1),0,1)
+                        
+                        Animate_this_fucking_arrow = EQUIPPED and FIRE_ANIM or EQUIP
+                        
+                        local mixpos = math.bezierVectorCubic(math.clamp((READY and 1 or Animate_this_fucking_arrow)*1.1,0,1), owner():getShootPos() + owner():getEyeAngles():getUp()*25 - owner():getEyeAngles():getRight()*25, owner():getShootPos() - owner():getEyeAngles():getRight()*10 + owner():getEyeAngles():getForward()*25 + owner():getEyeAngles():getUp()*5, point_front:localToWorld(Vector((9*3+10)*size,0,0)), point_front:localToWorld(Vector((9*3+10*(1-math.clamp(-7+(READY and 1 or Animate_this_fucking_arrow)*8,0,1)))*size,0,0)))
+                        local mixang = handle:localToWorldAngles(Angle(-25*(1-math.clamp(-2+(READY and 1 or Animate_this_fucking_arrow)*4,0,1)),20*(1-math.clamp(-1+(READY and 1 or Animate_this_fucking_arrow)*3,0,1)),15)*(1-math.clamp(-5+(READY and 1 or Animate_this_fucking_arrow)*10,0,1)))
+                        
+                        handle:setPos(Bones["Root"]:localToWorld(Vector(23+7*math.clamp((DRAW_POWER+DRAW_POWER*4)/5,0,1-math.clamp((READY and 0 or Animate_this_fucking_arrow)*2,0,1))-3*DRAW_POWER*math.sin(math.rad(math.clamp(Animate_this_fucking_arrow*15*DRAW_POWER,0,1)*180))+math.rad(math.sin(math.clamp(-1+(READY and 1 or Animate_this_fucking_arrow)*3,0,1)*180)),-15,-5)+Vector(math.rad(math.sin(timer.curtime()*DRAW_POWER*1*180*0.1))*0.2,math.rad(math.sin(7+timer.curtime()*DRAW_POWER*2.8*180*0.1)),math.rad(math.sin(0.2+timer.curtime()*DRAW_POWER*3*180*0.1))*(DRAW_POWER*3))*(FIRED and 0 or 1)))
+                        handle:setAngles(Bones["Root"]:localToWorldAngles(Angle(-3*math.sin(math.rad((math.clamp(-0.5+(READY and 1 or Animate_this_fucking_arrow)*3,0,1)+math.clamp(PREDRAW*1.5,0,1))*90)),0,10*math.sin(math.rad((math.clamp(-0.5+(READY and 1 or Animate_this_fucking_arrow)*3,0,1)+PREDRAW)*90)))))
+                        
+                        Bones["Arrow"]:setPos(mixpos)
+                        Bones["Arrow"]:setAngles(mixang)
+                        
+                        point_front:setPos(handle:localToWorld(Vector(drawDist*size,0,0)))
+                        
+                        point_back:setPos(handle:localToWorld(Vector(math.clamp(drawDist*size,-100,-11.544555664063*size),0,0)))
+                        
+                        drawWeight = math.clamp(math.abs(updateStrings())/(35*size),0,1)
+                        
+                        joint_top_1:setAngles(handle:localToWorldAngles(Angle(-15-5*drawWeight,0,0)))
+                        joint_bottom_1:setAngles(handle:localToWorldAngles(Angle(15+5*drawWeight,0,0)))
+                        
+                        joint_top_2:setAngles(joint_top_1:localToWorldAngles(Angle(15-55*drawWeight,0,0)))
+                        joint_bottom_2:setAngles(joint_bottom_1:localToWorldAngles(Angle(-15+55*drawWeight,0,0)))
+                    else
+                        if visible != false then
+                            visible = false
+                            for i, holo in pairs(models) do
+                                holo:setNoDraw(true)
+                            end
+                        end
+                        EQUIP=0
+                        EQUIPPED = false
+                        DRAW_POWER=0
+                        FIRE_ANIM=0
+                        PREDRAW = 0
+                        READY = false
+                        FIRED = false
+                    end
+                end
+            end
+        end)
+        enableHud(owner(),true)
+    end
+end
