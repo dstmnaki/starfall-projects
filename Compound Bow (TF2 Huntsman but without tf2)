@@ -26,14 +26,14 @@ if SERVER then
     local arrows_special={}
     local splinters = {}
     
-    function createArrowSpecial(pos,ang)
+    function createArrowSpecial(pos,ang,power)
         This = hologram.create(pos, ang, "models/hunter/misc/sphere025x025.mdl", Vector())
         This:setTrails(25, 0, 1, "trails/laser", Color(0,255,255), nil, nil)
         This.block_advance = false
         This.drop = 0
         This.dir = ang:getForward()
         This.models = {}
-        
+        This.power = power
         local offsetDist = (9*3-10)*size
         
         parent = This
@@ -77,14 +77,14 @@ if SERVER then
         table.insert(arrows_special, 1, This)
     end
     
-    function createArrow(pos,ang)
+    function createArrow(pos,ang,power)
         This = hologram.create(pos, ang, "models/hunter/misc/sphere025x025.mdl", Vector())
         This:setTrails(25, 0, 1, "trails/laser", Color(0,255,255), nil, nil)
         This.block_advance = false
         This.drop = 0
         This.dir = ang:getForward()
         This.models = {}
-        
+        This.power = power
         local offsetDist = (9*3-10)*size
         
         parent = This
@@ -176,7 +176,7 @@ if SERVER then
                 if bolt:isValid() and bolt != nil then
                     if bolt.block_advance != true then
                         bolt.drop = bolt.drop + 9.8*game.getTickInterval()
-                        local tr = trace.line(bolt:getPos(),bolt:getPos()+bolt.dir*120+Vector(0,0,-bolt.drop),owner(), nil, nil, false)
+                        local tr = trace.line(bolt:getPos(),bolt:getPos()+bolt.dir*120*bolt.power+Vector(0,0,-bolt.drop),owner(), nil, nil, false)
                         local lastPos = tr.HitPos
                         
                         bolt:setAngles((tr.HitPos-bolt:getPos()):getAngle())
@@ -203,7 +203,8 @@ if SERVER then
             for i, bolt in pairs(arrows_special) do
                 if bolt:isValid() and bolt != nil then
                     if bolt.block_advance != true then
-                        local tr = trace.line(bolt:getPos(),bolt:getPos()+bolt.dir*180,owner(), nil, nil, false)
+                        bolt.drop = bolt.drop + 9.8*game.getTickInterval()*(bolt.power == 1 and 0 or 1)
+                        local tr = trace.line(bolt:getPos(),bolt:getPos()+bolt.dir*180*bolt.power+Vector(0,0,-bolt.drop),owner(), nil, nil, false)
                         local lastPos = tr.HitPos
                         local store_pos = bolt:getPos()
                         bolt:setPos(lastPos)
@@ -219,7 +220,9 @@ if SERVER then
                             else
                                 bolt.block_advance = true
                                 remove_arrow(i,bolt,arrows_special)
-                                create_splinters(store_pos,bolt:getForward())
+                                if bolt.power == 1 then
+                                    create_splinters(store_pos,bolt:getForward())
+                                end
                             end
                         end
                     end
@@ -275,9 +278,9 @@ if SERVER then
             local is_special = net.readBool()
             
             if is_special then
-                createArrowSpecial(owner():getShootPos(),owner():getEyeAngles())
+                createArrowSpecial(owner():getShootPos(),owner():getEyeAngles(),GET_DRAW_POWER)
             else
-                createArrow(owner():getShootPos(),owner():getEyeAngles())
+                createArrow(owner():getShootPos(),owner():getEyeAngles(),GET_DRAW_POWER)
             end
         end
     end)
@@ -285,6 +288,7 @@ else
     if player() == owner() then
         print("-Use hands (none) with this weapon, Mouse1 to charge, release to fire!")
         print("-R to undraw & switch arrow type")
+        print("Special arrow requires full draw for it to activate!")
         local ATTACK_DOWN = false
         local DRAW_POWER = 0
         local PREDRAW = 0
@@ -1387,7 +1391,7 @@ else
                                         Return = true
                                     end
                                     ATTACK_DOWN=true
-                                    DRAW_POWER=DRAW_POWER + 0.01*timer.frametime()*100
+                                    DRAW_POWER=DRAW_POWER + 0.01*timer.frametime()*100*(is_special and 0.6 or 1)
                                     DRAW_POWER=math.clamp(DRAW_POWER,0,1)
                                 end
                             else
@@ -1432,7 +1436,7 @@ else
                                         end
                                     end
                                 else
-                                    FIRE_ANIM=FIRE_ANIM + (0.02 - 0.01*math.clamp((1-FIRE_ANIM)*2,0,1))*timer.frametime()*100
+                                    FIRE_ANIM=FIRE_ANIM + (0.02 - 0.01*math.clamp((1-FIRE_ANIM)*2,0,1))*timer.frametime()*100*(is_special and 0.8 or 1)
                                     FIRE_ANIM=math.clamp(FIRE_ANIM,0,1)
                                     if FIRE_ANIM >= 0.25 and arrow_hidden != false then
                                         arrow_hidden = false
@@ -1474,6 +1478,7 @@ else
                             SWITCHING = false
                             READY = true
                             is_special = not is_special
+                            print(is_special and "Special Arrow Selected" or "Regular Arrow Selected")
                         end
                         
                         Animate_this_fucking_arrow = EQUIPPED and (SWITCHING and 1-math.sin(math.rad(SWITCHING_ANIM*180)) or FIRE_ANIM) or EQUIP
