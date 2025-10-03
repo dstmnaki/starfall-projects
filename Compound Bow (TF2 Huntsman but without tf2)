@@ -4,50 +4,287 @@
 
 local BLOCK_CODE = false
 
+
+local size = 0.7
+
+local materials = {}
+
+materials.handle = {"models/debug/debugwhite",Color(125,100,0,255)}
+materials.metal1 = {"models/debug/debugwhite",Color(75,75,75,255)}
+materials.metal2 = {"models/debug/debugwhite",Color(125,125,125,255)}
+materials.metal3 = {"models/debug/debugwhite",Color(105,90,90,255)}
+materials.rubber = {"models/debug/debugwhite",Color(50,50,50,255)}
+
+materials.arrow1 = {"models/debug/debugwhite",Color(50,50,50,255)}
+materials.arrow2 = {"models/debug/debugwhite",Color(125,125,125,255)}
+materials.arrow3 = {"models/debug/debugwhite",Color(255,75,0,255)}
+
+
 if SERVER then
     if BLOCK_CODE == true then return end
-    local arrows={timer.curtime()}
+    local arrows={}
+    local arrows_special={}
+    local splinters = {}
     
-    arrow=prop.create(chip():getPos()+Vector(0,0,0), Angle(0,0,0), "models/sprops/rectangles_thin/size_0/rect_1_5x42x1_5.mdl", true)
+    function createArrowSpecial(pos,ang)
+        This = hologram.create(pos, ang, "models/hunter/misc/sphere025x025.mdl", Vector())
+        This:setTrails(25, 0, 1, "trails/laser", Color(0,255,255), nil, nil)
+        This.block_advance = false
+        This.drop = 0
+        This.dir = ang:getForward()
+        This.models = {}
+        
+        local offsetDist = (9*3-10)*size
+        
+        parent = This
+        holo = hologram.create(parent:localToWorld(Vector(-offsetDist,0,0)+Vector(0,0,0)*size), parent:localToWorldAngles(Angle(90,0,0)), "models/sprops/cylinders/size_2/cylinder_3x18.mdl", Vector(0.22,0.22,3)*size)
+        holo:setMaterial(materials.arrow1[1])
+        holo:setColor(materials.arrow1[2])
+        holo:setParent(parent)
+        table.insert(This.models,holo)
+        
+        holo = hologram.create(parent:localToWorld(Vector(-offsetDist,0,0)+Vector(9*3,0,0)*size), parent:localToWorldAngles(Angle(90,0,0)), "models/sprops/misc/cones/size_0/cone_6x12.mdl", Vector(0.12,0.3,0.4)*size)
+        holo:setMaterial(materials.arrow2[1])
+        holo:setColor(materials.arrow2[2])
+        holo:setParent(parent)
+        table.insert(This.models,holo)
+        
+        holo = hologram.create(parent:localToWorld(Vector(-offsetDist,0,0)+Vector(9*3,0,0)*size), parent:localToWorldAngles(Angle(-90,0,0)), "models/sprops/misc/cones/size_0/cone_6x12.mdl", Vector(0.12,0.3,0.1)*size)
+        holo:setMaterial(materials.arrow2[1])
+        holo:setColor(materials.arrow2[2])
+        holo:setParent(parent)
+        table.insert(This.models,holo)
+        
+        holo = hologram.create(parent:localToWorld(Vector(-offsetDist,0,0)+Vector(-9*3+2,0,-0.25)*size), parent:localToWorldAngles(Angle(-25,0,0)), "models/sprops/geometry/t_qhex_12.mdl", Vector(0.7,0.05,0.2)*size)
+        holo:setMaterial(materials.arrow3[1])
+        holo:setColor(materials.arrow3[2])
+        holo:setParent(parent)
+        table.insert(This.models,holo)
+        
+        holo = hologram.create(parent:localToWorld(Vector(-offsetDist,0,0)+Vector(-9*3+2,0,-0.25):rotateAroundAxis(Vector(1,0,0),120)*size), parent:localToWorldAngles(Angle(-25,0,0):rotateAroundAxis(Vector(1,0,0),120)), "models/sprops/geometry/t_qhex_12.mdl", Vector(0.7,0.05,0.2)*size)
+        holo:setMaterial(materials.arrow3[1])
+        holo:setColor(materials.arrow3[2])
+        holo:setParent(parent)
+        table.insert(This.models,holo)
+        
+        holo = hologram.create(parent:localToWorld(Vector(-offsetDist,0,0)+Vector(-9*3+2,0,-0.25):rotateAroundAxis(Vector(1,0,0),-120)*size), parent:localToWorldAngles(Angle(-25,0,0):rotateAroundAxis(Vector(1,0,0),-120)), "models/sprops/geometry/t_qhex_12.mdl", Vector(0.7,0.05,0.2)*size)
+        holo:setMaterial(materials.arrow3[1])
+        holo:setColor(materials.arrow3[2])
+        holo:setParent(parent)
+        table.insert(This.models,holo)
+        
+        
+        table.insert(arrows_special, 1, This)
+    end
     
-    arrow:setTrails(25, 0, 2, "trails/laser", Color(255,0,0,255), nil, false)
-    arrow:setMass(200)
-    arrow:setCollisionGroup(COLLISION_GROUP.PLAYER)
-    function collide(colData, collider)
-        if arrow:isFrozen() == false and colData.HitEntity and colData.HitEntity != nil and colData.HitEntity:isValid() and  colData.HitEntity:isPlayer() == false and colData.HitEntity:isNPC() == false then
-            arrow:enableMotion(false)
+    function createArrow(pos,ang)
+        This = hologram.create(pos, ang, "models/hunter/misc/sphere025x025.mdl", Vector())
+        This:setTrails(25, 0, 1, "trails/laser", Color(0,255,255), nil, nil)
+        This.block_advance = false
+        This.drop = 0
+        This.dir = ang:getForward()
+        This.models = {}
+        
+        local offsetDist = (9*3-10)*size
+        
+        parent = This
+        holo = hologram.create(parent:localToWorld(Vector(-offsetDist,0,0)+Vector(0,0,0)*size), parent:localToWorldAngles(Angle(90,0,0)), "models/sprops/cylinders/size_2/cylinder_3x18.mdl", Vector(0.22,0.22,3)*size)
+        holo:setMaterial(materials.arrow1[1])
+        holo:setColor(materials.arrow1[2])
+        holo:setParent(parent)
+        table.insert(This.models,holo)
+        
+        holo = hologram.create(parent:localToWorld(Vector(-offsetDist,0,0)+Vector(9*3,0,0)*size), parent:localToWorldAngles(Angle(90,0,0)), "models/sprops/misc/cones/size_0/cone_6x12.mdl", Vector(0.12,0.3,0.4)*size)
+        holo:setMaterial(materials.arrow2[1])
+        holo:setColor(materials.arrow2[2])
+        holo:setParent(parent)
+        table.insert(This.models,holo)
+        
+        holo = hologram.create(parent:localToWorld(Vector(-offsetDist,0,0)+Vector(9*3,0,0)*size), parent:localToWorldAngles(Angle(-90,0,0)), "models/sprops/misc/cones/size_0/cone_6x12.mdl", Vector(0.12,0.3,0.1)*size)
+        holo:setMaterial(materials.arrow2[1])
+        holo:setColor(materials.arrow2[2])
+        holo:setParent(parent)
+        table.insert(This.models,holo)
+        
+        holo = hologram.create(parent:localToWorld(Vector(-offsetDist,0,0)+Vector(-9*3+2,0,-0.25)*size), parent:localToWorldAngles(Angle(-25,0,0)), "models/sprops/geometry/t_qhex_12.mdl", Vector(0.7,0.05,0.2)*size)
+        holo:setMaterial(materials.arrow3[1])
+        holo:setColor(materials.arrow3[2])
+        holo:setParent(parent)
+        table.insert(This.models,holo)
+        
+        holo = hologram.create(parent:localToWorld(Vector(-offsetDist,0,0)+Vector(-9*3+2,0,-0.25):rotateAroundAxis(Vector(1,0,0),120)*size), parent:localToWorldAngles(Angle(-25,0,0):rotateAroundAxis(Vector(1,0,0),120)), "models/sprops/geometry/t_qhex_12.mdl", Vector(0.7,0.05,0.2)*size)
+        holo:setMaterial(materials.arrow3[1])
+        holo:setColor(materials.arrow3[2])
+        holo:setParent(parent)
+        table.insert(This.models,holo)
+        
+        holo = hologram.create(parent:localToWorld(Vector(-offsetDist,0,0)+Vector(-9*3+2,0,-0.25):rotateAroundAxis(Vector(1,0,0),-120)*size), parent:localToWorldAngles(Angle(-25,0,0):rotateAroundAxis(Vector(1,0,0),-120)), "models/sprops/geometry/t_qhex_12.mdl", Vector(0.7,0.05,0.2)*size)
+        holo:setMaterial(materials.arrow3[1])
+        holo:setColor(materials.arrow3[2])
+        holo:setParent(parent)
+        table.insert(This.models,holo)
+        
+        
+        table.insert(arrows, 1, This)
+        
+        if #arrows > 10 then
+            local arrow = arrows[#arrows]
+            if arrow and arrow != nil and arrow:isValid()  then
+                for i, holo in pairs(arrow.models) do
+                    if holo and holo != nil and holo:isValid() then
+                        holo:remove()
+                    end
+                end
+                arrow:remove()
+                table.remove(arrows,#arrows)
+            end
         end
     end
-    hook.add("think","remove arrows",function()
-        if arrow:isValid() then
-            arrow:addCollisionListener(collide, "collide")
-            
+    
+    function remove_arrow(index,ent,table_from)
+        if ent and ent != nil and ent:isValid()  then
+            if ent and ent != nil and ent:isValid()  then
+                for i, holo in pairs(ent.models) do
+                    if holo and holo != nil and holo:isValid() then
+                        holo:remove()
+                    end
+                end
+            end
+            timer.simple(2,function()
+                ent:remove()
+                table.remove(table_from,index)
+            end)
         end
-        if timer.curtime() - arrows[1] > 1.5 then
-            if arrow:isValid() then
-                arrow:removeTrails()
-                arrow:enableMotion(false)
-                arrow:setPos(chip():getPos()+Vector(0,0,0))
-                arrow:setNoDraw(true)
+    end
+    local splinter_count = 4
+    function create_splinters(pos,dir)
+        for i = 1, splinter_count do
+            local entry = {}
+            entry.dir = dir:rotateAroundAxis(dir:getAngle():getRight(),math.random(5,15)):rotateAroundAxis(dir,math.random(-5,5)+45+360/splinter_count*i)
+            This = hologram.create(pos, entry.dir:getAngle(), "models/hunter/misc/sphere025x025.mdl", Vector())
+            This:setTrails(20, 0, 0.2, "trails/laser", Color(0,255,255), nil, nil)
+            entry.ent = This
+            entry.ricochet_count = 0
+            entry.drop = 0
+            table.insert(splinters, 1, entry)
+        end
+    end
+    
+    hook.add("think","",function()
+        if #arrows > 0 then
+            for i, bolt in pairs(arrows) do
+                if bolt:isValid() and bolt != nil then
+                    if bolt.block_advance != true then
+                        bolt.drop = bolt.drop + 9.8*game.getTickInterval()
+                        local tr = trace.line(bolt:getPos(),bolt:getPos()+bolt.dir*120+Vector(0,0,-bolt.drop),owner(), nil, nil, false)
+                        local lastPos = tr.HitPos
+                        
+                        bolt:setAngles((tr.HitPos-bolt:getPos()):getAngle())
+                        bolt:setPos(lastPos)
+                        if tr.Hit then
+                            if tr.Entity and (tr.Entity:isNPC() or tr.Entity:isPlayer()) then
+                                if hasPermission("entities.applyDamage", tr.Entity) then
+                                    tr.Entity:applyDamage(300, owner(), chip(), DAMAGE.SNIPER, tr.Entity:getPos())
+                                end
+                                bolt.block_advance = (tr.Entity:getHealth() > 0)
+                                if bolt.block_advance == true then
+                                    -- stick
+                                end
+                            else
+                                bolt.block_advance = true
+                                -- stick
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        if #arrows_special > 0 then
+            for i, bolt in pairs(arrows_special) do
+                if bolt:isValid() and bolt != nil then
+                    if bolt.block_advance != true then
+                        local tr = trace.line(bolt:getPos(),bolt:getPos()+bolt.dir*180,owner(), nil, nil, false)
+                        local lastPos = tr.HitPos
+                        local store_pos = bolt:getPos()
+                        bolt:setPos(lastPos)
+                        if tr.Hit then
+                            if tr.Entity and (tr.Entity:isNPC() or tr.Entity:isPlayer()) then
+                                if hasPermission("entities.applyDamage", tr.Entity) then
+                                    tr.Entity:applyDamage(300, owner(), chip(), DAMAGE.SNIPER, tr.Entity:getPos())
+                                end
+                                bolt.block_advance = (tr.Entity:getHealth() > 0)
+                                if bolt.block_advance then
+                                    remove_arrow(i,bolt,arrows_special)
+                                end
+                            else
+                                bolt.block_advance = true
+                                remove_arrow(i,bolt,arrows_special)
+                                create_splinters(store_pos,bolt:getForward())
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        if #splinters > 0 then
+            for i, t in pairs(splinters) do
+                local splinter = t.ent
+                if splinter:isValid() and splinter != nil then
+                    if t.ricochet_count < 4 then
+                        
+                        t.drop = t.drop + 9.8*game.getTickInterval()
+                        local tr = trace.line(splinter:getPos(),splinter:getPos()+t.dir*75/(1+t.drop/10)+Vector(0,0,-t.drop),owner(), nil, nil, false)
+                        local lastPos = tr.HitPos
+                        local store_pos = splinter:getPos()
+                        splinter:setPos(lastPos)
+                        if t.drop > 25 then
+                            t.ricochet_count = 4
+                            timer.simple(2,function()
+                                if t and t.ent and t.ent != nil and t.ent:isValid() then
+                                    t.ent:remove()
+                                    table.remove(splinters,i)
+                                end
+                            end)
+                        end
+                        if tr.Hit then
+                            if tr.Entity and (tr.Entity:isNPC() or tr.Entity:isPlayer()) then
+                                if hasPermission("entities.applyDamage", tr.Entity) then
+                                    tr.Entity:applyDamage(300, owner(), chip(), DAMAGE.SNIPER, tr.Entity:getPos())
+                                end
+                            else
+                                t.dir = -t.dir:rotateAroundAxis(tr.HitNormal,180)
+                                t.ricochet_count = t.ricochet_count + 1
+                                if t.ricochet_count >= 4 then
+                                    timer.simple(2,function()
+                                        if t and t.ent and t.ent != nil and t.ent:isValid() then
+                                            t.ent:remove()
+                                            table.remove(splinters,i)
+                                        end
+                                    end)
+                                end
+                            end
+                        end
+                    end
+                end
             end
         end
     end)
     hook.add("net", "", function(name, len, ply)
         if name == "fire" then
             local GET_DRAW_POWER = net.readFloat()
-            arrow:setTrails(25, 0, 2, "trails/laser", Color(255,0,0,255), nil, false)
-            arrow:setNoDraw(false)
-            arrow:setPos(owner():getShootPos()+owner():getEyeAngles():getForward()*60)
-            arrow:setAngles(owner():getEyeAngles())
-            arrow:enableMotion(true)
-            arrow:getPhysicsObject():setVelocity(arrow:getForward()*1000*GET_DRAW_POWER*(arrow:getMass()/24))
-            arrows={timer.curtime()}
+            local is_special = net.readBool()
+            
+            if is_special then
+                createArrowSpecial(owner():getShootPos(),owner():getEyeAngles())
+            else
+                createArrow(owner():getShootPos(),owner():getEyeAngles())
+            end
         end
     end)
 else
     if player() == owner() then
         print("-Use hands (none) with this weapon, Mouse1 to charge, release to fire!")
-        print("-R to undraw")
+        print("-R to undraw & switch arrow type")
         local ATTACK_DOWN = false
         local DRAW_POWER = 0
         local PREDRAW = 0
@@ -55,6 +292,9 @@ else
         local EQUIP = 0
         local READY = false
         local FIRED = false
+        local SWITCHING = false
+        local SWITCHING_ANIM = 1
+        local is_special = false
         local makeModel = false
         local Bones = {}
         local visible = false
@@ -62,20 +302,6 @@ else
         local arrow_models = {}
         
         local arrow_hidden = true
-        
-        local materials = {}
-        
-        materials.handle = {"models/debug/debugwhite",Color(125,100,0,255)}
-        materials.metal1 = {"models/debug/debugwhite",Color(75,75,75,255)}
-        materials.metal2 = {"models/debug/debugwhite",Color(125,125,125,255)}
-        materials.metal3 = {"models/debug/debugwhite",Color(105,90,90,255)}
-        materials.rubber = {"models/debug/debugwhite",Color(50,50,50,255)}
-        
-        materials.arrow1 = {"models/debug/debugwhite",Color(50,50,50,255)}
-        materials.arrow2 = {"models/debug/debugwhite",Color(125,125,125,255)}
-        materials.arrow3 = {"models/debug/debugwhite",Color(255,75,0,255)}
-        
-        local size = 0.7
         
         function createModel()
             Bones["Root"] = hologram.create(chip():getPos()+Vector(0,0,64), Angle(), "models/hunter/blocks/cube025x025x025.mdl", Vector())
@@ -1169,6 +1395,7 @@ else
                                     owner():getActiveWeapon():emitSound(")weapons/crossbow/fire1.wav",100,100,1,CHAN_WEAPON)
                                     net.start("fire")
                                     net.writeFloat(DRAW_POWER)
+                                    net.writeBool(is_special)
                                     net.send()
                                     PREDRAW = 0
                                     for i, holo in pairs(arrow_models) do
@@ -1189,10 +1416,20 @@ else
                                             DRAW_POWER=0
                                             READY = true
                                             FIRED = false
+                                            SWITCHING = false
                                         end
                                     else
                                         PREDRAW = PREDRAW + 0.1*timer.frametime()*100
-                                        PREDRAW = math.clamp(PREDRAW,0,1)
+                                        PREDRAW = math.clamp(PREDRAW,0,SWITCHING and 0 or 1)
+                                        if input.isKeyDown(KEY.R) and SWITCHING != true then
+                                            DRAW_POWER=0
+                                            FIRE_ANIM=0
+                                            PREDRAW = 0
+                                            FIRED = false
+                                            READY = false
+                                            SWITCHING = true
+                                            SWITCHING_ANIM = 0
+                                        end
                                     end
                                 else
                                     FIRE_ANIM=FIRE_ANIM + (0.02 - 0.01*math.clamp((1-FIRE_ANIM)*2,0,1))*timer.frametime()*100
@@ -1210,6 +1447,7 @@ else
                                         PREDRAW = 0
                                         READY = true
                                         FIRED = false
+                                        SWITCHING = false
                                     end
                                 end
                             end
@@ -1229,7 +1467,17 @@ else
                         
                         drawDist = -7.4080200195313 - 4*PREDRAW - 30*math.clamp(math.clamp(math.clamp(DRAW_POWER*5-(DRAW_POWER+DRAW_POWER)*2,0,1)+DRAW_POWER/(10-DRAW_POWER*9)+math.clamp(-24+DRAW_POWER*25,0,1),0,1)-math.clamp(FIRE_ANIM*math.clamp(DRAW_POWER*100,15,25),0,1),0,1)
                         
-                        Animate_this_fucking_arrow = EQUIPPED and FIRE_ANIM or EQUIP
+                        SWITCHING_ANIM = SWITCHING_ANIM + 0.01*timer.frametime()*100
+                        SWITCHING_ANIM = math.clamp(SWITCHING_ANIM,0,1)
+                        
+                        if SWITCHING_ANIM >= 1 and SWITCHING then
+                            SWITCHING = false
+                            READY = true
+                            is_special = not is_special
+                        end
+                        
+                        Animate_this_fucking_arrow = EQUIPPED and (SWITCHING and 1-math.sin(math.rad(SWITCHING_ANIM*180)) or FIRE_ANIM) or EQUIP
+                        
                         
                         local mixpos = math.bezierVectorCubic(math.clamp((READY and 1 or Animate_this_fucking_arrow)*1.1,0,1), owner():getShootPos() + owner():getEyeAngles():getUp()*25 - owner():getEyeAngles():getRight()*25, owner():getShootPos() - owner():getEyeAngles():getRight()*10 + owner():getEyeAngles():getForward()*25 + owner():getEyeAngles():getUp()*5, point_front:localToWorld(Vector((9*3+10)*size,0,0)), point_front:localToWorld(Vector((9*3+10*(1-math.clamp(-7+(READY and 1 or Animate_this_fucking_arrow)*8,0,1)))*size,0,0)))
                         local mixang = handle:localToWorldAngles(Angle(-25*(1-math.clamp(-2+(READY and 1 or Animate_this_fucking_arrow)*4,0,1)),20*(1-math.clamp(-1+(READY and 1 or Animate_this_fucking_arrow)*3,0,1)),15)*(1-math.clamp(-5+(READY and 1 or Animate_this_fucking_arrow)*10,0,1)))
@@ -1265,6 +1513,7 @@ else
                         PREDRAW = 0
                         READY = false
                         FIRED = false
+                        SWITCHING_ANIM = SWITCHING and 0 or 1
                     end
                 end
             end
