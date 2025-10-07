@@ -1,0 +1,91 @@
+--@name nakilibs/mech_libs/my_queen_i_ask_for_thou_mighty_thighs
+--@author Nakkitsunami
+--@client
+
+mech_libs = mech_libs or {}
+
+local Bone_MDL = "models/hunter/blocks/cube025x025x025.mdl"
+local Bone_SCL = Vector(0.5)
+
+function mech_libs.createLeg(LegData)
+    local Type = LegData["type"]
+    local Lengths = LegData["lengths"]
+    local Base = LegData["base"]
+    local Position = LegData["position"]
+    local Reversed = LegData["reversed"]
+    
+    if Type == "digi" or Type == "arachnid" then
+        local T = {}
+        
+        local Length_A = Lengths["Length_A"]
+        local Length_B = Lengths["Length_B"]
+        local Length_C = Lengths["Length_C"]
+        
+        local P = Base
+        local segment = hologram.create(P:localToWorld(Position), P:getAngles(), Bone_MDL, Bone_SCL)
+        segment:setParent(P)
+        T["Hip_A"] = segment
+        
+        local P = T["Hip_A"]
+        local segment = hologram.create(P:localToWorld(Vector()), P:getAngles(), Bone_MDL, Bone_SCL)
+        segment:setParent(P)
+        T["Hip_B"] = segment
+        
+        local P = T["Hip_B"]
+        local segment = hologram.create(P:localToWorld(Vector(0,0,Length_A)), P:getAngles(), Bone_MDL, Bone_SCL)
+        segment:setParent(P)
+        T["Knee"] = segment
+        
+        local P = T["Knee"]
+        local segment = hologram.create(P:localToWorld(Vector(0,0,Length_B)), P:getAngles(), Bone_MDL, Bone_SCL)
+        segment:setParent(P)
+        T["Ankle"] = segment
+        
+        if Type == "digi" then
+            local P = T["Ankle"]
+            local segment = hologram.create(P:localToWorld(Vector(0,0,Length_C)), P:getAngles(), Bone_MDL, Bone_SCL)
+            segment:setParent(P)
+            T["Foot"] = segment
+        end
+        
+        T["Base"] = Base
+        T["Length_A"] = Length_A
+        T["Length_B"] = Length_B
+        T["Length_C"] = Length_C
+        
+        return T
+    end
+    
+    if Type == "two_seg" then
+        local T = {}
+        
+        local Length_A = Lengths["Length_A"]
+        local Length_B = Lengths["Length_B"]
+        
+        local P = Base
+        local segment = hologram.create(P:localToWorld(Position), P:getAngles(), Bone_MDL, Bone_SCL)
+        segment:setParent(P)
+        T["Hip_A"] = segment
+        
+        local P = T["Hip_A"]
+        local segment = hologram.create(P:localToWorld(Vector()), P:getAngles(), Bone_MDL, Bone_SCL)
+        segment:setParent(P)
+        T["Hip_B"] = segment
+        
+        local P = T["Hip_B"]
+        local segment = hologram.create(P:localToWorld(Vector(0,0,Length_A)), P:getAngles(), Bone_MDL, Bone_SCL)
+        segment:setParent(P)
+        T["Knee"] = segment
+        
+        local P = T["Knee"]
+        local segment = hologram.create(P:localToWorld(Vector(0,0,Length_B)), P:getAngles(), Bone_MDL, Bone_SCL)
+        segment:setParent(P)
+        T["Foot"] = segment
+        
+        T["Base"] = Base
+        T["Length_A"] = Length_A
+        T["Length_B"] = Length_B
+        T["Reversed"] = Reversed
+        return T
+    end
+end

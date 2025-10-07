@@ -1,0 +1,133 @@
+--@name nakilibs/ik_libs/ik_libs
+--@author Nakkitsunami
+--@include nakilibs/ik_libs/shared.txt
+--@client
+require("nakilibs/ik_libs/shared.txt")
+
+ik_libs = ik_libs or {}
+
+function ik_libs.digi_ik_shadowscion(BoneTable, Target, Rotation, OffsetRotation)
+    local LengthA = BoneTable["Length_A"]
+    local LengthB = BoneTable["Length_B"]
+    local LengthC = BoneTable["Length_C"]
+    
+    local Base = BoneTable["Base"]
+    
+    local HipA = BoneTable["Hip_A"]
+    local HipB = BoneTable["Hip_B"]
+    local Knee = BoneTable["Knee"]
+    local Ankle = BoneTable["Ankle"]
+    local Foot = BoneTable["Foot"]
+    
+    if not (LengthA and LengthB and LengthC) then return end
+    if not (Base and Base != nil and Base:isValid()) then return end
+    if not (HipA and HipA != nil and HipA:isValid()) then return end
+    if not (HipB and HipB != nil and HipB:isValid()) then return end
+    if not (Knee and Knee != nil and Knee:isValid()) then return end
+    if not (Ankle and Ankle != nil and Ankle:isValid()) then return end
+    if not (Foot and Foot != nil and Foot:isValid()) then return end
+    
+    local AxisWorld = Target - HipA:getPos()
+    local AxisLocal = ik_libs.toLocalAxis(Base,AxisWorld)
+    
+    HipA:setAngles(Base:localToWorldAngles(Angle(0,0,math.deg(math.atan2(math.rad(AxisLocal.z),math.rad(AxisLocal.y))) + Rotation)))
+    
+    local AxisLocal = ik_libs.toLocalAxis(HipA,AxisWorld)
+    local Fraction = 1 - math.min(1, HipB:getPos():getDistance(Target) / (LengthA + LengthC) - 0.5) + OffsetRotation
+    
+    HipB:setAngles(HipA:localToWorldAngles(Angle(math.deg(math.atan2(math.rad(-AxisLocal.x),math.rad(AxisLocal.z))) + 90*Fraction, 180, 0)))
+    
+    local AxisLocal = ik_libs.toLocalAxis(HipA,(Target - Knee:getPos()))
+    local Distance = math.min(AxisLocal:getLength(), LengthB + LengthC)
+    
+    Knee:setAngles(HipA:localToWorldAngles(Angle(math.deg(math.atan2(math.rad(AxisLocal.x),math.rad(AxisLocal.z))) + ik_libs.icos(Distance, LengthB, LengthC), 0, 0)))
+    Ankle:setAngles(Knee:localToWorldAngles(Angle(ik_libs.icos(LengthC, LengthB, Distance) + 180, 0, 0)))
+    Foot:setAngles(Base:getAngles())
+end
+
+function ik_libs.arachnid(BoneTable, Target, Rotation, OffsetRotation)
+    local LengthA = BoneTable["Length_A"]
+    local LengthB = BoneTable["Length_B"]
+    local LengthC = BoneTable["Length_C"]
+    
+    local Base = BoneTable["Base"]
+    
+    local HipA = BoneTable["Hip_A"]
+    local HipB = BoneTable["Hip_B"]
+    local Knee = BoneTable["Knee"]
+    local Ankle = BoneTable["Ankle"]
+    
+    if not (LengthA and LengthB and LengthC) then return end
+    if not (Base and Base != nil and Base:isValid()) then return end
+    if not (HipA and HipA != nil and HipA:isValid()) then return end
+    if not (HipB and HipB != nil and HipB:isValid()) then return end
+    if not (Knee and Knee != nil and Knee:isValid()) then return end
+    if not (Ankle and Ankle != nil and Ankle:isValid()) then return end
+    
+    local AxisWorld = Target - HipA:getPos()
+    local AxisLocal = ik_libs.toLocalAxis(Base,AxisWorld)
+    
+    HipA:setAngles(Base:localToWorldAngles(Angle(0,0,math.deg(math.atan2(math.rad(AxisLocal.z),math.rad(AxisLocal.y))) + Rotation)))
+    
+    local AxisLocal = ik_libs.toLocalAxis(HipA,AxisWorld)
+    local Fraction = 1 - math.min(1, HipB:getPos():getDistance(Target) / (LengthA + LengthC) - 0.5) + OffsetRotation
+    
+    HipB:setAngles(HipA:localToWorldAngles(Angle(math.deg(math.atan2(math.rad(-AxisLocal.x),math.rad(AxisLocal.z))) + 90*Fraction, 180, 0)))
+    
+    local AxisLocal = ik_libs.toLocalAxis(HipA,(Target - Knee:getPos()))
+    local Distance = math.min(AxisLocal:getLength(), LengthB + LengthC)
+    
+    Knee:setAngles(HipA:localToWorldAngles(Angle(math.deg(math.atan2(math.rad(AxisLocal.x),math.rad(AxisLocal.z))) + ik_libs.icos(Distance, LengthB, LengthC), 0, 0)))
+    Ankle:setAngles(Knee:localToWorldAngles(Angle(ik_libs.icos(LengthC, LengthB, Distance) + 180, 0, 0)))
+end
+
+function ik_libs.two_seg_ik_shadowscion(BoneTable, Target)
+    local LengthA = BoneTable["Length_A"]
+    local LengthB = BoneTable["Length_B"]
+    
+    local Base = BoneTable["Base"]
+    
+    local HipA = BoneTable["Hip_A"]
+    local HipB = BoneTable["Hip_B"]
+    local Knee = BoneTable["Knee"]
+    local Foot = BoneTable["Foot"]
+    
+    local reverseKnee = BoneTable["Reversed"] or false
+    
+    if not (LengthA and LengthB) then return end
+    if not (Base and Base != nil and Base:isValid()) then return end
+    if not (HipA and HipA != nil and HipA:isValid()) then return end
+    if not (HipB and HipB != nil and HipB:isValid()) then return end
+    if not (Knee and Knee != nil and Knee:isValid()) then return end
+    if not (Foot and Foot != nil and Foot:isValid()) then return end
+    
+    local AxisWorld = Target - HipA:getPos()
+    local AxisLocal = ik_libs.toLocalAxis(Base,AxisWorld)
+    
+    HipA:setAngles(Base:localToWorldAngles(Angle(0,0,math.deg(math.atan2(math.rad(AxisLocal.z),math.rad(AxisLocal.y))) + 90)))
+    
+    local AxisLocal = ik_libs.toLocalAxis(HipA,(Target - HipB:getPos()))
+    local Distance = math.min(AxisLocal:getLength(), LengthA + LengthB)
+    
+    if reverseKnee then
+        HipB:setAngles(HipA:localToWorldAngles(Angle(math.deg(math.atan2(math.rad(AxisLocal.x),math.rad(AxisLocal.z))) + ik_libs.icos(Distance, LengthA, LengthB), 0, 0)))
+    else
+        HipB:setAngles(HipA:localToWorldAngles(Angle(math.deg(math.atan2(math.rad(-AxisLocal.x),math.rad(AxisLocal.z))) + ik_libs.icos(Distance, LengthA, LengthB), 180, 0)))
+    end
+    
+    Knee:setAngles(HipB:localToWorldAngles(Angle(ik_libs.icos(LengthB, LengthA, Distance) + 180, 0, 0)))
+    Foot:setAngles(Base:getAngles())
+end
+
+
+
+
+
+
+
+
+
+
+
+
+

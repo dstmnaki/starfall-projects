@@ -1,0 +1,71 @@
+--@name nakilibs/mech_libs/leg_tester
+--@author Nakkitsunami
+--@include nakilibs/mech_libs/my_queen_i_ask_for_thou_mighty_thighs.txt
+--@include nakilibs/ik_libs/ik_libs.txt
+--@client
+require("nakilibs/mech_libs/my_queen_i_ask_for_thou_mighty_thighs.txt")
+require("nakilibs/ik_libs/ik_libs.txt")
+
+
+local LegData = {}
+LegData["type"] = "digi"
+LegData["lengths"] = {}
+LegData["lengths"]["Length_A"] = 20
+LegData["lengths"]["Length_B"] = 20
+LegData["lengths"]["Length_C"] = 20
+
+LegData["base"] = hologram.create(chip():localToWorld(Vector(0,0,35)), chip():localToWorldAngles(Angle(0,25,0)), "models/hunter/blocks/cube025x025x025.mdl", Vector())
+LegData["base"]:setParent(chip())
+
+LegData["position"] = Vector(0,0,0)
+
+local digi_type1 = mech_libs.createLeg(LegData)
+
+
+local LegData = {}
+LegData["type"] = "two_seg"
+LegData["lengths"] = {}
+LegData["lengths"]["Length_A"] = 35
+LegData["lengths"]["Length_B"] = 35
+
+LegData["base"] = hologram.create(chip():localToWorld(Vector(0,50,35)), chip():localToWorldAngles(Angle(0,25,0)), "models/hunter/blocks/cube025x025x025.mdl", Vector())
+LegData["base"]:setParent(chip())
+
+LegData["position"] = Vector(0,0,0)
+
+LegData["reversed"] = false
+
+local two_seg_type1 = mech_libs.createLeg(LegData)
+
+
+local LegData = {}
+LegData["type"] = "two_seg"
+LegData["lengths"] = {}
+LegData["lengths"]["Length_A"] = 35
+LegData["lengths"]["Length_B"] = 35
+
+LegData["base"] = hologram.create(chip():localToWorld(Vector(0,100,35)), chip():localToWorldAngles(Angle(0,25,0)), "models/hunter/blocks/cube025x025x025.mdl", Vector())
+LegData["base"]:setParent(chip())
+
+LegData["position"] = Vector(0,0,0)
+
+LegData["reversed"] = true
+
+local two_seg_type1_reversed = mech_libs.createLeg(LegData)
+
+hook.add("think","",function()
+    local time = timer.curtime()*180
+    local sin = math.sin(math.rad(time))
+    local cosin = math.cos(math.rad(time))
+    
+    if digi_type1 then
+        ik_libs.digi_ik_shadowscion(digi_type1, chip():localToWorld(Vector(35+10*sin,0,15*math.clamp(cosin,0,1))),-90, 0)
+    end
+    if two_seg_type1 then
+        ik_libs.two_seg_ik_shadowscion(two_seg_type1, chip():localToWorld(Vector(35+10*sin,50,15*math.clamp(cosin,0,1))))
+    end
+    if two_seg_type1_reversed then
+        ik_libs.two_seg_ik_shadowscion(two_seg_type1_reversed, chip():localToWorld(Vector(35+10*sin,100,15*math.clamp(cosin,0,1))))
+    end
+end)
+

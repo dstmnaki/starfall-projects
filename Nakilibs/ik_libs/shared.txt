@@ -1,0 +1,14 @@
+--@name nakilibs/ik_libs/shared
+--@author Nakkitsunami
+--@client
+
+ik_libs = ik_libs or {}
+
+function ik_libs.icos(A, B, C)
+    return math.deg(math.acos((A^2 + B^2 - C^2) / (2*A*B)))
+end
+
+function ik_libs.toLocalAxis(ent,offset)
+    local AxisLocal, _ = worldToLocal(offset,Angle(),Vector(),ent:getAngles())
+    return AxisLocal
+end
