@@ -1,0 +1,231 @@
+--@name Turn Based Combat
+--@author Nakkitsunami
+--@client
+
+if player() ~= owner() then return end
+enableHud(owner(), true)
+
+
+local pos_data = {
+    ["mesh.001"] = {-0.171805,-0.407767},
+    ["mesh.002"] = {-0.954938,0.971595},
+    ["mesh.003"] = {-1.739233,0.940437},
+    ["mesh.004"] = {-0.570632,0.909736},
+    ["mesh.005"] = {-1.303436,0.936276},
+    ["mesh.006"] = {-0.203379,0.843699},
+    ["mesh.007"] = {0.150101,0.922609},
+    ["mesh.008"] = {0.533610,0.987833},
+    ["mesh.009"] = {0.937146,0.936842},
+    ["mesh.010"] = {1.359607,0.888593},
+    ["mesh.011"] = {1.682766,0.933334},
+    ["mesh.012"] = {1.673605,0.613381},
+    ["mesh.013"] = {1.077947,0.558271},
+    ["mesh.014"] = {0.322611,0.598012},
+    ["mesh.015"] = {1.347392,0.667702},
+    ["mesh.016"] = {0.791771,0.686995},
+    ["mesh.017"] = {-0.155528,0.525079},
+    ["mesh.018"] = {-0.630666,0.646415},
+    ["mesh.019"] = {-0.329203,0.637133},
+    ["mesh.020"] = {-1.293827,0.578981},
+    ["mesh.021"] = {-0.891584,0.561629},
+    ["mesh.022"] = {-1.776366,0.292720},
+    ["mesh.023"] = {-1.727507,0.581406},
+    ["mesh.024"] = {-1.776366,0.035577},
+    ["mesh.025"] = {-1.577972,-0.095224},
+    ["mesh.026"] = {-1.334629,0.062668},
+    ["mesh.027"] = {-1.279845,0.298641},
+    ["mesh.028"] = {-0.973303,0.365069},
+    ["mesh.029"] = {-0.834984,0.178854},
+    ["mesh.030"] = {-1.086766,-0.053953},
+    ["mesh.031"] = {-1.026764,-0.271864},
+    ["mesh.032"] = {-1.286206,-0.393728},
+    ["mesh.033"] = {-1.589551,-0.333709},
+    ["mesh.034"] = {-1.787945,-0.511478},
+    ["mesh.035"] = {-1.414104,-0.611575},
+    ["mesh.036"] = {-1.792000,-0.977143},
+    ["mesh.037"] = {-1.552872,-0.861078},
+    ["mesh.038"] = {-1.296872,-0.963935},
+    ["mesh.039"] = {-0.924891,-0.912171},
+    ["mesh.040"] = {-0.576316,-0.972293},
+    ["mesh.041"] = {-0.320316,-0.972293},
+    ["mesh.042"] = {0.405252,-0.971583},
+    ["mesh.043"] = {0.913915,-0.928279},
+    ["mesh.044"] = {1.692793,-0.874937},
+    ["mesh.045"] = {1.342359,-0.866990},
+    ["mesh.046"] = {1.613917,-0.602581},
+    ["mesh.047"] = {1.339219,-0.662988},
+    ["mesh.048"] = {0.958308,-0.622744},
+    ["mesh.049"] = {0.484549,-0.607074},
+    ["mesh.050"] = {-0.227853,-0.723774},
+    ["mesh.051"] = {0.230219,-0.810452},
+    ["mesh.052"] = {-0.929843,-0.659104},
+    ["mesh.053"] = {-0.657426,-0.569039},
+    ["mesh.054"] = {-0.713613,-0.346361},
+    ["mesh.055"] = {-0.437275,-0.238512},
+    ["mesh.056"] = {0.063390,-0.297924},
+    ["mesh.057"] = {0.378037,-0.399519},
+    ["mesh.058"] = {0.617933,-0.200835},
+    ["mesh.059"] = {0.907694,-0.214764},
+    ["mesh.060"] = {1.095692,-0.370577},
+    ["mesh.061"] = {1.351339,-0.270296},
+    ["mesh.062"] = {1.676129,-0.352112},
+    ["mesh.063"] = {1.789978,-0.056341},
+    ["mesh.064"] = {1.447758,-0.009176},
+    ["mesh.065"] = {1.037228,-0.007509},
+    ["mesh.066"] = {1.715785,0.344824},
+    ["mesh.067"] = {1.459650,0.241171},
+    ["mesh.068"] = {0.992066,0.260572},
+    ["mesh.069"] = {0.628215,0.212692},
+    ["mesh.070"] = {0.419122,0.342209},
+    ["mesh.071"] = {0.488712,0.010792},
+    ["mesh.072"] = {0.137539,0.001348},
+    ["mesh.073"] = {0.184733,0.230184},
+    ["mesh.074"] = {-0.197342,0.293773},
+    ["mesh.075"] = {-0.181386,0.053905},
+    ["mesh.076"] = {-0.441742,-0.021557},
+    ["mesh.077"] = {-0.571249,0.186904}
+}
+
+local screen_blocker = hologram.create(Vector(),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl",Vector(0.01,20,11)/5.5)
+screen_blocker:setMaterial("models/debug/debugwhite")
+screen_blocker:suppressEngineLighting(true)
+screen_blocker:setNoDraw(true)
+
+render.createRenderTarget("rt")
+local capture_screen_mat = material.load("pp/motionblur")
+
+local captured_frame = material.create("UnlitGeneric")
+captured_frame:setInt("$translucent", 0)
+captured_frame:setInt("$alphatest", 0)
+captured_frame:setFloat("$alpha", 1)
+
+local Width, Height = render.getGameResolution()
+
+local frame_captured = false
+local requested_frame = false
+
+
+local holos = {}
+local holos2 = {}
+local new_index = 0
+
+local models_ready = false
+
+local obj_data = file.read("final_fantasy_shatter_screen/mesh.txt")
+
+function create_mesh()
+    if obj_data and obj_data != nil then
+        obj = mesh.createFromObj(obj_data)
+        hook.add("think","obj_parse",function()
+            if obj and obj != nil then
+                for index, data in pairs(obj) do
+                    new_index = new_index + 1
+                    holos[new_index] = hologram.create(Vector(pos_data[string.sub(index,1,8)][2],pos_data[string.sub(index,1,8)][1],0)*10,Angle(0,90,-90),"models/hunter/blocks/cube025x025x025.mdl",Vector(10))
+                    holos[new_index]:setMesh(obj[index])
+                    holos[new_index]:setMaterial("!"..captured_frame:getName())
+                    holos[new_index]:suppressEngineLighting(true)
+                    holos[new_index]:setNoDraw(true)
+                    
+                    holos[new_index].pos = {pos_data[string.sub(index,1,8)][2],pos_data[string.sub(index,1,8)][1],math.random(0,20)}
+                    holos[new_index].ang = Angle(math.random(-45,45),math.random(-75,75),math.random(-25,25))
+                    holos[new_index].done = false
+                    
+                    local holo = hologram.create(holos[new_index]:localToWorld(Vector(0,0,0)),holos[new_index]:localToWorldAngles(Angle(0,0,0)),"models/hunter/blocks/cube025x025x025.mdl",Vector(10))
+                    holo:setMesh(obj[index])
+                    holo:setMaterial("models/debug/debugwhite")
+                    holo:setColor(Color(255,255,255,math.random(0,15)/15*5))
+                    holo:setRenderMode(RENDERMODE.WORLDGLOW)
+                    holo:suppressEngineLighting(true)
+                    holo:setNoDraw(true)
+                    holo:setParent(holos[new_index])
+                    holos[new_index].layer = holo
+                    
+                    hook.remove("think","obj_parse")
+                    models_ready = true
+                end
+                table.sort(holos, function(a, b)
+                    local ax = a.pos[2]
+                    local bx = b.pos[2]
+                    return ax < bx
+                end)
+            end
+        end)
+        
+    end
+end
+local animation_time = 0
+function capture_frame()
+    frame_captured = false
+    local ct = timer.curtime()
+    screen_blocker:setNoDraw(false)
+    hook.add("drawhud", "copy_material", function()
+        render.selectRenderTarget("rt")
+        render.setLightingMode(2)
+        render.suppressEngineLighting(false)
+        render.setMaterial(capture_screen_mat)
+        render.drawTexturedRect(0, 0, 1024, 1024)
+        render.selectRenderTarget()
+        
+        captured_frame:setTextureRenderTarget("$basetexture", "rt")
+        
+        frame_captured = true
+        if models_ready != true then
+            create_mesh()
+        else
+            for index, holo in pairs(holos) do
+                holo:setMaterial("!"..captured_frame:getName())
+                holo.ang = Angle(math.random(-45,45),math.random(-75,75),math.random(-25,25))
+                holo.done = false
+            end
+        end
+        animation_time = timer.curtime()
+        hook.remove("drawhud","copy_material")
+    end)
+end
+hook.add("DrawHUD","",function()
+    if models_ready and frame_captured then
+        
+    end
+end)
+hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
+    if models_ready and frame_captured then
+        local camera_angle = Angle(10,-math.clamp(timer.curtime()-animation_time,0,timer.curtime())*5,0)
+        local camera_pos = chip():getPos()+Vector(-500,0,175):rotateAroundAxis(Vector(0,0,1),camera_angle.yaw)
+        screen_blocker:setColor(Color(0,0,0,math.clamp(2-(timer.curtime()-animation_time),0,1)*255))
+        screen_blocker:setPos(camera_pos+camera_angle:getForward()*12.5)
+        screen_blocker:setAngles(camera_angle)
+        
+        for index, holo in pairs(holos) do
+            local time = math.easeInSine(math.clamp((timer.curtime()-animation_time)*1-2*index/#holos,0,1))
+            local time2 = math.easeInOutSine(math.clamp((timer.curtime()-animation_time)*6,0,1))
+            
+            if time < 1 then
+                if holo.done != true then
+                    holo.done = true
+                    holo:setNoDraw(false)
+                    holo.layer:setNoDraw(false)
+                end
+                holo:setColor(Color(255*(1-math.easeInSine(time)),255*(1-math.easeInSine(time)),255*(1-math.easeInSine(time)),255))
+                holo:setPos(camera_pos+camera_angle:getForward()*(12-0.25*time2*holo.pos[3]/20*1.5)+(camera_angle:getUp()*holo.pos[1]+camera_angle:getUp()*holo.pos[1]*math.easeInSine(time)*0.1-camera_angle:getRight()*holo.pos[2]+camera_angle:getRight()*math.easeInSine(math.easeInSine(time))*5)*10)
+                local _, localAng = localToWorld(Vector(),Angle(0,90,180)+holo.ang*math.clamp(time2*0.1+0.9*time,0,1),Vector(),camera_angle)
+                holo:setAngles(localAng)
+            else
+                if holo.done != false then
+                    holo.done = false
+                    holo:setNoDraw(true)
+                    holo.layer:setNoDraw(true)
+                end
+            end
+        end
+        return {
+            angles = camera_angle,
+            origin = camera_pos,
+        }
+        --render.setMaterial(captured_frame)
+        --render.drawTexturedRect(0, 0, Width, Height)
+    elseif requested_frame != true and input.isKeyDown(KEY.M) then
+        requested_frame = true
+        capture_frame()
+    end
+end)
+
