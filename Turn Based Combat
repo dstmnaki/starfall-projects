@@ -1,9 +1,28 @@
 --@name Turn Based Combat
 --@author Nakkitsunami
---@client
---@owneronly
+--@shared
 --@include nakilibs/screen_shatter_obj.txt
 
+if SERVER then
+
+local seat = prop.createSeat(chip():getPos(), Angle(90,0,0), "models/hunter/blocks/cube025x025x025.mdl", true)
+seat:setNocollideAll(true)
+seat:setColor(Color(255,255,255,0))
+
+hook.add("net","",function(name,len,ply)
+    if name == "sit" then
+        seat:setPos(owner():getPos())
+        seat:setAngles(Angle(90,owner():getEyeAngles().yaw,0))
+        seat:use(USE_ON, 0)
+    end
+    if name == "exit_seat" then
+        seat:setAngles(Angle(0,seat:getAngles().yaw,0))
+        owner():exitVehicle()
+        seat:setPos(chip():getPos())
+    end
+end)
+else
+if player() ~= owner() then return end
 require("nakilibs/screen_shatter_obj.txt")
 enableHud(owner(), true)
 
@@ -122,8 +141,12 @@ end)
 
 function startMusicSystem()
     battle_music["start"]:play()
+    battle_music["start"]:setVolume(1)
+    battle_music["start"]:setTime(0,true)
     timer.create("start_loop",25.4,1,function()
         battle_music["loop"]:play()
+        battle_music["loop"]:setTime(0,true)
+        battle_music["loop"]:setVolume(1)
         battle_music["start"]:pause()
     end)
 end
@@ -135,7 +158,9 @@ function stopMusicSystem()
         battle_music["start"]:setVolume(volume)
         if volume <= 0 then
             timer.stop("start_loop")
+            battle_music["loop"]:setTime(0,false)
             battle_music["loop"]:pause()
+            battle_music["start"]:setTime(0,false)
             battle_music["start"]:pause()
             hook.remove("think","stop_music")
         end
@@ -143,6 +168,7 @@ function stopMusicSystem()
     timer.simple(1,function()
         block_switch = true
         battle_music["win"]:play()
+        battle_music["win"]:setTime(0,false)
         local stopWinMusicCT = timer.curtime()
         hook.add("think","stop_win_music",function()
             volume = math.clamp(5-(timer.curtime()-stopWinMusicCT)*0.5,0,1)
@@ -252,11 +278,25 @@ function capture_frame()
                 holo.done = false
             end
         end
+        net.start("sit")
+        net.send()
         startMusicSystem()
         animation_time = timer.curtime()
         hook.remove("drawhud","copy_material")
     end)
 end
+local finish_ct = 0
+
+hook.add("DrawHUD","",function()
+    if ready and not frame_captured then
+        local time = math.clamp(-3+(timer.curtime() - finish_ct),0,1)
+        if time < 1 then
+            render.setColor(Color(0,0,0,255*(1-time)))
+            render.drawRect(0,0,Width,Height)
+        end
+    end
+end)
+
 local pressed = false
 hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
     if ready != true then
@@ -279,6 +319,9 @@ hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
                     frame_captured = false
                     requested_frame = false
                     stopMusicSystem()
+                    finish_ct = timer.curtime()
+                    net.start("exit_seat")
+                    net.send()
                 end
             end
         end
@@ -321,4 +364,4 @@ hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
         }
     end
 end)
-
+end
