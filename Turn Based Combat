@@ -521,7 +521,7 @@ function end_round(escape)
 end
 
 hook.add("HUDShouldDraw", "", function(str)
-    if render.isHUDActive() and frame_captured == true then
+    if render.isHUDActive() and activate_camera then
         if str == "CHudCrosshair" then
             return false
         end
