@@ -113,8 +113,10 @@ local block_switch = true
 
 local assets_downloaded = false
 
+local HASFILES = false
+
 function downloadMusic()
-    if player() == owner() then
+    if HASFILES and owner() == player() then
         print("Sounds loaded from files!")
         bass.loadFile("sound/naki/turn based combat/battle start betterer.mp3", "2d noblock noplay", function(snd)
             if snd then
