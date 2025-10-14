@@ -675,22 +675,24 @@ hook.add("DrawHUD","",function()
                             end_round(true)
                         end
                     elseif action_state == "select special" then
-                        owner():emitSound("garrysmod/ui_click.wav",100,100,CHANNEL_WEAPON)
-                        action_state = "select target special"
-                        selection = 1
-                        if monster_table[selection].dead == true then
-                            selection = selection + 1
-                            selection = math.clamp(selection > #monster_table and 1 or selection < 1 and #monster_table or selection,1,#monster_table)
+                        if player_ent.special_bar == 100 then
+                            owner():emitSound("garrysmod/ui_click.wav",100,100,CHANNEL_WEAPON)
+                            action_state = "select target special"
+                            selection = 1
                             if monster_table[selection].dead == true then
                                 selection = selection + 1
                                 selection = math.clamp(selection > #monster_table and 1 or selection < 1 and #monster_table or selection,1,#monster_table)
                                 if monster_table[selection].dead == true then
                                     selection = selection + 1
                                     selection = math.clamp(selection > #monster_table and 1 or selection < 1 and #monster_table or selection,1,#monster_table)
+                                    if monster_table[selection].dead == true then
+                                        selection = selection + 1
+                                        selection = math.clamp(selection > #monster_table and 1 or selection < 1 and #monster_table or selection,1,#monster_table)
+                                    end
                                 end
                             end
+                            select_ct = timer.curtime()
                         end
-                        select_ct = timer.curtime()
                     elseif action_state == "select target special" then
                         owner():emitSound("garrysmod/ui_click.wav",100,100,CHANNEL_WEAPON)
                         action_state = "attacking special"
@@ -877,7 +879,7 @@ hook.add("DrawHUD","",function()
         if turn == 1 then
             if action_state != "attacking special" and action_state != "attacking" then
                 render.setColor(Color(255,255,255,255))
-                    
+                
                 render.setMaterial(selection==1 and selection_bar_highlight or selection_bar)
                 render.drawTexturedRect(1206, 833+52*2, 1024/403*630, 1024)
             end
@@ -928,12 +930,13 @@ hook.add("DrawHUD","",function()
                 
                 local appear_time_offset = 0
                 local appear_time = math.clamp(-appear_time_offset+appear_time_rate,0,1)
-                render.setColor(Color(255,255,255,255*appear_time))
+                render.setColor(Color(player_ent.special_bar == 100 and 255 or 125,player_ent.special_bar == 100 and 255 or 125,player_ent.special_bar == 100 and 255 or 125,255*appear_time))
                 
                 render.setMaterial(selection==1 and selection_bar_highlight or selection_bar)
                 render.drawTexturedRect(167-appear_slide_distance*(1-appear_time), 805+52*2, 1024, 1024)
                 render.drawText(167+403/2,805+52*2+8,"Gravity Gun",TEXT_ALIGN.CENTER)
                 
+                render.setColor(Color(255,255,255,255))
                 render.setMaterial(action_selection_arrow)
                 render.drawTexturedRect(111+15*math.sin(math.rad(timer.curtime()*360)), 794 + 52*(selection+1), 1024, 1024)
             elseif action_state == "select target" or action_state == "select target special" then
