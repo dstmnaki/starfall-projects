@@ -321,6 +321,7 @@ player_ent:setNoDraw(true)
 player_ent.pos = player_ent:getPos()
 player_ent:setAnimation("run_melee", nil, 1)
 player_ent.health = 1000
+player_ent.special_bar = 0
 
 local crowbar = hologram.create(chip():getPos(), Angle(0,0,0), "models/weapons/w_crowbar.mdl", Vector(1))
 crowbar:setNoDraw(true)
@@ -609,6 +610,7 @@ hook.add("DrawHUD","",function()
                     else
                         selection = selection - 1
                     end
+                    owner():emitSound("garrysmod/ui_hover.wav",100,100,CHANNEL_WEAPON)
                 end
             else
                 if uparrow != false then
@@ -636,6 +638,7 @@ hook.add("DrawHUD","",function()
                     else
                         selection = selection + 1
                     end
+                    owner():emitSound("garrysmod/ui_hover.wav",100,100,CHANNEL_WEAPON)
                 end
             else
                 if downarrow != false then
@@ -647,6 +650,7 @@ hook.add("DrawHUD","",function()
                 if enter != true then
                     enter = true
                     if action_state == "select action" then
+                        owner():emitSound("garrysmod/ui_click.wav",100,100,CHANNEL_WEAPON)
                         if selection == 1 then
                             action_state = "select target"
                             selection = 1
@@ -671,6 +675,7 @@ hook.add("DrawHUD","",function()
                             end_round(true)
                         end
                     elseif action_state == "select special" then
+                        owner():emitSound("garrysmod/ui_click.wav",100,100,CHANNEL_WEAPON)
                         action_state = "select target special"
                         selection = 1
                         if monster_table[selection].dead == true then
@@ -687,6 +692,7 @@ hook.add("DrawHUD","",function()
                         end
                         select_ct = timer.curtime()
                     elseif action_state == "select target special" then
+                        owner():emitSound("garrysmod/ui_click.wav",100,100,CHANNEL_WEAPON)
                         action_state = "attacking special"
                         select_ct = timer.curtime()
                         animation_length = 3
@@ -708,6 +714,7 @@ hook.add("DrawHUD","",function()
                             monster_move_ct = timer.curtime()
                         end)
                     elseif action_state == "select target" then
+                        owner():emitSound("garrysmod/ui_click.wav",100,100,CHANNEL_WEAPON)
                         action_state = "attacking"
                         select_ct = timer.curtime()
                         animation_length = 3
@@ -734,14 +741,17 @@ hook.add("DrawHUD","",function()
                 if backspace != true then
                     backspace = true
                     if action_state == "select target" then
+                        owner():emitSound("garrysmod/ui_click.wav",100,100,CHANNEL_WEAPON)
                         selection = 1
                         action_state = "select action"
                         select_ct = timer.curtime()
                     elseif action_state == "select special" then
+                        owner():emitSound("garrysmod/ui_click.wav",100,100,CHANNEL_WEAPON)
                         selection = 1
                         action_state = "select action"
                         select_ct = timer.curtime()
                     elseif action_state == "select target special" then
+                        owner():emitSound("garrysmod/ui_click.wav",100,100,CHANNEL_WEAPON)
                         selection = 1
                         action_state = "select special"
                         select_ct = timer.curtime()
@@ -761,17 +771,21 @@ hook.add("DrawHUD","",function()
                     attack_ct = timer.curtime()
                     local hit = math.round(math.random(1,10)) > 1
                     if hit then
+                        owner():emitSound("physics/body/body_medium_impact_hard1.wav",100,100,CHANNEL_WEAPON)
                         local damage = (action_state == "attacking" and math.round(math.random(25,35)) or 50)
                         target.health = target.health - damage
                         target.health = math.clamp(target.health,0,9999)
+                        player_ent.special_bar = player_ent.special_bar + 4
                         table.insert(hitMarkers,1,{timer.curtime(),target:getPos()+Vector(0,0,75)+Vector(math.random(-10,10),math.random(-10,10),math.random(-10,10))/2,damage})
                         if target.health == 0 then
                             target.dead = true
                             target.dead_ct = timer.curtime()
                         end
                     else
+                        owner():emitSound("weapons/iceaxe/iceaxe_swing1.wav",100,100,CHANNEL_WEAPON)
                         target.dodge = true
                         table.insert(hitMarkers,1,{timer.curtime(),target:getPos()+Vector(0,0,75)+Vector(math.random(-10,10),math.random(-10,10),math.random(-10,10))/2,"MISS"})
+                        player_ent.special_bar = player_ent.special_bar + 2
                     end
                 end
                 if target.dodge then
@@ -812,15 +826,18 @@ hook.add("DrawHUD","",function()
                     attack_ct_monster = timer.curtime()
                     local hit = math.round(math.random(1,10)) == 1
                     if hit then
+                        owner():emitSound("npc/fast_zombie/claw_strike"..math.random(1,3)..".wav",100,100,CHANNEL_WEAPON)
                         local damage = math.round(math.random(5,15))
                         player_ent.health = player_ent.health - damage
                         player_ent.health = math.clamp(player_ent.health,0,9999)
+                        player_ent.special_bar = player_ent.special_bar + 8
                         table.insert(hitMarkers,1,{timer.curtime(),player_ent:getPos()+Vector(0,0,75)+Vector(math.random(-10,10),math.random(-10,10),math.random(-10,10))/2,damage})
                         if player_ent.health == 0 then
                             player_ent.dead = true
                             player_ent.dead_ct = timer.curtime()
                         end
                     else
+                        owner():emitSound("npc/fast_zombie/claw_miss1.wav",100,100,CHANNEL_WEAPON)
                         player_ent.dodge = true
                         table.insert(hitMarkers,1,{timer.curtime(),player_ent:getPos()+Vector(0,0,75)+Vector(math.random(-10,10),math.random(-10,10),math.random(-10,10))/2,"MISS"})
                     end
@@ -858,6 +875,12 @@ hook.add("DrawHUD","",function()
         local player_pos = player_ent:getPos()+Vector(0,0,85)
         local player_selection_arrow_pos = player_pos:toScreen()
         if turn == 1 then
+            if action_state != "attacking special" and action_state != "attacking" then
+                render.setColor(Color(255,255,255,255))
+                    
+                render.setMaterial(selection==1 and selection_bar_highlight or selection_bar)
+                render.drawTexturedRect(1206, 833+52*2, 1024/403*630, 1024)
+            end
             if action_state == "select action" then
                 selection = math.clamp(selection > 3 and 1 or selection < 1 and 3 or selection,1,3)
                 
@@ -933,10 +956,34 @@ hook.add("DrawHUD","",function()
                 end
             end
         end
+        
+        render.setColor(Color(0,200,135,200))
+        render.drawText(1206+630/2,833+52*2-3,"HP",TEXT_ALIGN.LEFT)
+        
+        render.setColor(Color(200,100,200,255))
+        render.drawText(1206+630/2+630*0.235,833+52*2-3,"MP",TEXT_ALIGN.LEFT)
+        
+        render.setColor(Color(0,0,0,255))
+        render.drawRect(1206+630/2-630*0.4,833+52*2+35,630*0.8,8)
+        
+        player_ent.special_bar = math.clamp(player_ent.special_bar,0,100)
+        render.setColor(Color(255,255-105*(player_ent.special_bar/100),0,255))
+        render.drawRect(1206+630/2-630*0.4+2,833+52*2+37,(630*0.8-4)*(player_ent.special_bar/100),4)
+        
+        render.setColor(Color(255,255,255,255))
+        
+        render.drawText(1206+630/2-630*0.4,833+52*2-3,owner():getName(),TEXT_ALIGN.LEFT)
+        
+        render.drawText(1206+630/2+630*0.4,833+52*2-3,0,TEXT_ALIGN.RIGHT)
+        
+        render.drawText(1206+630/2+630*0.2,833+52*2-3,player_ent.health,TEXT_ALIGN.RIGHT)
+        
         local rotate_sin = math.abs(math.sin(math.rad(timer.curtime()*180)))
         render.setMaterial(player_selection_arrow)
         render.drawTexturedRect(player_selection_arrow_pos["x"]-(37*0.25*rotate_sin)/2*scale_3d(player_pos),player_selection_arrow_pos["y"]-(37*0.25)/2*scale_3d(player_pos),1024*0.25*rotate_sin*scale_3d(player_pos),1024*0.25*scale_3d(player_pos))
     end
+        
+        
     if ready and not frame_captured and not activate_camera then
         local time = math.clamp(-7+(timer.curtime() - finish_ct),0,1)
         if time < 1 then
