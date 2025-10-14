@@ -775,7 +775,7 @@ hook.add("DrawHUD","",function()
                     local hit = math.round(math.random(1,10)) > 1
                     if hit then
                         owner():emitSound("physics/body/body_medium_impact_hard1.wav",100,100,CHANNEL_WEAPON)
-                        local damage = (action_state == "attacking" and math.round(math.random(25,35)) or 50)
+                        local damage = (action_state == "attacking" and math.round(math.random(25,35)) or 150)
                         target.health = target.health - damage
                         target.health = math.clamp(target.health,0,9999)
                         player_ent.special_bar = player_ent.special_bar + 4
