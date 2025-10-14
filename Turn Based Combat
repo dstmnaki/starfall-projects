@@ -701,6 +701,7 @@ hook.add("DrawHUD","",function()
                         player_ent:setAngles(Angle(0,target:getAngles().yaw+180,0))
                         gravity_gun:setNoDraw(false)
                         crowbar:setNoDraw(true)
+                        player_ent.special_bar = 0
                         timer.simple(animation_length,function()
                             selection = 1
                             action_state = "select action"
