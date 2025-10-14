@@ -5,7 +5,7 @@
 
 if SERVER then
 
-chip():setColor(Color(255,255,255,0))
+--chip():setColor(Color(255,255,255,0))
 
 local hud = prop.createComponent(chip():getPos(), chip():getAngles(), "starfall_hud", "models/props_combine/breenglobe.mdl", true)
 hud:setColor(Color(255,255,255,0))
@@ -149,7 +149,7 @@ function downloadMusic()
             end
         end)
     else
-        printHud(player(), "Downloading sounds")
+        print("Downloading sounds")
         bass.loadURL("https://dl.dropboxusercontent.com/scl/fi/d1a1df6a8ox2pu0uwe1ra/battle-start-betterer.mp3?rlkey=e1qi8s2cuf74nzem4uh5ra68j&dl=0", "2d noblock noplay", function(snd)
             if snd then
                 battle_music["start"] = snd
@@ -1028,11 +1028,7 @@ hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
         if battle_music["start"] and battle_music["loop"] and battle_music["win"] then
             ready = true
             block_switch = false
-            if player() == owner() then
-                print("Ready")
-            else
-                printHud(player(), "Ready")
-            end
+            print("Ready")
         end
     end
     if player():keyDown(IN_KEY.RELOAD) then
