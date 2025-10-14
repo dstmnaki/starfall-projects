@@ -116,7 +116,7 @@ local block_switch = true
 
 local assets_downloaded = false
 
-local HASFILES = true
+local HASFILES = false
 
 function downloadMusic()
     if HASFILES and owner() == player() then
