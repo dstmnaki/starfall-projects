@@ -479,6 +479,7 @@ function start_round()
     camera_angle = camera_setups["idle"][camera_setup_id].ang
     
     player_ent:setAnimation("run_melee", 0, 0)
+    dying_count = 0
     dead_count = 0
     action_state = "waiting"
     selection = 1
@@ -582,7 +583,7 @@ hook.add("DrawHUD","",function()
         end
     end
     if action_state != "waiting" and #monster_table > 0 then
-        if turn == 1 then
+        if turn == 1 and dying_count != #monster_table then
             if input.isKeyDown(KEY.UPARROW) then
                 if uparrow != true then
                     uparrow = true
@@ -777,6 +778,7 @@ hook.add("DrawHUD","",function()
                         if target.health == 0 then
                             target.dead = true
                             target.dead_ct = timer.curtime()
+                            dying_count = dying_count + 1
                         end
                     else
                         owner():emitSound("weapons/iceaxe/iceaxe_swing1.wav",100,100,CHANNEL_WEAPON)
@@ -830,8 +832,7 @@ hook.add("DrawHUD","",function()
                         player_ent.special_bar = player_ent.special_bar + 8
                         table.insert(hitMarkers,1,{timer.curtime(),player_ent:getPos()+Vector(0,0,75)+Vector(math.random(-10,10),math.random(-10,10),math.random(-10,10))/2,damage})
                         if player_ent.health == 0 then
-                            player_ent.dead = true
-                            player_ent.dead_ct = timer.curtime()
+                            end_round(true)
                         end
                     else
                         owner():emitSound("npc/fast_zombie/claw_miss1.wav",100,100,CHANNEL_WEAPON)
