@@ -298,13 +298,6 @@ function summon_enemies(count)
         monster_table[1] = hologram.create(chip():getPos()+Vector(distance/2,0,0)+Vector(-distance,0,0):rotateAroundAxis(Vector(0,0,1),20), Angle(0,20,0), "models/player/zombie_classic.mdl", Vector(1))
         monster_table[2] = hologram.create(chip():getPos()+Vector(-distance/2,0,0), Angle(0,0,0), "models/player/zombie_classic.mdl", Vector(1))
         monster_table[3] = hologram.create(chip():getPos()+Vector(distance/2,0,0)+Vector(-distance,0,0):rotateAroundAxis(Vector(0,0,1),-20), Angle(0,-20,0), "models/player/zombie_classic.mdl", Vector(1))
-    else
-        --[[
-        monster_table[1] = hologram.create(chip():getPos()+Vector(distance/2,0,0)+Vector(-distance,0,0):rotateAroundAxis(Vector(0,0,1),30), Angle(0,30,0), "models/player/zombie_classic.mdl", Vector(1))
-        monster_table[2] = hologram.create(chip():getPos()+Vector(distance/2,0,0)+Vector(-distance,0,0):rotateAroundAxis(Vector(0,0,1),10), Angle(0,10,0), "models/player/zombie_classic.mdl", Vector(1))
-        monster_table[3] = hologram.create(chip():getPos()+Vector(distance/2,0,0)+Vector(-distance,0,0):rotateAroundAxis(Vector(0,0,1),-10), Angle(0,-10,0), "models/player/zombie_classic.mdl", Vector(1))
-        monster_table[4] = hologram.create(chip():getPos()+Vector(distance/2,0,0)+Vector(-distance,0,0):rotateAroundAxis(Vector(0,0,1),-30), Angle(0,-30,0), "models/player/zombie_classic.mdl", Vector(1))
-        ]]
     end
     for i = 1, #monster_table do
         monster_table[i].health = 100
@@ -774,7 +767,7 @@ hook.add("DrawHUD","",function()
                     attack_ct = timer.curtime()
                     local hit = math.round(math.random(1,10)) > 1
                     if hit then
-                        owner():emitSound("physics/body/body_medium_impact_hard1.wav",100,100,CHANNEL_WEAPON)
+                        owner():emitSound(action_state == "attacking" and "physics/body/body_medium_impact_hard1.wav" or "ambient/levels/citadel/weapon_disintegrate3.wav",100,100,CHANNEL_WEAPON)
                         local damage = (action_state == "attacking" and math.round(math.random(25,35)) or 150)
                         target.health = target.health - damage
                         target.health = math.clamp(target.health,0,9999)
