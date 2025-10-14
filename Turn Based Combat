@@ -5,7 +5,9 @@
 
 if SERVER then
 
-local seat = prop.createSeat(chip():getPos(), Angle(90,0,0), "models/hunter/blocks/cube025x025x025.mdl", true)
+local hud = prop.createComponent(chip():getPos(), chip():getAngles(), "starfall_hud", "models/props_combine/breenglobe.mdl", true)
+
+local seat = prop.createSeat(chip():getPos()+Vector(0,0,100), Angle(90,0,0), "models/hunter/blocks/cube025x025x025.mdl", true)
 seat:setNocollideAll(true)
 seat:setColor(Color(255,255,255,0))
 
@@ -17,14 +19,13 @@ hook.add("net","",function(name,len,ply)
     end
     if name == "exit_seat" then
         seat:setAngles(Angle(0,seat:getAngles().yaw,0))
-        owner():exitVehicle()
-        seat:setPos(chip():getPos())
+        seat:ejectDriver()
+        seat:setPos(chip():getPos()+Vector(0,0,100))
     end
 end)
 else
-if player() ~= owner() then return end
 require("nakilibs/screen_shatter_obj.txt")
-enableHud(owner(), true)
+
 
 local pos_data = {
     ["mesh.001"] = {-0.171805,-0.407767},
@@ -110,32 +111,76 @@ local battle_music = {}
 
 local block_switch = true
 
-print("Downloading sound files...")
+local assets_downloaded = false
 
-bass.loadURL("https://dl.dropboxusercontent.com/scl/fi/d1a1df6a8ox2pu0uwe1ra/battle-start-betterer.mp3?rlkey=e1qi8s2cuf74nzem4uh5ra68j&dl=0", "2d noblock noplay", function(snd)
-    if snd then
-        battle_music["start"] = snd
-        battle_music["start"]:pause()
-        battle_music["start"]:setTime(0,true)
-        battle_music["start"]:setLooping(false)
+function downloadMusic()
+    if player() == owner() then
+        print("Sounds loaded from files!")
+        bass.loadFile("sound/naki/turn based combat/battle start betterer.mp3", "2d noblock noplay", function(snd)
+            if snd then
+                battle_music["start"] = snd
+                battle_music["start"]:pause()
+                battle_music["start"]:setTime(0,true)
+                battle_music["start"]:setLooping(false)
+            end
+        end)
+        
+        bass.loadFile("sound/naki/turn based combat/battle loop.mp3", "2d noblock noplay", function(snd)
+            if snd then
+                battle_music["loop"] = snd
+                battle_music["loop"]:pause()
+                battle_music["loop"]:setTime(0,true)
+                battle_music["loop"]:setLooping(true)
+            end
+        end)
+        
+        bass.loadFile("sound/naki/turn based combat/win.mp3", "2d noblock noplay", function(snd)
+            if snd then
+                battle_music["win"] = snd
+                battle_music["win"]:pause()
+                battle_music["win"]:setTime(0,true)
+                battle_music["win"]:setLooping(false)
+            end
+        end)
+    else
+        printHud(player(), "Downloading sounds")
+        bass.loadURL("https://dl.dropboxusercontent.com/scl/fi/d1a1df6a8ox2pu0uwe1ra/battle-start-betterer.mp3?rlkey=e1qi8s2cuf74nzem4uh5ra68j&dl=0", "2d noblock noplay", function(snd)
+            if snd then
+                battle_music["start"] = snd
+                battle_music["start"]:pause()
+                battle_music["start"]:setTime(0,true)
+                battle_music["start"]:setLooping(false)
+            end
+        end)
+        
+        bass.loadURL("https://dl.dropboxusercontent.com/scl/fi/btc84p1t1tx1o7o46dxwn/battle-loop.mp3?rlkey=68k35rn710misd1vtk5btgvwy&dl=1", "2d noblock noplay", function(snd)
+            if snd then
+                battle_music["loop"] = snd
+                battle_music["loop"]:pause()
+                battle_music["loop"]:setTime(0,true)
+                battle_music["loop"]:setLooping(true)
+            end
+        end)
+        
+        bass.loadURL("https://dl.dropboxusercontent.com/scl/fi/tok4m93s2slsleyp1y9s6/win.mp3?rlkey=8umzob8y6474f51xpab8tsxir&dl=1", "2d noblock noplay", function(snd)
+            if snd then
+                battle_music["win"] = snd
+                battle_music["win"]:pause()
+                battle_music["win"]:setTime(0,true)
+                battle_music["win"]:setLooping(false)
+            end
+        end)
     end
-end)
+end
 
-bass.loadURL("https://dl.dropboxusercontent.com/scl/fi/btc84p1t1tx1o7o46dxwn/battle-loop.mp3?rlkey=68k35rn710misd1vtk5btgvwy&dl=1", "2d noblock noplay", function(snd)
-    if snd then
-        battle_music["loop"] = snd
-        battle_music["loop"]:pause()
-        battle_music["loop"]:setTime(0,true)
-        battle_music["loop"]:setLooping(true)
-    end
-end)
+if player() == owner() then
+    enableHud(owner(), true)
+    downloadMusic()
+end
 
-bass.loadURL("https://dl.dropboxusercontent.com/scl/fi/tok4m93s2slsleyp1y9s6/win.mp3?rlkey=8umzob8y6474f51xpab8tsxir&dl=1", "2d noblock noplay", function(snd)
-    if snd then
-        battle_music["win"] = snd
-        battle_music["win"]:pause()
-        battle_music["win"]:setTime(0,true)
-        battle_music["win"]:setLooping(false)
+hook.add("HUDConnected", "", function(ent, ply)
+    if ply != owner() then
+        downloadMusic()
     end
 end)
 
@@ -143,7 +188,7 @@ function startMusicSystem()
     battle_music["start"]:play()
     battle_music["start"]:setVolume(1)
     battle_music["start"]:setTime(0,true)
-    timer.create("start_loop",25.8,1,function()
+    timer.create("start_loop",25.85,1,function()
         battle_music["loop"]:play()
         battle_music["loop"]:setTime(0,true)
         battle_music["loop"]:setVolume(1)
@@ -188,7 +233,7 @@ screen_blocker:suppressEngineLighting(true)
 screen_blocker:setNoDraw(true)
 
 render.createRenderTarget("rt")
-local capture_screen_mat = material.load("pp/motionblur")
+local capture_screen_mat = material.load("pp/blurscreen")
 
 local captured_frame = material.create("UnlitGeneric")
 captured_frame:setInt("$translucent", 0)
@@ -268,6 +313,21 @@ function capture_frame()
         
         captured_frame:setTextureRenderTarget("$basetexture", "rt")
         
+        if player() == owner() then
+            timer.simple(0.5,function()
+                concmd("pp_motionblur_drawalpha 0.95; pp_motionblur_delay 0; pp_motionblur_addalpha 0.12; pp_motionblur 1")
+                timer.simple(0.75,function()
+                    concmd("pp_motionblur_addalpha 0.18")
+                    timer.simple(1,function()
+                        concmd("pp_motionblur_addalpha 0.22")
+                        timer.simple(1,function()
+                            concmd("pp_motionblur 0")
+                        end)
+                    end)
+                end)
+            end)
+        end
+        
         frame_captured = true
         if models_ready != true then
             create_mesh()
@@ -287,6 +347,12 @@ function capture_frame()
 end
 local finish_ct = 0
 
+hook.add("Removed", "", function()
+    if player() == owner() then
+        concmd("pp_motionblur 0")
+    end
+end)
+
 hook.add("DrawHUD","",function()
     if ready and not frame_captured then
         local time = math.clamp(-3+(timer.curtime() - finish_ct),0,1)
@@ -299,11 +365,16 @@ end)
 
 local pressed = false
 hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
+    if not render.isHUDActive() then return end
     if ready != true then
         if battle_music["start"] and battle_music["loop"] and battle_music["win"] then
             ready = true
             block_switch = false
-            print("ready")
+            if player() == owner() then
+                print("Ready")
+            else
+                printHud(player(), "Ready")
+            end
         end
     end
     if player():keyDown(IN_KEY.RELOAD) then
