@@ -879,6 +879,7 @@ hook.add("DrawHUD","",function()
                     if turn > (#monster_table + 1) then
                         turn = 1
                     end
+                    select_ct = timer.curtime()
                     monster_move_ct = timer.curtime()
                 end
                 monster:setPos(lerp_to_target)
