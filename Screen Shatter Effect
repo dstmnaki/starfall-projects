@@ -1,10 +1,10 @@
 --@name Turn Based Combat
 --@author Nakkitsunami
 --@client
+--@include nakilibs/screen_shatter_obj.txt
 
-if player() ~= owner() then return end
-enableHud(owner(), true)
 
+require("nakilibs/screen_shatter_obj.txt")
 
 local pos_data = {
     ["mesh.001"] = {-0.171805,-0.407767},
@@ -111,7 +111,7 @@ local new_index = 0
 
 local models_ready = false
 
-local obj_data = file.read("final_fantasy_shatter_screen/mesh.txt")
+local obj_data = unholy_obj_table
 
 function create_mesh()
     if obj_data and obj_data != nil then
@@ -182,12 +182,24 @@ function capture_frame()
         hook.remove("drawhud","copy_material")
     end)
 end
-hook.add("DrawHUD","",function()
-    if models_ready and frame_captured then
-        
-    end
-end)
+local pressed = false
 hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
+    if player():keyDown(IN_KEY.RELOAD) then
+        if pressed != true then
+            pressed = true
+            if requested_frame != true then
+                requested_frame = true
+                capture_frame()
+            else
+                frame_captured = false
+                requested_frame = false
+            end
+        end
+    else
+        if pressed != false then
+            pressed = false
+        end
+    end
     if models_ready and frame_captured then
         local camera_angle = Angle(10,-math.clamp(timer.curtime()-animation_time,0,timer.curtime())*5,0)
         local camera_pos = chip():getPos()+Vector(-500,0,175):rotateAroundAxis(Vector(0,0,1),camera_angle.yaw)
@@ -221,11 +233,6 @@ hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
             angles = camera_angle,
             origin = camera_pos,
         }
-        --render.setMaterial(captured_frame)
-        --render.drawTexturedRect(0, 0, Width, Height)
-    elseif requested_frame != true and input.isKeyDown(KEY.M) then
-        requested_frame = true
-        capture_frame()
     end
 end)
 
