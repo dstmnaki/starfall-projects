@@ -583,14 +583,12 @@ hook.add("DrawHUD","",function()
         end
     end
     if action_state != "waiting" and #monster_table > 0 then
-        if turn == 1 and dying_count != #monster_table then
-            if input.isKeyDown(KEY.UPARROW) then
-                if uparrow != true then
-                    uparrow = true
-                    if action_state == "select target" or action_state == "select target special" then
-                        selection = selection + (flip_target_arrow2 and -1 or 1)
-                        selection = math.clamp(selection > #monster_table and 1 or selection < 1 and #monster_table or selection,1,#monster_table)
-                        if monster_table[selection].dead == true then
+        if turn == 1 then
+            if dying_count != #monster_table then
+                if input.isKeyDown(KEY.UPARROW) then
+                    if uparrow != true then
+                        uparrow = true
+                        if action_state == "select target" or action_state == "select target special" then
                             selection = selection + (flip_target_arrow2 and -1 or 1)
                             selection = math.clamp(selection > #monster_table and 1 or selection < 1 and #monster_table or selection,1,#monster_table)
                             if monster_table[selection].dead == true then
@@ -599,26 +597,26 @@ hook.add("DrawHUD","",function()
                                 if monster_table[selection].dead == true then
                                     selection = selection + (flip_target_arrow2 and -1 or 1)
                                     selection = math.clamp(selection > #monster_table and 1 or selection < 1 and #monster_table or selection,1,#monster_table)
+                                    if monster_table[selection].dead == true then
+                                        selection = selection + (flip_target_arrow2 and -1 or 1)
+                                        selection = math.clamp(selection > #monster_table and 1 or selection < 1 and #monster_table or selection,1,#monster_table)
+                                    end
                                 end
                             end
+                        else
+                            selection = selection - 1
                         end
-                    else
-                        selection = selection - 1
+                        owner():emitSound("garrysmod/ui_hover.wav",100,100,CHANNEL_WEAPON)
                     end
-                    owner():emitSound("garrysmod/ui_hover.wav",100,100,CHANNEL_WEAPON)
+                else
+                    if uparrow != false then
+                        uparrow = false
+                    end
                 end
-            else
-                if uparrow != false then
-                    uparrow = false
-                end
-            end
-            if input.isKeyDown(KEY.DOWNARROW) then
-                if downarrow != true then
-                    downarrow = true
-                    if action_state == "select target" or action_state == "select target special" then
-                        selection = selection - (flip_target_arrow2 and -1 or 1)
-                        selection = math.clamp(selection > #monster_table and 1 or selection < 1 and #monster_table or selection,1,#monster_table)
-                        if monster_table[selection].dead == true then
+                if input.isKeyDown(KEY.DOWNARROW) then
+                    if downarrow != true then
+                        downarrow = true
+                        if action_state == "select target" or action_state == "select target special" then
                             selection = selection - (flip_target_arrow2 and -1 or 1)
                             selection = math.clamp(selection > #monster_table and 1 or selection < 1 and #monster_table or selection,1,#monster_table)
                             if monster_table[selection].dead == true then
@@ -627,137 +625,141 @@ hook.add("DrawHUD","",function()
                                 if monster_table[selection].dead == true then
                                     selection = selection - (flip_target_arrow2 and -1 or 1)
                                     selection = math.clamp(selection > #monster_table and 1 or selection < 1 and #monster_table or selection,1,#monster_table)
-                                end
-                            end
-                        end
-                    else
-                        selection = selection + 1
-                    end
-                    owner():emitSound("garrysmod/ui_hover.wav",100,100,CHANNEL_WEAPON)
-                end
-            else
-                if downarrow != false then
-                    downarrow = false
-                end
-            end
-            
-            if input.isKeyDown(KEY.ENTER) then
-                if enter != true then
-                    enter = true
-                    if action_state == "select action" then
-                        owner():emitSound("garrysmod/ui_click.wav",100,100,CHANNEL_WEAPON)
-                        if selection == 1 then
-                            action_state = "select target"
-                            selection = 1
-                            if monster_table[selection].dead == true then
-                                selection = selection + 1
-                                selection = math.clamp(selection > #monster_table and 1 or selection < 1 and #monster_table or selection,1,#monster_table)
-                                if monster_table[selection].dead == true then
-                                    selection = selection + 1
-                                    selection = math.clamp(selection > #monster_table and 1 or selection < 1 and #monster_table or selection,1,#monster_table)
                                     if monster_table[selection].dead == true then
-                                        selection = selection + 1
+                                        selection = selection - (flip_target_arrow2 and -1 or 1)
                                         selection = math.clamp(selection > #monster_table and 1 or selection < 1 and #monster_table or selection,1,#monster_table)
                                     end
                                 end
                             end
-                            select_ct = timer.curtime()
-                        elseif selection == 2 then
-                            action_state = "select special"
-                            selection = 1
-                            select_ct = timer.curtime()
-                        elseif selection == 3 then
-                            end_round(true)
+                        else
+                            selection = selection + 1
                         end
-                    elseif action_state == "select special" then
-                        if player_ent.special_bar == 100 then
+                        owner():emitSound("garrysmod/ui_hover.wav",100,100,CHANNEL_WEAPON)
+                    end
+                else
+                    if downarrow != false then
+                        downarrow = false
+                    end
+                end
+                
+                if input.isKeyDown(KEY.ENTER) then
+                    if enter != true then
+                        enter = true
+                        if action_state == "select action" then
                             owner():emitSound("garrysmod/ui_click.wav",100,100,CHANNEL_WEAPON)
-                            action_state = "select target special"
-                            selection = 1
-                            if monster_table[selection].dead == true then
-                                selection = selection + 1
-                                selection = math.clamp(selection > #monster_table and 1 or selection < 1 and #monster_table or selection,1,#monster_table)
+                            if selection == 1 then
+                                action_state = "select target"
+                                selection = 1
                                 if monster_table[selection].dead == true then
                                     selection = selection + 1
                                     selection = math.clamp(selection > #monster_table and 1 or selection < 1 and #monster_table or selection,1,#monster_table)
                                     if monster_table[selection].dead == true then
                                         selection = selection + 1
                                         selection = math.clamp(selection > #monster_table and 1 or selection < 1 and #monster_table or selection,1,#monster_table)
+                                        if monster_table[selection].dead == true then
+                                            selection = selection + 1
+                                            selection = math.clamp(selection > #monster_table and 1 or selection < 1 and #monster_table or selection,1,#monster_table)
+                                        end
                                     end
                                 end
+                                select_ct = timer.curtime()
+                            elseif selection == 2 then
+                                action_state = "select special"
+                                selection = 1
+                                select_ct = timer.curtime()
+                            elseif selection == 3 then
+                                end_round(true)
                             end
+                        elseif action_state == "select special" then
+                            if player_ent.special_bar == 100 then
+                                owner():emitSound("garrysmod/ui_click.wav",100,100,CHANNEL_WEAPON)
+                                action_state = "select target special"
+                                selection = 1
+                                if monster_table[selection].dead == true then
+                                    selection = selection + 1
+                                    selection = math.clamp(selection > #monster_table and 1 or selection < 1 and #monster_table or selection,1,#monster_table)
+                                    if monster_table[selection].dead == true then
+                                        selection = selection + 1
+                                        selection = math.clamp(selection > #monster_table and 1 or selection < 1 and #monster_table or selection,1,#monster_table)
+                                        if monster_table[selection].dead == true then
+                                            selection = selection + 1
+                                            selection = math.clamp(selection > #monster_table and 1 or selection < 1 and #monster_table or selection,1,#monster_table)
+                                        end
+                                    end
+                                end
+                                select_ct = timer.curtime()
+                            end
+                        elseif action_state == "select target special" then
+                            owner():emitSound("garrysmod/ui_click.wav",100,100,CHANNEL_WEAPON)
+                            action_state = "attacking special"
+                            select_ct = timer.curtime()
+                            animation_length = 3
+                            player_ent:setAngles(Angle(0,target:getAngles().yaw+180,0))
+                            gravity_gun:setNoDraw(false)
+                            crowbar:setNoDraw(true)
+                            player_ent.special_bar = 0
+                            timer.simple(animation_length,function()
+                                selection = 1
+                                action_state = "select action"
+                                select_ct = timer.curtime()
+                                player_ent.attack = false
+                                player_ent:setPose("move_x", 0)
+                                player_ent:setAngles(Angle(0,chip():getAngles().yaw+180,0))
+                                gravity_gun:setNoDraw(true)
+                                crowbar:setNoDraw(false)
+                                player_ent:setAnimation("run_melee", timer.curtime()*2, nil)
+                                turn = turn + 1
+                                turn = math.clamp(turn > #monster_table+1 and 1 or turn < 1 and #monster_table+1 or turn,1,#monster_table+1)
+                                monster_move_ct = timer.curtime()
+                            end)
+                        elseif action_state == "select target" then
+                            owner():emitSound("garrysmod/ui_click.wav",100,100,CHANNEL_WEAPON)
+                            action_state = "attacking"
+                            select_ct = timer.curtime()
+                            animation_length = 3
+                            player_ent:setAngles(Angle(0,target:getAngles().yaw+180,0))
+                            timer.simple(animation_length,function()
+                                selection = 1
+                                action_state = "select action"
+                                select_ct = timer.curtime()
+                                player_ent.attack = false
+                                player_ent:setPose("move_x", 0)
+                                player_ent:setAngles(Angle(0,chip():getAngles().yaw+180,0))
+                                turn = turn + 1
+                                turn = math.clamp(turn > #monster_table+1 and 1 or turn < 1 and #monster_table+1 or turn,1,#monster_table+1)
+                                monster_move_ct = timer.curtime()
+                            end)
+                        end
+                    end
+                else
+                    if enter != false then
+                        enter = false
+                    end
+                end
+                if input.isKeyDown(KEY.BACKSPACE) then
+                    if backspace != true then
+                        backspace = true
+                        if action_state == "select target" then
+                            owner():emitSound("garrysmod/ui_click.wav",100,100,CHANNEL_WEAPON)
+                            selection = 1
+                            action_state = "select action"
+                            select_ct = timer.curtime()
+                        elseif action_state == "select special" then
+                            owner():emitSound("garrysmod/ui_click.wav",100,100,CHANNEL_WEAPON)
+                            selection = 1
+                            action_state = "select action"
+                            select_ct = timer.curtime()
+                        elseif action_state == "select target special" then
+                            owner():emitSound("garrysmod/ui_click.wav",100,100,CHANNEL_WEAPON)
+                            selection = 1
+                            action_state = "select special"
                             select_ct = timer.curtime()
                         end
-                    elseif action_state == "select target special" then
-                        owner():emitSound("garrysmod/ui_click.wav",100,100,CHANNEL_WEAPON)
-                        action_state = "attacking special"
-                        select_ct = timer.curtime()
-                        animation_length = 3
-                        player_ent:setAngles(Angle(0,target:getAngles().yaw+180,0))
-                        gravity_gun:setNoDraw(false)
-                        crowbar:setNoDraw(true)
-                        player_ent.special_bar = 0
-                        timer.simple(animation_length,function()
-                            selection = 1
-                            action_state = "select action"
-                            select_ct = timer.curtime()
-                            player_ent.attack = false
-                            player_ent:setPose("move_x", 0)
-                            player_ent:setAngles(Angle(0,chip():getAngles().yaw+180,0))
-                            gravity_gun:setNoDraw(true)
-                            crowbar:setNoDraw(false)
-                            player_ent:setAnimation("run_melee", timer.curtime()*2, nil)
-                            turn = turn + 1
-                            turn = math.clamp(turn > #monster_table+1 and 1 or turn < 1 and #monster_table+1 or turn,1,#monster_table+1)
-                            monster_move_ct = timer.curtime()
-                        end)
-                    elseif action_state == "select target" then
-                        owner():emitSound("garrysmod/ui_click.wav",100,100,CHANNEL_WEAPON)
-                        action_state = "attacking"
-                        select_ct = timer.curtime()
-                        animation_length = 3
-                        player_ent:setAngles(Angle(0,target:getAngles().yaw+180,0))
-                        timer.simple(animation_length,function()
-                            selection = 1
-                            action_state = "select action"
-                            select_ct = timer.curtime()
-                            player_ent.attack = false
-                            player_ent:setPose("move_x", 0)
-                            player_ent:setAngles(Angle(0,chip():getAngles().yaw+180,0))
-                            turn = turn + 1
-                            turn = math.clamp(turn > #monster_table+1 and 1 or turn < 1 and #monster_table+1 or turn,1,#monster_table+1)
-                            monster_move_ct = timer.curtime()
-                        end)
                     end
-                end
-            else
-                if enter != false then
-                    enter = false
-                end
-            end
-            if input.isKeyDown(KEY.BACKSPACE) then
-                if backspace != true then
-                    backspace = true
-                    if action_state == "select target" then
-                        owner():emitSound("garrysmod/ui_click.wav",100,100,CHANNEL_WEAPON)
-                        selection = 1
-                        action_state = "select action"
-                        select_ct = timer.curtime()
-                    elseif action_state == "select special" then
-                        owner():emitSound("garrysmod/ui_click.wav",100,100,CHANNEL_WEAPON)
-                        selection = 1
-                        action_state = "select action"
-                        select_ct = timer.curtime()
-                    elseif action_state == "select target special" then
-                        owner():emitSound("garrysmod/ui_click.wav",100,100,CHANNEL_WEAPON)
-                        selection = 1
-                        action_state = "select special"
-                        select_ct = timer.curtime()
+                else
+                    if backspace != false then
+                        backspace = false
                     end
-                end
-            else
-                if backspace != false then
-                    backspace = false
                 end
             end
             if (action_state == "attacking" or action_state == "attacking special") and target and target != nil and target:isValid() then
@@ -872,7 +874,7 @@ hook.add("DrawHUD","",function()
         end
         local player_pos = player_ent:getPos()+Vector(0,0,85)
         local player_selection_arrow_pos = player_pos:toScreen()
-        if turn == 1 then
+        if turn == 1 and dying_count != #monster_table then
             if action_state != "attacking special" and action_state != "attacking" then
                 render.setColor(Color(255,255,255,255))
                 
