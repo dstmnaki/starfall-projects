@@ -337,7 +337,7 @@ hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
         screen_blocker:setPos(camera_pos+camera_angle:getForward()*12.5)
         screen_blocker:setAngles(camera_angle)
         for index, holo in pairs(holos) do
-            local time = math.easeInSine(math.clamp((timer.curtime()-animation_time)*1-2*index/#holos,0,1))
+            local time = math.easeInSine(math.clamp((timer.curtime()-animation_time)*1-2*index/#holos,0,1.1))
             local time2 = math.easeInOutSine(math.clamp((timer.curtime()-animation_time)*6,0,1))
             
             if time < 1 then
