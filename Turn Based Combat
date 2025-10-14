@@ -112,7 +112,7 @@ local block_switch = true
 
 print("Downloading sound files...")
 
-bass.loadURL("https://dl.dropboxusercontent.com/scl/fi/wc8wheayxewzr1t2ck3t2/battle-start.mp3?rlkey=qi6s88cccghci61pjy1hwarp7&dl=1", "2d noblock noplay", function(snd)
+bass.loadURL("https://dl.dropboxusercontent.com/scl/fi/d1a1df6a8ox2pu0uwe1ra/battle-start-betterer.mp3?rlkey=e1qi8s2cuf74nzem4uh5ra68j&dl=0", "2d noblock noplay", function(snd)
     if snd then
         battle_music["start"] = snd
         battle_music["start"]:pause()
@@ -143,7 +143,7 @@ function startMusicSystem()
     battle_music["start"]:play()
     battle_music["start"]:setVolume(1)
     battle_music["start"]:setTime(0,true)
-    timer.create("start_loop",25.4,1,function()
+    timer.create("start_loop",25.8,1,function()
         battle_music["loop"]:play()
         battle_music["loop"]:setTime(0,true)
         battle_music["loop"]:setVolume(1)
