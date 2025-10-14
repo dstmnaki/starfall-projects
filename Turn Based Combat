@@ -5,7 +5,7 @@
 
 if SERVER then
 
---chip():setColor(Color(255,255,255,0))
+chip():setColor(Color(255,255,255,0))
 
 local hud = prop.createComponent(chip():getPos(), chip():getAngles(), "starfall_hud", "models/props_combine/breenglobe.mdl", true)
 hud:setColor(Color(255,255,255,0))
@@ -27,6 +27,7 @@ hook.add("net","",function(name,len,ply)
     end
 end)
 else
+if player() ~= owner() then return end
 require("nakilibs/screen_shatter_obj.txt")
 
 
@@ -116,7 +117,7 @@ local block_switch = true
 
 local assets_downloaded = false
 
-local HASFILES = false
+local HASFILES = file.existsInGame("sound/naki/turn based combat/battle start betterer.mp3")
 
 function downloadMusic()
     if HASFILES and owner() == player() then
