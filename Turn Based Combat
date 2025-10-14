@@ -1,10 +1,11 @@
 --@name Turn Based Combat
 --@author Nakkitsunami
 --@client
+--@owneronly
 --@include nakilibs/screen_shatter_obj.txt
 
-
 require("nakilibs/screen_shatter_obj.txt")
+enableHud(owner(), true)
 
 local pos_data = {
     ["mesh.001"] = {-0.171805,-0.407767},
@@ -86,6 +87,75 @@ local pos_data = {
     ["mesh.077"] = {-0.571249,0.186904}
 }
 
+local battle_music = {}
+
+local block_switch = true
+
+print("Downloading sound files...")
+
+bass.loadURL("https://dl.dropboxusercontent.com/scl/fi/wc8wheayxewzr1t2ck3t2/battle-start.mp3?rlkey=qi6s88cccghci61pjy1hwarp7&dl=1", "2d noblock noplay", function(snd)
+    if snd then
+        battle_music["start"] = snd
+        battle_music["start"]:pause()
+        battle_music["start"]:setTime(0,true)
+        battle_music["start"]:setLooping(false)
+    end
+end)
+
+bass.loadURL("https://dl.dropboxusercontent.com/scl/fi/btc84p1t1tx1o7o46dxwn/battle-loop.mp3?rlkey=68k35rn710misd1vtk5btgvwy&dl=1", "2d noblock noplay", function(snd)
+    if snd then
+        battle_music["loop"] = snd
+        battle_music["loop"]:pause()
+        battle_music["loop"]:setTime(0,true)
+        battle_music["loop"]:setLooping(true)
+    end
+end)
+
+bass.loadURL("https://dl.dropboxusercontent.com/scl/fi/tok4m93s2slsleyp1y9s6/win.mp3?rlkey=8umzob8y6474f51xpab8tsxir&dl=1", "2d noblock noplay", function(snd)
+    if snd then
+        battle_music["win"] = snd
+        battle_music["win"]:pause()
+        battle_music["win"]:setTime(0,true)
+        battle_music["win"]:setLooping(false)
+    end
+end)
+
+function startMusicSystem()
+    battle_music["start"]:play()
+    timer.create("start_loop",25.4,1,function()
+        battle_music["loop"]:play()
+        battle_music["start"]:pause()
+    end)
+end
+function stopMusicSystem()
+    local stopMusicCT = timer.curtime()
+    hook.add("think","stop_music",function()
+        volume = math.clamp(1-(timer.curtime()-stopMusicCT)*0.8,0,1)
+        battle_music["loop"]:setVolume(volume)
+        battle_music["start"]:setVolume(volume)
+        if volume <= 0 then
+            timer.stop("start_loop")
+            battle_music["loop"]:pause()
+            battle_music["start"]:pause()
+            hook.remove("think","stop_music")
+        end
+    end)
+    timer.simple(1,function()
+        block_switch = true
+        battle_music["win"]:play()
+        local stopWinMusicCT = timer.curtime()
+        hook.add("think","stop_win_music",function()
+            volume = math.clamp(5-(timer.curtime()-stopWinMusicCT)*0.5,0,1)
+            battle_music["win"]:setVolume(volume)
+            if volume <= 0 then
+                block_switch = false
+                battle_music["win"]:pause()
+                hook.remove("think","stop_win_music")
+            end
+        end)
+    end)
+end
+
 local screen_blocker = hologram.create(Vector(),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl",Vector(0.01,20,11)/5.5)
 screen_blocker:setMaterial("models/debug/debugwhite")
 screen_blocker:suppressEngineLighting(true)
@@ -155,9 +225,13 @@ function create_mesh()
 end
 local animation_time = 0
 function capture_frame()
+    block_switch = true
     frame_captured = false
     local ct = timer.curtime()
     screen_blocker:setNoDraw(false)
+    timer.simple(5,function()
+        block_switch = false
+    end)
     hook.add("drawhud", "copy_material", function()
         render.selectRenderTarget("rt")
         render.setLightingMode(2)
@@ -178,21 +252,34 @@ function capture_frame()
                 holo.done = false
             end
         end
+        startMusicSystem()
         animation_time = timer.curtime()
         hook.remove("drawhud","copy_material")
     end)
 end
 local pressed = false
 hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
+    if ready != true then
+        if battle_music["start"] and battle_music["loop"] and battle_music["win"] then
+            ready = true
+            block_switch = false
+            print("ready")
+        end
+    end
     if player():keyDown(IN_KEY.RELOAD) then
         if pressed != true then
             pressed = true
-            if requested_frame != true then
-                requested_frame = true
-                capture_frame()
-            else
-                frame_captured = false
-                requested_frame = false
+            if block_switch != true then
+                if requested_frame != true then
+                    if ready then
+                        requested_frame = true
+                        capture_frame()
+                    end
+                else
+                    frame_captured = false
+                    requested_frame = false
+                    stopMusicSystem()
+                end
             end
         end
     else
@@ -206,7 +293,6 @@ hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
         screen_blocker:setColor(Color(0,0,0,math.clamp(2-(timer.curtime()-animation_time),0,1)*255))
         screen_blocker:setPos(camera_pos+camera_angle:getForward()*12.5)
         screen_blocker:setAngles(camera_angle)
-        
         for index, holo in pairs(holos) do
             local time = math.easeInSine(math.clamp((timer.curtime()-animation_time)*1-2*index/#holos,0,1))
             local time2 = math.easeInOutSine(math.clamp((timer.curtime()-animation_time)*6,0,1))
