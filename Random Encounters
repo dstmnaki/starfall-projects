@@ -1,4 +1,4 @@
---@name Turn Based Combat
+--@name Random Encounters
 --@author Nakkitsunami
 --@shared
 --@include nakilibs/screen_shatter_obj.txt
@@ -446,29 +446,33 @@ function capture_frame()
     end)
 end
 
+
+local move_distance = math.random(400,800)
+local moved_distance = 0
+
 local camera_setups = {}
 camera_setups["win"] = {}
 local t = camera_setups["win"]
 t.pos = player_ent.pos+Vector(-80,0,65)
-t.ang = chip():getAngles()+Angle(8,0,0)
+t.ang = Angle(8,0,0)
 
 camera_setups["idle"] = {}
 local t = camera_setups["idle"]
 t[1] = {}
 t[1].pos = chip():getPos()+Vector(350,250,150)
-t[1].ang = chip():getAngles()+Angle(15,180+35,0)
+t[1].ang = Angle(15,180+35,0)
 
 t[2] = {}
 t[2].pos = chip():getPos()+Vector(350,-250,150)
-t[2].ang = chip():getAngles()+Angle(15,180-35,0)
+t[2].ang = Angle(15,180-35,0)
 
 t[3] = {}
 t[3].pos = chip():getPos()+Vector(-350,250,150)
-t[3].ang = chip():getAngles()+Angle(15,-35,0)
+t[3].ang = Angle(15,-35,0)
 
 t[4] = {}
 t[4].pos = chip():getPos()+Vector(-350,-250,150)
-t[4].ang = chip():getAngles()+Angle(15,35,0)
+t[4].ang = Angle(15,35,0)
 
 local finish_ct = 0
 local dead_count = 0
@@ -497,6 +501,7 @@ function end_round(escape)
         activate_camera = false
         player_ent:setNoDraw(true)
         crowbar:setNoDraw(true)
+        move_distance = math.random(400,800)
         net.start("exit_seat")
         net.send()
         for i = 1, #monster_table do
@@ -509,6 +514,7 @@ function end_round(escape)
             activate_camera = false
             player_ent:setNoDraw(true)
             crowbar:setNoDraw(true)
+            move_distance = math.random(400,800)
             net.start("exit_seat")
             net.send()
         end)
@@ -1059,7 +1065,6 @@ hook.add("DrawHUD","",function()
         end
     end
 end)
-
 local pressed = false
 hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
     for mon_id = 1, #monster_table do
@@ -1090,7 +1095,7 @@ hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
             if block_switch != true then
                 if requested_frame != true then
                     if ready then
-                        start_round()
+                        --start_round()
                     end
                 end
             end
@@ -1130,10 +1135,22 @@ hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
                 end
             end
         end
+        move_ct = timer.curtime()
         return {
             angles = camera_angle_set,
             origin = camera_pos_set,
         }
+    elseif requested_frame != true and block_switch != true then
+        if move_ct == nil then move_ct = timer.curtime() end
+        if timer.curtime() - move_ct > 0.1 then
+            local delta = timer.curtime() - move_ct
+            moved_distance = moved_distance + owner():getVelocity():getLength() * delta / 10
+            if moved_distance >= move_distance then
+                start_round()
+                moved_distance = 0
+            end
+            move_ct = timer.curtime()
+        end
     end
 end)
 end
