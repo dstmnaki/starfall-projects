@@ -5,7 +5,7 @@
 
 if SERVER then
 
---chip():setColor(Color(255,255,255,0))
+chip():setColor(Color(255,255,255,0))
 
 local hud = prop.createComponent(chip():getPos(), chip():getAngles(), "starfall_hud", "models/props_combine/breenglobe.mdl", true)
 hud:setColor(Color(255,255,255,0))
