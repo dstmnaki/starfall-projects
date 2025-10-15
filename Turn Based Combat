@@ -547,7 +547,7 @@ hook.add("Removed", "", function()
 end)
 
 function scale_3d(pos)
-    local POSTOSCREEN = (pos+Vector(0,0,100):getRotated(camera_angle)):toScreen()
+    local POSTOSCREEN = (pos+Vector(0,0,100):getRotated(camera_angle and camera_angle or owner():getEyeAngles())):toScreen()
     local POSTOSCREEN2 = pos:toScreen()
     return Vector(POSTOSCREEN["x"],POSTOSCREEN["y"],0):getDistance(Vector(POSTOSCREEN2["x"],POSTOSCREEN2["y"],0))/100
 end
@@ -557,7 +557,13 @@ function linearSin(t)
     return t < 1 and t or 2 - t
 end
 
+local DEBUG = false
+
+if DEBUG then
 action_state = "select action"
+
+monster_table[1] = hologram.create(chip():getPos()+Vector(-distance/2,0,0), Angle(0,0,0), "models/player/zombie_classic.mdl", Vector(1))
+end
 local flip_target_arrow = false
 local flip_target_arrow2 = false
 local animation_length = 1
@@ -597,6 +603,37 @@ hook.add("DrawHUD","",function()
     if action_state != "waiting" and #monster_table > 0 then
         if turn == 1 then
             if dying_count != #monster_table then
+                --[[
+                if input.isKeyDown(KEY.LEFTARROW) then
+                    if leftarrow != true then
+                        leftarrow = true
+                        if action_state == "select action" then
+                            selection = 1
+                            select_ct = timer.curtime()
+                            action_state = "commands"
+                        end
+                    end
+                else
+                    if leftarrow != false then
+                        leftarrow = false
+                        
+                    end
+                end
+                if input.isKeyDown(KEY.RIGHTARROW) then
+                    if rightarrow != true then
+                        rightarrow = true
+                        if action_state == "commands" then
+                            selection = 1
+                            select_ct = timer.curtime()
+                            action_state = "select action"
+                        end
+                    end
+                else
+                    if rightarrow != false then
+                        rightarrow = false
+                        
+                    end
+                end]]
                 if input.isKeyDown(KEY.UPARROW) then
                     if uparrow != true then
                         uparrow = true
@@ -943,6 +980,10 @@ hook.add("DrawHUD","",function()
                 render.drawTexturedRect(167-appear_slide_distance*(1-appear_time), 805+52*2, 1024, 1024)
                 render.drawText(167+403/2,805+52*2+8,"Escape",TEXT_ALIGN.CENTER)
                 
+                render.drawText(145,958,"Commands",TEXT_ALIGN.LEFT)
+                
+                render.drawText(553,958,"SUB",TEXT_ALIGN.RIGHT)
+                
                 render.setMaterial(action_selection_arrow)
                 render.drawTexturedRect(111+15*math.sin(math.rad(timer.curtime()*360)), 794 + 52*(selection-1), 1024, 1024)
             elseif action_state == "select special" then
@@ -1063,7 +1104,7 @@ hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
         local lerp_time = math.clamp(timer.curtime() - finish_ct,0,requested_frame == false and 1 or 0)
         camera_pos_set = math.lerpVector(lerp_time,camera_pos,camera_setups["win"].pos)
         camera_angle_set = math.slerpQuaternion(camera_angle:getQuaternion(),camera_setups["win"].ang:getQuaternion(),lerp_time):getEulerAngle()
-
+        
         screen_blocker:setColor(Color(0,0,0,math.clamp(2-(timer.curtime()-animation_time),0,1)*255))
         screen_blocker:setPos(camera_pos_set+camera_angle_set:getForward()*12.5)
         screen_blocker:setAngles(camera_angle_set)
