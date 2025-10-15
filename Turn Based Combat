@@ -493,12 +493,12 @@ function end_round(escape)
     requested_frame = false
     stopMusicSystem(escape)
     finish_ct = timer.curtime()
-    net.start("exit_seat")
-    net.send()
     if escape then
         activate_camera = false
         player_ent:setNoDraw(true)
         crowbar:setNoDraw(true)
+        net.start("exit_seat")
+        net.send()
         for i = 1, #monster_table do
             if monster_table[i] then
                 monster_table[i]:setNoDraw(true)
@@ -509,6 +509,8 @@ function end_round(escape)
             activate_camera = false
             player_ent:setNoDraw(true)
             crowbar:setNoDraw(true)
+            net.start("exit_seat")
+            net.send()
         end)
         dead_count = 0
         for i = 1, #monster_table do
