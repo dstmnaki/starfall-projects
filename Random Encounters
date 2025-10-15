@@ -147,7 +147,7 @@ function downloadMusic()
         end)
     else
         print("Downloading sounds")
-        bass.loadURL("https://dl.dropboxusercontent.com/scl/fi/d1a1df6a8ox2pu0uwe1ra/battle-start-betterer.mp3?rlkey=e1qi8s2cuf74nzem4uh5ra68j&dl=0", "2d noblock noplay", function(snd)
+        bass.loadURL("https://raw.githubusercontent.com/dstmnaki/starfall-projects/refs/heads/main/battle%20start%20betterer.mp3", "2d noblock noplay", function(snd)
             if snd then
                 battle_music["start"] = snd
                 battle_music["start"]:pause()
@@ -156,7 +156,7 @@ function downloadMusic()
             end
         end)
         
-        bass.loadURL("https://dl.dropboxusercontent.com/scl/fi/btc84p1t1tx1o7o46dxwn/battle-loop.mp3?rlkey=68k35rn710misd1vtk5btgvwy&dl=1", "2d noblock noplay", function(snd)
+        bass.loadURL("https://raw.githubusercontent.com/dstmnaki/starfall-projects/refs/heads/main/battle%20loop.mp3", "2d noblock noplay", function(snd)
             if snd then
                 battle_music["loop"] = snd
                 battle_music["loop"]:pause()
@@ -165,7 +165,7 @@ function downloadMusic()
             end
         end)
         
-        bass.loadURL("https://dl.dropboxusercontent.com/scl/fi/tok4m93s2slsleyp1y9s6/win.mp3?rlkey=8umzob8y6474f51xpab8tsxir&dl=1", "2d noblock noplay", function(snd)
+        bass.loadURL("https://raw.githubusercontent.com/dstmnaki/starfall-projects/refs/heads/main/win.mp3", "2d noblock noplay", function(snd)
             if snd then
                 battle_music["win"] = snd
                 battle_music["win"]:pause()
