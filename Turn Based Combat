@@ -567,8 +567,18 @@ local hitMarkers = {}
 
 local font = render.createFont("TargetID", 35, 400, false, false, true, false, 0, false, false)
 
+local materials_loaded = false
+
 hook.add("DrawHUD","",function()
-    
+    if materials_loaded != true then
+        materials_loaded = true
+        render.setMaterial(action_bar)
+        render.setMaterial(action_selection_arrow)
+        render.setMaterial(selection_bar)
+        render.setMaterial(selection_bar_highlight)
+        render.setMaterial(player_selection_arrow)
+        render.setMaterial(target_selection_arrow)
+    end
     render.setFont(font)
     
     if #hitMarkers > 0 then
