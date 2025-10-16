@@ -3,6 +3,14 @@
 --@client
 -- Derived from BoneMatcher by Sparky and help from Starfall discord, thanks
 
+
+--[[
+
+CURRENTLY BROKEN, FIXING PARENT RELATIVE ANGLES
+
+--]]
+
+
 bone_manipulate_lib = {}
 
 function bone_manipulate_lib.validateBones(ent,lookup_table,write_ids,write_parents)
