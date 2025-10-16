@@ -1,0 +1,46 @@
+--@name nakilibs/bone_manipulate_lib
+--@author Nakkitsunami
+--@client
+-- Derived from BoneMatcher by Sparky and help from Starfall discord, thanks
+
+bone_manipulate_lib = {}
+
+function bone_manipulate_lib.validateBones(ent,lookup_table,write_ids,write_parents)
+    local temp1 = {}
+    local temp2 = {}
+    for i, bone_name in pairs(lookup_table) do
+        local bone_id = ent:lookupBone(bone_name)
+        if bone_id == nil then
+            return false, {}, {}
+        end
+        local parent_id = ent:getBoneParent(bone_id)
+        temp1[bone_name] = bone_id
+        temp2[bone_name] = parent_id
+    end
+    write_ids = table.copy(temp1)
+    write_parents = table.copy(temp2)
+    return true, write_ids, write_parents
+end
+
+function bone_manipulate_lib.storeBoneAngles(ent,lookup_table)
+    local ret = {}
+    for i, boneid in pairs(lookup_table) do
+        _, ret[tostring(boneid)] = ent:getBonePosition(boneid)
+        local parent_id = ent:getBoneParent(boneid)
+        if parent_id != -1 and parent_id != boneid then
+            _, ret[tostring(parent_id)] = ent:getBonePosition(parent_id)
+        end
+    end
+    ent.ref_t = ret
+end
+
+function bone_manipulate_lib.setBoneAngles(ent,bone_id,parent_id,ang)
+    local ref = ent.ref_t
+    local original = ref[tostring(bone_id)]
+    local _, parent_angle = ent:getBonePosition(parent_id)
+    local parent_original = ref[tostring(parent_id)]
+    
+    local _, ang_world = worldToLocal(Vector(),ang,Vector(),original+(parent_angle-parent_original))
+    
+    ent:manipulateBoneAngles(bone_id, ang_world)
+end
