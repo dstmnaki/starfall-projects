@@ -6,6 +6,7 @@ player_bones_list = {}
 
 function player_bones_list.spine()
     return {
+        "ValveBiped.Bip01_Pelvis",
         "ValveBiped.Bip01_Spine",
         "ValveBiped.Bip01_Spine1",
         "ValveBiped.Bip01_Spine2",
