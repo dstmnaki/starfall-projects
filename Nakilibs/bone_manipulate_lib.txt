@@ -25,7 +25,7 @@ end
 function bone_manipulate_lib.storeBoneAngles(ent,lookup_table)
     local ret = {}
     for i, boneid in pairs(lookup_table) do
-        if ent:getBoneName(boneid) != nil and ent:getBoneName(boneid) != "" then
+        if ent:getBoneName(boneid) != "" then
             _, ret[tostring(boneid)] = ent:getBonePosition(boneid)
             local parent_id = ent:getBoneParent(boneid)
             if parent_id != -1 and parent_id != boneid then
@@ -33,7 +33,12 @@ function bone_manipulate_lib.storeBoneAngles(ent,lookup_table)
             end
         end
     end
-    ent.ref_t = ret
+    if table.count(ret) == 0 then
+        return false
+    else
+        ent.ref_t = ret
+        return true
+    end
 end
 
 function bone_manipulate_lib.setBoneAngles(ent,bone_id,parent_id,ang)
