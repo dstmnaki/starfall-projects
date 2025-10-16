@@ -1,0 +1,175 @@
+--@name nakilibs/player_bones_list
+--@author Nakkitsunami
+--@shared
+
+player_bones_list = {}
+
+function player_bones_list.spine()
+    return {
+        "ValveBiped.Bip01_Spine",
+        "ValveBiped.Bip01_Spine1",
+        "ValveBiped.Bip01_Spine2",
+        "ValveBiped.Bip01_Spine4",
+        "ValveBiped.Bip01_Neck1",
+        "ValveBiped.Bip01_Head1",
+    }
+end
+
+function player_bones_list.leg(leftright)
+    return {
+        "ValveBiped.Bip01_"..(leftright and "L" or "R").."_Thigh",
+        "ValveBiped.Bip01_"..(leftright and "L" or "R").."_Calf",
+        "ValveBiped.Bip01_"..(leftright and "L" or "R").."_Foot"
+    }
+end
+
+function player_bones_list.arm(leftright)
+    return {
+        "ValveBiped.Bip01_"..(leftright and "L" or "R").."_Clavicle",
+        "ValveBiped.Bip01_"..(leftright and "L" or "R").."_UpperArm",
+        "ValveBiped.Bip01_"..(leftright and "L" or "R").."_Forearm",
+        "ValveBiped.Bip01_"..(leftright and "L" or "R").."_Hand",
+    }
+end
+
+function player_bones_list.fingers(leftright)
+    return {
+        "ValveBiped.Bip01_"..(leftright and "L" or "R").."_Finger4",
+        "ValveBiped.Bip01_"..(leftright and "L" or "R").."_Finger41",
+        "ValveBiped.Bip01_"..(leftright and "L" or "R").."_Finger42",
+        "ValveBiped.Bip01_"..(leftright and "L" or "R").."_Finger3",
+        "ValveBiped.Bip01_"..(leftright and "L" or "R").."_Finger31",
+        "ValveBiped.Bip01_"..(leftright and "L" or "R").."_Finger32",
+        "ValveBiped.Bip01_"..(leftright and "L" or "R").."_Finger2",
+        "ValveBiped.Bip01_"..(leftright and "L" or "R").."_Finger21",
+        "ValveBiped.Bip01_"..(leftright and "L" or "R").."_Finger22",
+        "ValveBiped.Bip01_"..(leftright and "L" or "R").."_Finger1",
+        "ValveBiped.Bip01_"..(leftright and "L" or "R").."_Finger11",
+        "ValveBiped.Bip01_"..(leftright and "L" or "R").."_Finger12",
+        "ValveBiped.Bip01_"..(leftright and "L" or "R").."_Finger0",
+        "ValveBiped.Bip01_"..(leftright and "L" or "R").."_Finger01",
+        "ValveBiped.Bip01_"..(leftright and "L" or "R").."_Finger02",
+    }
+end
+
+function player_bones_list.all(skip_adjust_bones)
+    if skip_adjust_bones then
+        return {
+            "ValveBiped.Bip01_Spine",
+            "ValveBiped.Bip01_Spine1",
+            "ValveBiped.Bip01_Spine2",
+            "ValveBiped.Bip01_Spine4",
+            "ValveBiped.Bip01_Neck1",
+            "ValveBiped.Bip01_Head1",
+            
+            "ValveBiped.Bip01_R_Clavicle",
+            "ValveBiped.Bip01_R_UpperArm",
+            "ValveBiped.Bip01_R_Forearm",
+            "ValveBiped.Bip01_R_Hand",
+            
+            "ValveBiped.Bip01_L_Clavicle",
+            "ValveBiped.Bip01_L_UpperArm",
+            "ValveBiped.Bip01_L_Forearm",
+            "ValveBiped.Bip01_L_Hand",
+            
+            
+            "ValveBiped.Bip01_R_Thigh",
+            "ValveBiped.Bip01_R_Calf",
+            "ValveBiped.Bip01_R_Foot",
+            
+            "ValveBiped.Bip01_L_Thigh",
+            "ValveBiped.Bip01_L_Calf",
+            "ValveBiped.Bip01_L_Foot",
+            
+            "ValveBiped.Bip01_L_Finger4",
+            "ValveBiped.Bip01_L_Finger41",
+            "ValveBiped.Bip01_L_Finger42",
+            "ValveBiped.Bip01_L_Finger3",
+            "ValveBiped.Bip01_L_Finger31",
+            "ValveBiped.Bip01_L_Finger32",
+            "ValveBiped.Bip01_L_Finger2",
+            "ValveBiped.Bip01_L_Finger21",
+            "ValveBiped.Bip01_L_Finger22",
+            "ValveBiped.Bip01_L_Finger1",
+            "ValveBiped.Bip01_L_Finger11",
+            "ValveBiped.Bip01_L_Finger12",
+            "ValveBiped.Bip01_L_Finger0",
+            "ValveBiped.Bip01_L_Finger01",
+            "ValveBiped.Bip01_L_Finger02",
+            "ValveBiped.Bip01_R_Finger4",
+            "ValveBiped.Bip01_R_Finger41",
+            "ValveBiped.Bip01_R_Finger42",
+            "ValveBiped.Bip01_R_Finger3",
+            "ValveBiped.Bip01_R_Finger31",
+            "ValveBiped.Bip01_R_Finger32",
+            "ValveBiped.Bip01_R_Finger2",
+            "ValveBiped.Bip01_R_Finger21",
+            "ValveBiped.Bip01_R_Finger22",
+            "ValveBiped.Bip01_R_Finger1",
+            "ValveBiped.Bip01_R_Finger11",
+            "ValveBiped.Bip01_R_Finger12",
+            "ValveBiped.Bip01_R_Finger0",
+            "ValveBiped.Bip01_R_Finger01",
+            "ValveBiped.Bip01_R_Finger02"
+        }
+    else
+        return {
+            "ValveBiped.Bip01_Spine",
+            "ValveBiped.Bip01_Spine1",
+            "ValveBiped.Bip01_Spine2",
+            "ValveBiped.Bip01_Spine4",
+            "ValveBiped.Bip01_Neck1",
+            "ValveBiped.Bip01_Head1",
+            "ValveBiped.forward",
+            "ValveBiped.Bip01_R_Clavicle",
+            "ValveBiped.Bip01_R_UpperArm",
+            "ValveBiped.Bip01_R_Forearm",
+            "ValveBiped.Bip01_R_Hand",
+            "ValveBiped.Anim_Attachment_RH",
+            "ValveBiped.Bip01_L_Clavicle",
+            "ValveBiped.Bip01_L_UpperArm",
+            "ValveBiped.Bip01_L_Forearm",
+            "ValveBiped.Bip01_L_Hand",
+            "ValveBiped.Anim_Attachment_LH",
+            "ValveBiped.Bip01_R_Thigh",
+            "ValveBiped.Bip01_R_Calf",
+            "ValveBiped.Bip01_R_Foot",
+            "ValveBiped.Bip01_R_Toe0",
+            "ValveBiped.Bip01_L_Thigh",
+            "ValveBiped.Bip01_L_Calf",
+            "ValveBiped.Bip01_L_Foot",
+            "ValveBiped.Bip01_L_Toe0",
+            "ValveBiped.Bip01_L_Finger4",
+            "ValveBiped.Bip01_L_Finger41",
+            "ValveBiped.Bip01_L_Finger42",
+            "ValveBiped.Bip01_L_Finger3",
+            "ValveBiped.Bip01_L_Finger31",
+            "ValveBiped.Bip01_L_Finger32",
+            "ValveBiped.Bip01_L_Finger2",
+            "ValveBiped.Bip01_L_Finger21",
+            "ValveBiped.Bip01_L_Finger22",
+            "ValveBiped.Bip01_L_Finger1",
+            "ValveBiped.Bip01_L_Finger11",
+            "ValveBiped.Bip01_L_Finger12",
+            "ValveBiped.Bip01_L_Finger0",
+            "ValveBiped.Bip01_L_Finger01",
+            "ValveBiped.Bip01_L_Finger02",
+            "ValveBiped.Bip01_R_Finger4",
+            "ValveBiped.Bip01_R_Finger41",
+            "ValveBiped.Bip01_R_Finger42",
+            "ValveBiped.Bip01_R_Finger3",
+            "ValveBiped.Bip01_R_Finger31",
+            "ValveBiped.Bip01_R_Finger32",
+            "ValveBiped.Bip01_R_Finger2",
+            "ValveBiped.Bip01_R_Finger21",
+            "ValveBiped.Bip01_R_Finger22",
+            "ValveBiped.Bip01_R_Finger1",
+            "ValveBiped.Bip01_R_Finger11",
+            "ValveBiped.Bip01_R_Finger12",
+            "ValveBiped.Bip01_R_Finger0",
+            "ValveBiped.Bip01_R_Finger01",
+            "ValveBiped.Bip01_R_Finger02",
+            "__INVALIDBONE__"
+        }
+    end
+end
