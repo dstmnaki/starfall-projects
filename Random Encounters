@@ -253,22 +253,22 @@ captured_frame:setFloat("$alpha", 1)
 
 
 action_bar = material.create("UnlitGeneric")
-action_bar:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/51nfxmgykfuw48tac2wd0/action_bar_new_but_also_new.png?rlkey=wjzjkuq7rwdn2udmi5p1q9bom&dl=1", nil, nil)
+action_bar:setTextureURL("$basetexture", "https://raw.githubusercontent.com/dstmnaki/starfall-projects/refs/heads/main/ffx_hud_assets/action_bar_new_but_also_new.png", nil, nil)
 
 action_selection_arrow = material.create("UnlitGeneric")
-action_selection_arrow:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/u96glg1cdg8x8nwj3j5qr/action_selection_arrow_new.png?rlkey=woq0oy9gwj0x9k10bw4fc7klx&dl=1", nil, nil)
+action_selection_arrow:setTextureURL("$basetexture", "https://raw.githubusercontent.com/dstmnaki/starfall-projects/refs/heads/main/ffx_hud_assets/action_selection_arrow_new.png", nil, nil)
 
 selection_bar = material.create("UnlitGeneric")
-selection_bar:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/vo5hq7soqyanfncj0kp3a/selection_bar_new.png?rlkey=2sfp3si8t92vvngx229toscc7&dl=1", nil, nil)
+selection_bar:setTextureURL("$basetexture", "https://raw.githubusercontent.com/dstmnaki/starfall-projects/refs/heads/main/ffx_hud_assets/selection_bar_new.png", nil, nil)
 
 selection_bar_highlight = material.create("UnlitGeneric")
-selection_bar_highlight:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/9c17pkl4vaiy3mmlupagl/selection_bar_highlight_new.png?rlkey=lwedq5gts74ek2qfycdc1c83l&dl=1", nil, nil)
+selection_bar_highlight:setTextureURL("$basetexture", "https://raw.githubusercontent.com/dstmnaki/starfall-projects/refs/heads/main/ffx_hud_assets/selection_bar_highlight_new.png", nil, nil)
 
 player_selection_arrow = material.create("UnlitGeneric")
-player_selection_arrow:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/rxkkg27bwk5s3b7ycys70/player_selection_arrow_new.png?rlkey=6lj997c9f80vpi5gc3iuiisgz&dl=1", nil, nil)
+player_selection_arrow:setTextureURL("$basetexture", "https://raw.githubusercontent.com/dstmnaki/starfall-projects/refs/heads/main/ffx_hud_assets/player_selection_arrow_new.png", nil, nil)
 
 target_selection_arrow = material.create("UnlitGeneric")
-target_selection_arrow:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/kudxeanxy2t9dxiwbilr0/target_selection_arrow_new.png?rlkey=z0dhxojrzpnrvnk38vxl8cfa5&dl=1", nil, nil)
+target_selection_arrow:setTextureURL("$basetexture", "https://raw.githubusercontent.com/dstmnaki/starfall-projects/refs/heads/main/ffx_hud_assets/target_selection_arrow_new.png", nil, nil)
 
 
 local selection = 1
@@ -1092,7 +1092,7 @@ hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
             if block_switch != true then
                 if requested_frame != true then
                     if ready then
-                        --start_round()
+                        start_round()
                     end
                 end
             end
