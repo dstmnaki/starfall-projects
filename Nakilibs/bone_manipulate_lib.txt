@@ -25,17 +25,25 @@ end
 function bone_manipulate_lib.storeBoneAngles(ent,lookup_table)
     local ret = {}
     for i, boneid in pairs(lookup_table) do
-        _, ret[tostring(boneid)] = ent:getBonePosition(boneid)
-        local parent_id = ent:getBoneParent(boneid)
-        if parent_id != -1 and parent_id != boneid then
-            _, ret[tostring(parent_id)] = ent:getBonePosition(parent_id)
+        if ent:getBoneName(boneid) != nil and ent:getBoneName(boneid) != "" then
+            _, ret[tostring(boneid)] = ent:getBonePosition(boneid)
+            local parent_id = ent:getBoneParent(boneid)
+            if parent_id != -1 and parent_id != boneid then
+                _, ret[tostring(parent_id)] = ent:getBonePosition(parent_id)
+            end
         end
     end
     ent.ref_t = ret
 end
 
 function bone_manipulate_lib.setBoneAngles(ent,bone_id,parent_id,ang)
+    if ent._STATE_SET_BONE_ANGLES_BLOCK then return end
     local ref = ent.ref_t
+    if not ref then
+        ent._STATE_SET_BONE_ANGLES_BLOCK = true
+        print("Reference table not created yet! Preventing setBoneAngles from running further on this model to prevent chip from crashing!")
+        return
+    end
     local original = ref[tostring(bone_id)]
     local _, parent_angle = ent:getBonePosition(parent_id)
     local parent_original = ref[tostring(parent_id)]
