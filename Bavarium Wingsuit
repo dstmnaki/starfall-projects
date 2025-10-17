@@ -883,6 +883,12 @@ else
                 end
             end
         end)
+        
+        function scale_3d(pos)
+            local POSTOSCREEN = (pos+Vector(0,0,100):getRotated(owner():getEyeAngles())):toScreen()
+            local POSTOSCREEN2 = pos:toScreen()
+            return Vector(POSTOSCREEN["x"],POSTOSCREEN["y"],0):getDistance(Vector(POSTOSCREEN2["x"],POSTOSCREEN2["y"],0))
+        end
         local w, h = render.getGameResolution()
         hook.add("DrawHUD","",function()
             if owner():inVehicle() and owner():getVehicle() == seat then
@@ -891,6 +897,32 @@ else
                 
                 render.setColor(Color(0,0,0,255*(1-activate_delta)))
                 render.drawRect(0,0,w,h)
+            end
+        end)
+        
+        local glow = material.load("sprites/light_glow02_add")
+        local beam = material.load("effects/lamp_beam")
+        
+        local SpriteSize = 7
+        local SpriteSize2 = 3
+        local Offset = Vector(0,-0.1,3.5)
+        hook.add("predrawtranslucentrenderables","",function()
+            if owner():inVehicle() and owner():getVehicle() == seat and afterburner and afterburner != nil and afterburner:isValid() then
+                
+                render.pushViewMatrix({type = "3D"})
+                
+                render.setColor(Color(0,255,255))
+                
+                render.setMaterial(glow)
+                
+                local Rotation = Angle(-18,-90,-90)
+                render.draw3DQuad(afterburner:localToWorld(Offset+Vector(0,SpriteSize,-SpriteSize):getRotated(Rotation)),afterburner:localToWorld(Offset+Vector(0,-SpriteSize,-SpriteSize):getRotated(Rotation)),afterburner:localToWorld(Offset+Vector(0,-SpriteSize,SpriteSize):getRotated(Rotation)),afterburner:localToWorld(Offset+Vector(0,SpriteSize,SpriteSize):getRotated(Rotation)))
+                render.draw3DQuad(afterburner:localToWorld(Offset+Vector(0,SpriteSize2,-SpriteSize2):getRotated(Rotation)),afterburner:localToWorld(Offset+Vector(0,-SpriteSize2,-SpriteSize2):getRotated(Rotation)),afterburner:localToWorld(Offset+Vector(0,-SpriteSize2,SpriteSize2):getRotated(Rotation)),afterburner:localToWorld(Offset+Vector(0,SpriteSize2,SpriteSize2):getRotated(Rotation)))
+                
+                render.setMaterial(beam)
+                
+                render.draw3DBeam(afterburner:localToWorld(Offset),afterburner:localToWorld(Vector(0,-2,25)), 4, 0, 0.99)
+                render.popViewMatrix()
             end
         end)
     end
