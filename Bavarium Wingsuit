@@ -25,10 +25,11 @@ if SERVER then
         net.writeEntity(seat)
         net.send(owner(),false)
         
-        snd = sound.create(seat, "^thrusters/Rocket04.wav", false)
+        snd = sound.create(chip(), "^thrusters/Rocket04.wav", false)
     end)
     local force = 2
     local mass = chip():getMass()
+    local boost_button_toggle = false
     hook.add("think","",function()
         local W = owner():keyDown(IN_KEY.FORWARD) and 1 or 0
         local S = owner():keyDown(IN_KEY.BACK) and 1 or 0
@@ -49,7 +50,15 @@ if SERVER then
                             local yaw = owner():getEyeAngles().y
                             chip():setPos(owner():getPos()+Vector(0,0,45))
                             chip():setAngles(Angle(-45,yaw,0))
-                            phys_obj:applyForceCenter(chip():getForward() * 1000 * mass)
+                            phys_obj:applyForceCenter(chip():getForward() * 2000 * mass)
+                            
+                            if snd and snd != nil then
+                                snd:play()
+                                timer.simple(0.75,function()
+                                    snd:stop(0.25)
+                                end)
+                            end
+                            
                         else
                             chip():setPos(owner():getPos())
                             chip():setAngles(owner():getVelocity():getAngle())
