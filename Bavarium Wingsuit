@@ -620,7 +620,7 @@ else
                         
                         
                         local bone = "Pelvis"
-                        local ang = Angle(15*yaw,3*yaw,(1+10*pitch))
+                        local ang = Angle(15*yaw,3*yaw,1)
                         
                         local ang_but_transitioning = Angle(0,0,0)
                         
