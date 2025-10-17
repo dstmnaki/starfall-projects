@@ -116,10 +116,10 @@ if SERVER then
             local speed = vel:getLength()
             
             local local_vel_get = chip():getLocalVelocity()
-            local x_mult = math.clamp(local_vel_get.x/10000,boost_button and 0.5 or 0,1)
+            local x_mult = math.clamp(local_vel_get.x/10000,boost_button and 1 or 0,1)
             local local_vel = local_vel_get * x_mult
             
-            local pitch_mult = (1-math.easeOutSine(math.clamp(1+ang_in.p/90,0,1)))+math.easeOutSine(math.abs(chip():getAngleVelocityAngle().pitch/90))
+            local pitch_mult = boost_button and 0 or (1-math.easeOutSine(math.clamp(1+ang_in.p/90,0,1)))+math.easeOutSine(math.abs(chip():getAngleVelocityAngle().pitch/90))
             
             local forward = chip():getForward()
             local right   = chip():getRight()
