@@ -131,8 +131,8 @@ if SERVER then
             
             local desired_vel = forward * speed
             
-            local redir_strength = 35
-            local redir_force = (desired_vel - vel) * redir_strength * x_mult * (1 - pitch_mult)
+            local redir_strength = 50
+            local redir_force = (desired_vel - vel) * redir_strength * x_mult * (1 - pitch_mult*0.25)
             
             local damping = Vector(
                 -local_vel.x * (pitch_mult+0.1)*(1+pitch_mult*0.5),
@@ -140,7 +140,7 @@ if SERVER then
                 -local_vel.z * (1 - pitch_mult)*(1-pitch_mult*0.5)
             )
             
-            local world_damping = chip():localToWorld((damping*(1 + _boost/6000) / (1 + x_mult * (1 - pitch_mult)))) - chip():getPos()
+            local world_damping = chip():localToWorld((damping*(1 + _boost/6000*0.5) / (1 + x_mult * (1 - pitch_mult)))) - chip():getPos()
             
             local gravity = Vector(0,0,-800 * math.clamp((1 - 1.5*(1 - pitch_mult)*x_mult),0,1))
             
