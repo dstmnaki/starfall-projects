@@ -593,7 +593,7 @@ else
                     local speed = math.clamp(_boost*2,0,1)+ease_activate_anim
                     local boost = math.easeInOutSine(speed)
                     local aim_ang = owner():getEyeAngles()
-                    aim_ang.r = math.clamp((ang_in.y-aim_ang.y)*5,-45,45)
+                    aim_ang.r = math.clamp((ang_in.y-aim_ang.y)*5+(D-A)*90,-45,45)
                     ang_in = math.slerpQuaternion(ang_in:getQuaternion(),aim_ang:getQuaternion(),0.15):getEulerAngle()+Angle(math.sin(math.rad(timer.curtime()*(360+360*speed)+math.sin(math.rad(timer.curtime()*263)))),math.cos(math.rad(timer.curtime()*(360+360*speed)+math.sin(math.rad(timer.curtime()*118.7)))),0)*0.25
                     local cam_parent = chip()
                     
@@ -619,7 +619,7 @@ else
                     
                     
                     local bone = "Pelvis"
-                    local ang = Angle(15*yaw,3*yaw,(1+25*pitch))
+                    local ang = Angle(15*yaw,3*yaw,(1+10*pitch))
                     
                     local ang_but_transitioning = Angle(0,0,0)
                     
