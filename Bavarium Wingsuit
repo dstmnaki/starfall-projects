@@ -90,69 +90,71 @@ if SERVER then
                 wind:stop(0.5)
             end
         end
-        if owner():inVehicle() and owner():getVehicle() == seat and snd and snd != nil and wind and wind != nil then
-            if boost_button then
-                if boost_button_toggle != true then
-                    boost_button_toggle = true
-                    snd:play()
+        if owner():inVehicle() and owner():getVehicle() == seat then
+            if snd and snd != nil and wind and wind != nil then
+                if boost_button then
+                    if boost_button_toggle != true then
+                        boost_button_toggle = true
+                        snd:play()
+                    end
+                else
+                    if boost_button_toggle != false then
+                        boost_button_toggle = false
+                        snd:stop(0.25)
+                    end
                 end
-            else
-                if boost_button_toggle != false then
-                    boost_button_toggle = false
-                    snd:stop(0.25)
-                end
+                local vel = math.clamp(-0.1+chip():getVelocity():getLength()/3000,0,1)
+                wind:setPitch(60+140*vel)
+                wind:setVolume(vel)
             end
-            local vel = math.clamp(-0.1+chip():getVelocity():getLength()/3000,0,1)
-            wind:setPitch(60+140*vel)
-            wind:setVolume(vel)
+            
+            local aim_ang = owner():getEyeAngles()
+            aim_ang.r = (ang_in.y-aim_ang.y)*5 + (D-A)*90
+            ang_in = math.slerpQuaternion(ang_in:getQuaternion(),aim_ang:getQuaternion(),0.1):getEulerAngle()
+            
+            local vel  = phys_obj:getVelocity()
+            local speed = vel:getLength()
+            
+            local local_vel_get = chip():getLocalVelocity()
+            local x_mult = math.clamp(local_vel_get.x/10000,0,1)
+            local local_vel = local_vel_get * x_mult
+            
+            local pitch_mult = (1-math.easeOutSine(math.clamp(1+ang_in.p/90,0,1)))+math.easeOutSine(math.abs(chip():getAngleVelocityAngle().pitch/90))
+            
+            local forward = chip():getForward()
+            local right   = chip():getRight()
+            local up      = chip():getUp()
+            
+            local _boost = boost_button and (6000-speed/53)*1.5 or 0
+            
+            local forward_force = forward * _boost
+            
+            local desired_vel = forward * speed
+            
+            local redir_strength = 35
+            local redir_force = (desired_vel - vel) * redir_strength * x_mult * (1 - pitch_mult)
+            
+            local damping = Vector(
+                -local_vel.x * (pitch_mult+0.1)*(1+pitch_mult*0.5),
+                -local_vel.y * (1 - pitch_mult)*(1-pitch_mult*0.5),
+                -local_vel.z * (1 - pitch_mult)*(1-pitch_mult*0.5)
+            )
+            
+            local world_damping = chip():localToWorld((damping / (1 + x_mult * (1 - pitch_mult)))) - chip():getPos()
+            
+            local gravity = Vector(0,0,-800 * math.clamp((1 - 1.5*(1 - pitch_mult)*x_mult),0,1))
+            
+            local total_force = forward_force + gravity + world_damping + redir_force
+            
+            phys_obj:applyForceCenter(total_force * mass / 35)
+    
+    
+            local ang_local = chip():worldToLocalAngles(ang_in)
+            local ang_to_vector = ang_local-chip():getAngleVelocityAngle()
+            chip():applyAngForce(ang_to_vector*force*mass)
+            
+            seat:setPos(chip():getPos())
         end
-        
-        local aim_ang = owner():getEyeAngles()
-        aim_ang.r = (ang_in.y-aim_ang.y)*5 + (D-A)*90
-        ang_in = math.slerpQuaternion(ang_in:getQuaternion(),aim_ang:getQuaternion(),0.1):getEulerAngle()
-        
-        local vel  = phys_obj:getVelocity()
-        local speed = vel:getLength()
-        
-        local local_vel_get = chip():getLocalVelocity()
-        local x_mult = math.clamp(local_vel_get.x/10000,0,1)
-        local local_vel = local_vel_get * x_mult
-        
-        local pitch_mult = (1-math.easeOutSine(math.clamp(1+ang_in.p/90,0,1)))+math.easeOutSine(math.abs(chip():getAngleVelocityAngle().pitch/90))
-        
-        local forward = chip():getForward()
-        local right   = chip():getRight()
-        local up      = chip():getUp()
-        
-        local _boost = boost_button and (6000-speed/53)*1.5 or 0
-        
-        local forward_force = forward * _boost
-        
-        local desired_vel = forward * speed
-        
-        local redir_strength = 35
-        local redir_force = (desired_vel - vel) * redir_strength * x_mult * (1 - pitch_mult)
-        
-        local damping = Vector(
-            -local_vel.x * (pitch_mult+0.1)*(1+pitch_mult*0.5),
-            -local_vel.y * (1 - pitch_mult)*(1-pitch_mult*0.5),
-            -local_vel.z * (1 - pitch_mult)*(1-pitch_mult*0.5)
-        )
-        
-        local world_damping = chip():localToWorld((damping / (1 + x_mult * (1 - pitch_mult)))) - chip():getPos()
-        
-        local gravity = Vector(0,0,-800 * math.clamp((1 - 1.5*(1 - pitch_mult)*x_mult),0,1))
-        
-        local total_force = forward_force + gravity + world_damping + redir_force
-        
-        phys_obj:applyForceCenter(total_force * mass / 35)
-
-
-        local ang_local = chip():worldToLocalAngles(ang_in)
-        local ang_to_vector = ang_local-chip():getAngleVelocityAngle()
-        chip():applyAngForce(ang_to_vector*force*mass)
-        
-        seat:setPos(chip():getPos())
     end)
 else
     require("nakilibs/pac_to_holo_loader.txt")
