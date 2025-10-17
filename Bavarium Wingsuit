@@ -389,6 +389,8 @@ else
                     player_ent = pthl.holos["player_ent"]
                     backpack = pthl.holos["backpack"]
                     
+                    player_ent:setLOD(0)
+                    
                     wing_attach_bottom = pthl.holos["wing_attach_bottom"]
                     left_hand = pthl.holos["left_hand"]
                     right_hand = pthl.holos["right_hand"]
