@@ -536,6 +536,7 @@ else
                 if _READY then
                     if timer.curtime() - CT2 > (0.025 + 1*(1-(cpuMax()-cpuAverage())/cpuMax())) and cpuAverage()*1.1 < cpuMax() then
                         local delta = timer.curtime()-CT
+                        
                         if owner():inVehicle() then
                             if is_in_seat != true then
                                 is_in_seat = true
@@ -567,7 +568,7 @@ else
                         
                         local boost_button = transition_to_flight == 1 and owner():keyDown(IN_KEY.SPEED) or false
                         
-                        _boost = _boost + (boost_button and 0.1 or -0.1)*delta*25
+                        _boost = _boost + (boost_button and 0.1 or -0.1)*delta*50
                         _boost = math.clamp(_boost,0,transition_to_flight)
                         
                         if boost_button then
