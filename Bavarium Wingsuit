@@ -110,7 +110,7 @@ if SERVER then
             
             local aim_ang = owner():getEyeAngles()
             aim_ang.r = (ang_in.y-aim_ang.y)*5 + (D-A)*90
-            ang_in = math.slerpQuaternion(ang_in:getQuaternion(),aim_ang:getQuaternion(),0.1):getEulerAngle()
+            ang_in = math.slerpQuaternion(ang_in:getQuaternion(),aim_ang:getQuaternion(),0.2):getEulerAngle()
             
             local vel  = phys_obj:getVelocity()
             local speed = vel:getLength()
