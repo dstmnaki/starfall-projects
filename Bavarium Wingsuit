@@ -567,7 +567,7 @@ else
                         
                         local boost_button = transition_to_flight == 1 and owner():keyDown(IN_KEY.SPEED) or false
                         
-                        _boost = _boost + (boost_button and 0.1 or -0.1)*delta*15
+                        _boost = _boost + (boost_button and 0.1 or -0.1)*delta*25
                         _boost = math.clamp(_boost,0,transition_to_flight)
                         
                         if boost_button then
