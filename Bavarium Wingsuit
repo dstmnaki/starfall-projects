@@ -602,7 +602,7 @@ else
                     player_ent:setAngles(cam_parent:localToWorldAngles(Angle(90*transition_to_flight,0,0)))
                     
                     local pitch_IN = (-25+ang_in.p)/90/(1+boost)*transition_to_flight
-                    local yaw_IN = -cam_parent:worldToLocalAngles(ang_in).y/90/(1+boost)*transition_to_flight
+                    local yaw_IN = -math.clamp(cam_parent:worldToLocalAngles(ang_in).y/125/(1+boost),-1,1)*transition_to_flight
                     
                     local pitch = math.easeOutSine(pitch_IN)/(1+boost)*1.5
                     
