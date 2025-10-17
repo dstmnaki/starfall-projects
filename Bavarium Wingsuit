@@ -31,7 +31,7 @@ if SERVER then
     local force = 2
     local mass = chip():getMass()
     local boost_button_toggle = false
-    hook.add("think","",function()
+    timer.create("int",1/25,0,function()
         local W = owner():keyDown(IN_KEY.FORWARD) and 1 or 0
         local S = owner():keyDown(IN_KEY.BACK) and 1 or 0
         local A = owner():keyDown(IN_KEY.MOVELEFT) and 1 or 0
