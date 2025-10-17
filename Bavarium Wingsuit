@@ -230,7 +230,8 @@ else
             print("Bavarium Wingsuit by Nakkitsunami")
             print("Hold R to deploy wingsuit from ground")
             print("Press R to deploy wingsuit when in air")
-            print("Hold Shift to boost")
+            print("A and D to roll")
+            print("Shift to boost")
             print("E to exit")
         end
     end
