@@ -534,6 +534,14 @@ else
                     end)
                 end
                 if _READY then
+                    
+                    local transition_to_flight = 1
+                    
+                    local boost_button = transition_to_flight == 1 and owner():keyDown(IN_KEY.SPEED) or false
+                    
+                    _boost = _boost + (boost_button and 0.1 or -0.1)*0.1
+                    _boost = math.clamp(_boost,0,transition_to_flight)
+                    
                     if timer.curtime() - CT2 > (0.025 + 1*(1-(cpuMax()-cpuAverage())/cpuMax())) and cpuAverage()*1.1 < cpuMax() then
                         local delta = timer.curtime()-CT
                         
@@ -563,13 +571,6 @@ else
                         activate_delta = math.easeOutSine(math.clamp(timer.curtime() - activate_ct,0,1))
                         
                         local ease_activate_anim = math.easeInOutSine(math.clamp(math.sin(math.rad(activate_delta*180))*1.5,0,1))
-                        
-                        local transition_to_flight = 1
-                        
-                        local boost_button = transition_to_flight == 1 and owner():keyDown(IN_KEY.SPEED) or false
-                        
-                        _boost = _boost + (boost_button and 0.1 or -0.1)*delta*50
-                        _boost = math.clamp(_boost,0,transition_to_flight)
                         
                         if boost_button then
                             if boost_button_toggle != true then
