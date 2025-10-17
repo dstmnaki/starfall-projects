@@ -65,3 +65,4 @@ function bone_manipulate_lib.setBoneAngles(ent,bone_id,parent_id,ang)
     
     ent:manipulateBoneAngles(bone_id, ang_world)
 end
+
