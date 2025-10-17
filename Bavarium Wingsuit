@@ -26,6 +26,7 @@ if SERVER then
         net.send(owner(),false)
         
         snd = sound.create(chip(), "^thrusters/Rocket04.wav", false)
+        wind = sound.create(chip(), "ambient/levels/canals/windmill_wind_loop1.wav", false)
     end)
     local force = 2
     local mass = chip():getMass()
@@ -58,13 +59,16 @@ if SERVER then
                                     snd:stop(0.25)
                                 end)
                             end
-                            
                         else
                             chip():setPos(owner():getPos())
                             chip():setAngles(owner():getVelocity():getAngle())
                             phys_obj:applyForceCenter(chip():getForward() * owner():getVelocity():getLength() * mass)
                         end
                         
+                        
+                        if wind and wind != nil then
+                            wind:play()
+                        end
                         seat:use(USE_ON, 0)
                         owner():setMaterial("null")
                     end)
@@ -82,8 +86,11 @@ if SERVER then
             if snd and snd != nil then
                 snd:stop(0.25)
             end
+            if wind and wind != nil then
+                wind:stop(0.5)
+            end
         end
-        if owner():inVehicle() and owner():getVehicle() == seat and snd and snd != nil then
+        if owner():inVehicle() and owner():getVehicle() == seat and snd and snd != nil and wind and wind != nil then
             if boost_button then
                 if boost_button_toggle != true then
                     boost_button_toggle = true
@@ -95,7 +102,11 @@ if SERVER then
                     snd:stop(0.25)
                 end
             end
+            local vel = math.clamp(-0.1+chip():getVelocity():getLength()/3000,0,1)
+            wind:setPitch(60+140*vel)
+            wind:setVolume(vel)
         end
+        
         local aim_ang = owner():getEyeAngles()
         aim_ang.r = (ang_in.y-aim_ang.y)*5 + (D-A)*90
         ang_in = math.slerpQuaternion(ang_in:getQuaternion(),aim_ang:getQuaternion(),0.1):getEulerAngle()
