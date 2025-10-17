@@ -109,7 +109,7 @@ if SERVER then
             end
             
             local aim_ang = owner():getEyeAngles()
-            aim_ang.r = (ang_in.y-aim_ang.y)*5 + (D-A)*90
+            aim_ang.r = math.clamp((ang_in.y-aim_ang.y)*5 + (D-A)*90,-45,45)
             ang_in = math.slerpQuaternion(ang_in:getQuaternion(),aim_ang:getQuaternion(),0.2):getEulerAngle()
             
             local vel  = phys_obj:getVelocity()
@@ -602,7 +602,7 @@ else
                     player_ent:setAngles(cam_parent:localToWorldAngles(Angle(90*transition_to_flight,0,0)))
                     
                     local pitch_IN = (-25+ang_in.p)/90/(1+boost)*transition_to_flight
-                    local yaw_IN = -math.clamp(cam_parent:worldToLocalAngles(ang_in).y/125/(1+boost),-1,1)*transition_to_flight
+                    local yaw_IN = -math.clamp(cam_parent:worldToLocalAngles(ang_in).y/125/(1+boost),-1,1)/2*transition_to_flight
                     
                     local pitch = math.easeOutSine(pitch_IN)/(1+boost)*1.5
                     
