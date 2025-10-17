@@ -70,8 +70,11 @@ if SERVER then
         if owner():inVehicle() != true and chip():isFrozen() != true then
             owner():setMaterial("")
             phys_obj:enableMotion(false)
+            if snd and snd != nil then
+                snd:stop(0.25)
+            end
         end
-        if snd and snd != nil then
+        if owner():inVehicle() and owner():getVehicle() == seat and snd and snd != nil then
             if boost_button then
                 if boost_button_toggle != true then
                     boost_button_toggle = true
