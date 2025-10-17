@@ -1,0 +1,858 @@
+--@name Bavarium Wingsuit
+--@author Nakkitsunami
+--@include nakilibs/pac_to_holo_loader.txt
+--@include nakilibs/bone_manipulate_lib.txt
+--@shared
+--@model models/hunter/misc/sphere075x075.mdl
+
+if SERVER then
+    chip():setColor(Color(255,255,255,0))
+    chip():setAngles(Angle())
+    chip():setNocollideAll(true)
+    local ang_in = chip():getAngles()
+    local phys_obj = chip():getPhysicsObject()
+    phys_obj:enableGravity(false)
+    phys_obj:setDragCoefficient(0)
+    local seat = prop.createSeat(chip():getPos(), Angle(0,0,0), "models/nova/airboat_seat.mdl", true)
+    seat:setNocollideAll(true)
+    seat:setColor(Color(255,255,255,0))
+    owner():setMaterial("")
+    hook.add("Removed","",function()
+        owner():setMaterial("")
+    end)
+    timer.simple(1,function()
+        net.start("send_seat")
+        net.writeEntity(seat)
+        net.send(owner(),false)
+        
+        snd = sound.create(seat, "^thrusters/Rocket04.wav", false)
+    end)
+    local force = 2
+    local mass = chip():getMass()
+    hook.add("think","",function()
+        local W = owner():keyDown(IN_KEY.FORWARD) and 1 or 0
+        local S = owner():keyDown(IN_KEY.BACK) and 1 or 0
+        local A = owner():keyDown(IN_KEY.MOVELEFT) and 1 or 0
+        local D = owner():keyDown(IN_KEY.MOVERIGHT) and 1 or 0
+        
+        local R = owner():keyDown(IN_KEY.RELOAD)
+        
+        local boost_button = owner():keyDown(IN_KEY.SPEED)
+        
+        if R then
+            if R_Toggle != true then
+                R_Toggle = true
+                if owner():inVehicle() == false and owner():getVehicle() != seat then
+                    timer.create("activate",owner():isOnGround() and 1 or 0,1,function()
+                        phys_obj:enableMotion(true)
+                        if owner():isOnGround() then
+                            local yaw = owner():getEyeAngles().y
+                            chip():setPos(owner():getPos()+Vector(0,0,45))
+                            chip():setAngles(Angle(-45,yaw,0))
+                            phys_obj:applyForceCenter(chip():getForward() * 1000 * mass)
+                        else
+                            chip():setPos(owner():getPos())
+                            chip():setAngles(owner():getVelocity():getAngle())
+                            phys_obj:applyForceCenter(chip():getForward() * owner():getVelocity():getLength() * mass)
+                        end
+                        
+                        seat:use(USE_ON, 0)
+                        owner():setMaterial("null")
+                    end)
+                end
+            end
+        else
+            if R_Toggle != false then
+                R_Toggle = false
+                timer.stop("activate")
+            end
+        end
+        if owner():inVehicle() != true and chip():isFrozen() != true then
+            owner():setMaterial("")
+            phys_obj:enableMotion(false)
+        end
+        if snd and snd != nil then
+            if boost_button then
+                if boost_button_toggle != true then
+                    boost_button_toggle = true
+                    snd:play()
+                end
+            else
+                if boost_button_toggle != false then
+                    boost_button_toggle = false
+                    snd:stop(0.25)
+                end
+            end
+        end
+        local aim_ang = owner():getEyeAngles()
+        aim_ang.r = (ang_in.y-aim_ang.y)*5 + (D-A)*90
+        ang_in = math.slerpQuaternion(ang_in:getQuaternion(),aim_ang:getQuaternion(),0.1):getEulerAngle()
+        
+        local vel  = phys_obj:getVelocity()
+        local speed = vel:getLength()
+        
+        local local_vel_get = chip():getLocalVelocity()
+        local x_mult = math.clamp(local_vel_get.x/10000,0,1)
+        local local_vel = local_vel_get * x_mult
+        
+        local pitch_mult = (1-math.easeOutSine(math.clamp(1+ang_in.p/90,0,1)))+math.easeOutSine(math.abs(chip():getAngleVelocityAngle().pitch/90))
+        
+        local forward = chip():getForward()
+        local right   = chip():getRight()
+        local up      = chip():getUp()
+        
+        local _boost = boost_button and (6000-speed/53)*1.5 or 0
+        
+        local forward_force = forward * _boost
+        
+        local desired_vel = forward * speed
+        
+        local redir_strength = 35
+        local redir_force = (desired_vel - vel) * redir_strength * x_mult * (1 - pitch_mult)
+        
+        local damping = Vector(
+            -local_vel.x * (pitch_mult+0.1)*(1+pitch_mult*0.5),
+            -local_vel.y * (1 - pitch_mult)*(1-pitch_mult*0.5),
+            -local_vel.z * (1 - pitch_mult)*(1-pitch_mult*0.5)
+        )
+        
+        local world_damping = chip():localToWorld((damping / (1 + x_mult * (1 - pitch_mult)))) - chip():getPos()
+        
+        local gravity = Vector(0,0,-800 * math.clamp((1 - 1.5*(1 - pitch_mult)*x_mult),0,1))
+        
+        local total_force = forward_force + gravity + world_damping + redir_force
+        
+        phys_obj:applyForceCenter(total_force * mass / 35)
+
+
+        local ang_local = chip():worldToLocalAngles(ang_in)
+        local ang_to_vector = ang_local-chip():getAngleVelocityAngle()
+        chip():applyAngForce(ang_to_vector*force*mass)
+        
+        seat:setPos(chip():getPos())
+    end)
+else
+    require("nakilibs/pac_to_holo_loader.txt")
+    require("nakilibs/bone_manipulate_lib.txt")
+    
+    local ht, hc = {}, 0
+
+    -- \/ \/ \/ INSERT CODE INSIDE HERE \/ \/ \/
+    
+    local size = 1
+    
+    local parent = chip()
+    local real_parent = chip()
+    
+    local player_color_get = owner():getPlayerColor()
+    
+    player_color = Color(math.round(player_color_get[1]*255),math.round(player_color_get[2]*255),math.round(player_color_get[3]*255),255)
+    
+    local lookup_bones = {
+        "ValveBiped.Bip01_Pelvis",
+        "ValveBiped.Bip01_Spine",
+        "ValveBiped.Bip01_Spine1",
+        "ValveBiped.Bip01_Spine2",
+        "ValveBiped.Bip01_Spine4",
+        "ValveBiped.Bip01_Neck1",
+        "ValveBiped.Bip01_Head1",
+        
+        "ValveBiped.Bip01_R_Clavicle",
+        "ValveBiped.Bip01_R_UpperArm",
+        "ValveBiped.Bip01_R_Forearm",
+        "ValveBiped.Bip01_R_Hand",
+        
+        "ValveBiped.Bip01_L_Clavicle",
+        "ValveBiped.Bip01_L_UpperArm",
+        "ValveBiped.Bip01_L_Forearm",
+        "ValveBiped.Bip01_L_Hand",
+        
+        "ValveBiped.Bip01_R_Thigh",
+        "ValveBiped.Bip01_R_Calf",
+        "ValveBiped.Bip01_R_Foot",
+        
+        "ValveBiped.Bip01_L_Thigh",
+        "ValveBiped.Bip01_L_Calf",
+        "ValveBiped.Bip01_L_Foot",
+    }
+    
+    local bone_ids, bone_ids_parent = {}, {}
+    local player_model_is_valid = false
+    local HAS_BONES = false
+    
+    function setup_player_model(ent_to_check)
+        player_model_is_valid, bone_ids, bone_ids_parent = bone_manipulate_lib.validateBones(ent_to_check,lookup_bones,bone_ids,bone_ids_parent)
+        HAS_BONES = player_model_is_valid
+        if not player_model_is_valid then
+            if player() == owner() then
+                if ent_to_check:getModel() == "models/player/breen.mdl" then
+                    print("Still Invalid Playermodel! Check bone lookup table!!!")
+                else
+                    print("Invalid Playermodel! Defaulting to breen...")
+                end
+            end
+        else
+            local temp = {}
+            for key, value in pairs(bone_ids) do
+                temp[string.sub(key,18,-1)] = value
+            end
+            bone_ids = table.copy(temp)
+            temp = {}
+            for key, value in pairs(bone_ids_parent) do
+                temp[string.sub(key,18,-1)] = value
+            end
+            bone_ids_parent = table.copy(temp)
+            temp = {}
+            
+            print("Bavarium Wingsuit by Nakkitsunami")
+            print("Hold R to deploy wingsuit from ground")
+            print("Press R to deploy wingsuit when in air")
+            print("Hold Shift to boost")
+            print("E to exit")
+        end
+    end
+    setup_player_model(owner())
+    
+    hc=hc+1 ht[hc]={"player_ent",parent,real_parent,Vector(0,0,0),Angle(0,0,0),player_model_is_valid and owner():getModel() or "models/player/breen.mdl","",Color(255,255,255,255),Vector(1),{}}
+    
+    hc=hc+1 ht[hc]={"wing_attach_bottom",parent,real_parent,Vector(0,0,0),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(255,255,255,0),Vector(0.1),{}}
+    hc=hc+1 ht[hc]={"left_hand",parent,real_parent,Vector(0,0,0),Angle(0,0,0),"models/sprops/misc/axis_plane.mdl","",Color(255,255,255,0),Vector(0.1),{}}
+    hc=hc+1 ht[hc]={"right_hand",parent,real_parent,Vector(0,0,0),Angle(0,0,0),"models/sprops/misc/axis_plane.mdl","",Color(255,255,255,0),Vector(0.1),{}}
+    
+    
+    hc=hc+1 ht[hc]={"backpack",parent,real_parent,Vector(0,0,0),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(255,255,255,0),Vector(0.1),{}}
+    local parent = "backpack"
+    local real_parent = "backpack"
+    
+    hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(4.404,-2.552,0),Angle(-90,-180,0),"models/hunter/tubes/tubebend1x1x90.mdl","models/props_debris/building_template010a",Color(75,75,75,255),Vector(0.075,0.01,0.3),{}}
+    
+    hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(4.33,-3.972,0),Angle(90,0,0),"models/hunter/tubes/tubebend1x1x90.mdl","models/props_debris/building_template010a",player_color,Vector(0.0765,0.051,0.306),{{1,Vector(0,0,5.6),Vector(0,-0.966,-0.259)},{2,Vector(0,0,3.06),Vector(0,0.871,0.491)}}}
+    hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(3.784,-3.772,0),Angle(-90,0,0),"models/hunter/misc/cone1x05.mdl","models/props_debris/building_template010a",player_color,Vector(0.054,-0.036,0.162),{{1,Vector(0,0,0.7),Vector(0,-0.296,-0.955)}}}
+    hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(4.774,-4.022,0),Angle(-90,-17.2,0),"models/hunter/misc/cone1x05.mdl","models/props_debris/building_template010a",Color(75,75,75,255),Vector(0.075,0.05,0.25),{{1,Vector(0,0,1.1),Vector(0,0.955,0.296)}}}
+    hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(3.774,-3.672,0),Angle(-90,0,0),"models/hunter/misc/cone1x05.mdl","models/props_debris/building_template010a",Color(75,75,75,255),Vector(0.0615,0,0.1845),{{1,Vector(0,0,0.8),Vector(0,0,-1)}}}
+    hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(4.764,-4.022,0),Angle(-90,-17.2,0),"models/hunter/misc/cone1x05.mdl","models/props_debris/building_template010a",Color(75,75,75,255),Vector(0.075,0.05,0.25),{{1,Vector(0,0,1.1),Vector(0,0.296,-0.955)}}}
+    hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(4.064,-3.692,0),Angle(0,90,90),"models/hunter/tubes/circle4x4c.mdl","models/props_debris/building_template010a",Color(75,75,75,255),Vector(0.0114,0.0151,0.2525),{}}
+    hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(3.774,-3.772,0),Angle(-90,0,0),"models/hunter/misc/cone1x05.mdl","models/props_debris/building_template010a",player_color,Vector(0.054,0.036,0.162),{{1,Vector(0,0,0.7),Vector(0,-0.296,-0.955)}}}
+    hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(4.464,-3.332,0),Angle(0,0,90),"models/hunter/tubes/circle4x4c.mdl","models/props_debris/building_template010a",Color(75,75,75,255),Vector(0.0294,0.0147,0.245),{}}
+    hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(3.774,-3.772,0),Angle(-90,0,0),"models/hunter/misc/cone1x05.mdl","models/props_debris/building_template010a",Color(75,75,75,255),Vector(0.039,0.026,0.117),{}}
+    hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(4.404,-3.972,0),Angle(90,0,0),"models/hunter/tubes/tubebend1x1x90.mdl","models/props_debris/building_template010a",Color(75,75,75,255),Vector(0.075,0.05,0.3),{{1,Vector(0,0,0.36),Vector(0,-0.296,0.955)}}}
+    
+    hc=hc+1 ht[hc]={"afterburner",parent,real_parent,Vector(3.774,-3.772,0),Angle(-90,0,0),"models/hunter/misc/cone1x05.mdl","models/debug/debugwhite",Color(0,255,255,125),Vector(0.039,0.026,0.3)*1.1,{}}
+    
+    hc=hc+1 ht[hc]={"streak_left","left_hand","left_hand",Vector(5,-2,0),Angle(0,0,0),"models/hunter/misc/cone1x05.mdl","models/debug/debugwhite",Color(255,255,255,15),Vector(0.01,0.01,1),{}}
+    hc=hc+1 ht[hc]={"streak_right","right_hand","right_hand",Vector(5,-2,0),Angle(0,0,0),"models/hunter/misc/cone1x05.mdl","models/debug/debugwhite",Color(255,255,255,15),Vector(0.01,0.01,1),{}}
+    
+
+    -- /\ /\ /\ INSERT CODE INSIDE HERE /\ /\ /\
+    
+    pthl.create_once = false
+    
+    function create_model()
+        pthl.createHolos(hc,ht,false,size)
+        
+        pthl.create_once = true
+    end
+    
+    
+    local detail = 8
+    
+    local wing_mat = "models/props/de_nuke/nukconcretewalla"
+    
+    local wing_holos = {}
+    for i = 1, detail do
+        wing_holos[i] = hologram.create(chip():getPos(), Angle(), "models/hunter/misc/cone1x05.mdl", Vector())
+        wing_holos[i]:setClip(1, true, Vector(0,0,0), Vector(-1,0,0), wing_holos[i])
+        wing_holos[i]:setMaterial(wing_mat)
+        
+        wing_holos[i.."_bottom"] = hologram.create(chip():getPos(), Angle(), "models/hunter/misc/cone1x05.mdl", Vector())
+        wing_holos[i.."_bottom"]:setParent(wing_holos[i])
+        wing_holos[i.."_bottom"]:setClip(1, true, Vector(0,0,0), Vector(-1,0,0), wing_holos[i])
+        wing_holos[i.."_bottom"]:setMaterial(wing_mat)
+        
+        wing_holos[i.."_right"] = hologram.create(chip():getPos(), Angle(), "models/hunter/misc/cone1x05.mdl", Vector())
+        wing_holos[i.."_right"]:setClip(1, true, Vector(0,0,0), Vector(1,0,0), wing_holos[i.."_right"])
+        wing_holos[i.."_right"]:setMaterial(wing_mat)
+        
+        wing_holos[i.."_bottom".."_right"] = hologram.create(chip():getPos(), Angle(), "models/hunter/misc/cone1x05.mdl", Vector())
+        wing_holos[i.."_bottom".."_right"]:setParent(wing_holos[i.."_right"])
+        wing_holos[i.."_bottom".."_right"]:setClip(1, true, Vector(0,0,0), Vector(1,0,0), wing_holos[i.."_right"])
+        wing_holos[i.."_bottom".."_right"]:setMaterial(wing_mat)
+    end
+    
+    local first = false
+    local CT2 = 0
+    local segment_positions = {}
+    
+    local left_leg = {}
+    local right_leg = {}
+    
+    --[[
+    function icos(A, B, C)
+        return math.deg(math.acos((A^2 + B^2 - C^2) / (2*A*B)))
+    end
+    
+    function toLocalAxis(ent,offset)
+        local AxisLocal, _ = worldToLocal(offset,Angle(),Vector(),ent:getAngles())
+        return AxisLocal
+    end
+    function leg_ik(BoneTable, Target)
+        local LengthA = BoneTable["Length_A"]
+        local LengthB = BoneTable["Length_B"]
+        
+        local Base = BoneTable["Base"]
+        
+        local HipA = BoneTable["Hip_A"]
+        local HipB = BoneTable["Hip_B"]
+        local Knee = BoneTable["Knee"]
+        local Foot = BoneTable["Foot"]
+        
+        local reverseKnee = BoneTable["Reversed"] or false
+        
+        if not (LengthA and LengthB) then return end
+        if not (Base and Base != nil and Base:isValid()) then return end
+        if not (HipA and HipA != nil and HipA:isValid()) then return end
+        if not (HipB and HipB != nil and HipB:isValid()) then return end
+        if not (Knee and Knee != nil and Knee:isValid()) then return end
+        if not (Foot and Foot != nil and Foot:isValid()) then return end
+        
+        local AxisWorld = Target - HipA:getPos()
+        local AxisLocal = toLocalAxis(Base,AxisWorld)
+        
+        HipA:setAngles(Base:localToWorldAngles(Angle(0,0,math.deg(math.atan2(math.rad(AxisLocal.z),math.rad(AxisLocal.y))) + 90)))
+        
+        local AxisLocal = toLocalAxis(HipA,(Target - HipB:getPos()))
+        local Distance = math.min(AxisLocal:getLength(), LengthA + LengthB)
+        
+        if reverseKnee then
+            HipB:setAngles(HipA:localToWorldAngles(Angle(math.deg(math.atan2(math.rad(AxisLocal.x),math.rad(AxisLocal.z))) + icos(Distance, LengthA, LengthB), 0, 0)))
+        else
+            HipB:setAngles(HipA:localToWorldAngles(Angle(math.deg(math.atan2(math.rad(-AxisLocal.x),math.rad(AxisLocal.z))) + icos(Distance, LengthA, LengthB), 180, 0)))
+        end
+        
+        Knee:setAngles(HipB:localToWorldAngles(Angle(icos(LengthB, LengthA, Distance) + 180, 0, 0)))
+        Foot:setAngles(Base:getAngles())
+    end
+    ]]
+    local ang_in = chip():getAngles()
+    local _boost = 0
+    local W = 0
+    local S = 0
+    local A = 0
+    local D = 0
+    
+    local activate_ct = 0
+    local activate_delta = 0
+    local is_in_seat = false
+    
+    hook.add("think","main",function()
+        if owner() and owner() != nil and owner():isValid() and owner():getHealth() > 0 then
+            W = owner():keyDown(IN_KEY.FORWARD) and 1 or 0
+            S = owner():keyDown(IN_KEY.BACK) and 1 or 0
+            A = owner():keyDown(IN_KEY.MOVELEFT) and 1 or 0
+            D = owner():keyDown(IN_KEY.MOVERIGHT) and 1 or 0
+            if pthl.ready then
+                if first != true then
+                    first = true
+                    for k, v in pairs(pthl.holos) do
+                        v:setNoDraw(true)
+                    end
+                    for k, v in pairs(wing_holos) do
+                        v:setNoDraw(true)
+                    end
+                    
+                    player_ent = pthl.holos["player_ent"]
+                    backpack = pthl.holos["backpack"]
+                    
+                    wing_attach_bottom = pthl.holos["wing_attach_bottom"]
+                    left_hand = pthl.holos["left_hand"]
+                    right_hand = pthl.holos["right_hand"]
+                    
+                    afterburner = pthl.holos["afterburner"]
+                    
+                    streak_left = pthl.holos["streak_left"]
+                    streak_right = pthl.holos["streak_right"]
+                    
+                    afterburner:setRenderMode(RENDERMODE.WORLDGLOW)
+                    afterburner:suppressEngineLighting(true)
+                    
+                    streak_left:setRenderMode(RENDERMODE.WORLDGLOW)
+                    streak_left:suppressEngineLighting(true)
+                    
+                    streak_right:setRenderMode(RENDERMODE.WORLDGLOW)
+                    streak_right:suppressEngineLighting(true)
+                    
+                    player_ent:setPlayerColor(player_color_get)
+                    
+                    if player_model_is_valid != true and not HAS_BONES then
+                        setup_player_model(player_ent)
+                        timer.simple(0.05,function()
+                            local bone_pos, bone_ang = player_ent:getBonePosition(bone_ids["Spine2"])
+                            backpack:setParent(nil)
+                            backpack:setPos(bone_pos)
+                            backpack:setAngles(bone_ang)
+                            backpack:setParent(player_ent, nil, bone_ids["Spine2"])
+                            
+                            local bone_pos, bone_ang = player_ent:getBonePosition(bone_ids["Spine"])
+                            wing_attach_bottom:setParent(nil)
+                            wing_attach_bottom:setPos(bone_pos)
+                            wing_attach_bottom:setAngles(bone_ang)
+                            wing_attach_bottom:setParent(player_ent, nil, bone_ids["Spine"])
+                            
+                            local bone_pos, bone_ang = player_ent:getBonePosition(bone_ids["L_Hand"])
+                            left_hand:setParent(nil)
+                            left_hand:setPos(bone_pos)
+                            left_hand:setAngles(bone_ang)
+                            left_hand:setParent(player_ent, nil, bone_ids["L_Hand"])
+                            
+                            local bone_pos, bone_ang = player_ent:getBonePosition(bone_ids["R_Hand"])
+                            right_hand:setParent(nil)
+                            right_hand:setPos(bone_pos)
+                            right_hand:setAngles(bone_ang)
+                            right_hand:setParent(player_ent, nil, bone_ids["R_Hand"])
+                            
+                            for i = 1, detail do
+                                wing_holos[i]:setParent(backpack)
+                                
+                                wing_holos[i.."_right"]:setParent(backpack)
+                            end
+                            
+                            bone_manipulate_lib.storeBoneAngles(player_ent,bone_ids)
+                        end)
+                    else
+                        local bone_pos, bone_ang = player_ent:getBonePosition(bone_ids["Spine2"])
+                        backpack:setParent(nil)
+                        backpack:setPos(bone_pos)
+                        backpack:setAngles(bone_ang)
+                        backpack:setParent(player_ent, nil, bone_ids["Spine2"])
+                        
+                        local bone_pos, bone_ang = player_ent:getBonePosition(bone_ids["Spine"])
+                        wing_attach_bottom:setParent(nil)
+                        wing_attach_bottom:setPos(bone_pos)
+                        wing_attach_bottom:setAngles(bone_ang)
+                        wing_attach_bottom:setParent(player_ent, nil, bone_ids["Spine"])
+                        
+                        local bone_pos, bone_ang = player_ent:getBonePosition(bone_ids["L_Hand"])
+                        left_hand:setParent(nil)
+                        left_hand:setPos(bone_pos)
+                        left_hand:setAngles(bone_ang)
+                        left_hand:setParent(player_ent, nil, bone_ids["L_Hand"])
+                        
+                        local bone_pos, bone_ang = player_ent:getBonePosition(bone_ids["R_Hand"])
+                        right_hand:setParent(nil)
+                        right_hand:setPos(bone_pos)
+                        right_hand:setAngles(bone_ang)
+                        right_hand:setParent(player_ent, nil, bone_ids["R_Hand"])
+                        
+                        for i = 1, detail do
+                            wing_holos[i]:setParent(backpack)
+                            
+                            wing_holos[i.."_right"]:setParent(backpack)
+                        end
+                        
+                        bone_manipulate_lib.storeBoneAngles(player_ent,bone_ids)
+                    end
+                    
+                    timer.simple(0.1,function()
+                        --[[
+                        local Left_Thigh_Pos, _ = player_ent:getBonePosition(bone_ids["L_Thigh"])
+                        local Right_Thigh_Pos, _ = player_ent:getBonePosition(bone_ids["R_Thigh"])
+                        
+                        local Left_Knee_Pos, _ = player_ent:getBonePosition(bone_ids["L_Calf"])
+                        local Right_Knee_Pos, _ = player_ent:getBonePosition(bone_ids["R_Calf"])
+                        
+                        local Left_Foot_Pos, _ = player_ent:getBonePosition(bone_ids["L_Foot"])
+                        local Right_Foot_Pos, _ = player_ent:getBonePosition(bone_ids["R_Foot"])
+                        
+                        local Length_A = Left_Thigh_Pos:getDistance(Left_Knee_Pos)
+                        local Length_B = Left_Knee_Pos:getDistance(Left_Foot_Pos)
+                        
+                        left_leg["Length_A"] = Length_A
+                        left_leg["Length_B"] = Length_B
+                        
+                        left_leg["Base"] = player_ent
+                        
+                        left_leg["Hip_A"] = hologram.create(Left_Thigh_Pos, Angle(), "models/hunter/misc/cone1x05.mdl", Vector())
+                        left_leg["Hip_A"]:setParent(player_ent)
+                        
+                        left_leg["Hip_B"] = hologram.create(Left_Thigh_Pos, Angle(), "models/hunter/misc/cone1x05.mdl", Vector())
+                        left_leg["Hip_B"]:setParent(left_leg["Hip_A"])
+                        
+                        left_leg["Knee"] = hologram.create(left_leg["Hip_B"]:localToWorld(Vector(0,0,Length_A)), Angle(), "models/hunter/misc/cone1x05.mdl", Vector())
+                        left_leg["Knee"]:setParent(left_leg["Hip_B"])
+                        
+                        left_leg["Foot"] = hologram.create(left_leg["Knee"]:localToWorld(Vector(0,0,Length_B)), Angle(), "models/hunter/misc/cone1x05.mdl", Vector())
+                        left_leg["Foot"]:setParent(left_leg["Knee"])
+                        
+                        
+                        
+                        right_leg["Length_A"] = Length_A
+                        right_leg["Length_B"] = Length_B
+                        
+                        right_leg["Base"] = player_ent
+                        
+                        right_leg["Hip_A"] = hologram.create(Right_Thigh_Pos, Angle(), "models/hunter/misc/cone1x05.mdl", Vector())
+                        right_leg["Hip_A"]:setParent(player_ent)
+                        
+                        right_leg["Hip_B"] = hologram.create(Right_Thigh_Pos, Angle(), "models/hunter/misc/cone1x05.mdl", Vector())
+                        right_leg["Hip_B"]:setParent(right_leg["Hip_A"])
+                        
+                        right_leg["Knee"] = hologram.create(right_leg["Hip_B"]:localToWorld(Vector(0,0,Length_A)), Angle(), "models/hunter/misc/cone1x05.mdl", Vector())
+                        right_leg["Knee"]:setParent(right_leg["Hip_B"])
+                        
+                        right_leg["Foot"] = hologram.create(right_leg["Knee"]:localToWorld(Vector(0,0,Length_B)), Angle(), "models/hunter/misc/cone1x05.mdl", Vector())
+                        right_leg["Foot"]:setParent(right_leg["Knee"])
+                        ]]
+                        timer.simple(0.2,function()
+                            _READY = true
+                        end)
+                    end)
+                end
+                if _READY then
+                    local delta = timer.curtime()-CT
+                    if owner():inVehicle() then
+                        if is_in_seat != true then
+                            is_in_seat = true
+                            activate_ct = timer.curtime()
+                            for k, v in pairs(pthl.holos) do
+                                v:setNoDraw(false)
+                            end
+                            for k, v in pairs(wing_holos) do
+                                v:setNoDraw(false)
+                            end
+                        end
+                    else
+                        if is_in_seat != false then
+                            is_in_seat = false
+                            for k, v in pairs(pthl.holos) do
+                                v:setNoDraw(true)
+                            end
+                            for k, v in pairs(wing_holos) do
+                                v:setNoDraw(true)
+                            end
+                        end
+                    end
+                    
+                    activate_delta = math.easeOutSine(math.clamp(timer.curtime() - activate_ct,0,1))
+                    
+                    local ease_activate_anim = math.easeInOutSine(math.clamp(math.sin(math.rad(activate_delta*180))*1.5,0,1))
+                    
+                    local transition_to_flight = 1
+                    
+                    local boost_button = transition_to_flight == 1 and owner():keyDown(IN_KEY.SPEED) or false
+                    
+                    _boost = _boost + (boost_button and 0.1 or -0.1)*delta*15
+                    _boost = math.clamp(_boost,0,transition_to_flight)
+                    
+                    if boost_button then
+                        if boost_button_toggle != true then
+                            boost_button_toggle = true
+                            afterburner:setColor(Color(0,255,255,125))
+                        end
+                    else
+                        if boost_button_toggle != false then
+                            boost_button_toggle = false
+                            afterburner:setColor(Color(0,255,255,0))
+                        end
+                    end
+                    
+                    local local_ang_world = chip():localToWorldAngles(Angle(-90,0,0))
+                    streak_left:setAngles(local_ang_world)
+                    streak_right:setAngles(local_ang_world)
+                    
+                    local streak_length = chip():getVelocity():getLength()/53*0.25
+                    
+                    streak_left:setScale(Vector(0.01,0.01,streak_length/12))
+                    streak_right:setScale(Vector(0.01,0.01,streak_length/12))
+                    
+                    local speed = math.clamp(_boost*2,0,1)+ease_activate_anim
+                    local boost = math.easeInOutSine(speed)
+                    local aim_ang = owner():getEyeAngles()
+                    aim_ang.r = (ang_in.y-aim_ang.y)*5
+                    ang_in = math.slerpQuaternion(ang_in:getQuaternion(),aim_ang:getQuaternion(),0.15):getEulerAngle()+Angle(math.sin(math.rad(timer.curtime()*(360+360*speed)+math.sin(math.rad(timer.curtime()*263)))),math.cos(math.rad(timer.curtime()*(360+360*speed)+math.sin(math.rad(timer.curtime()*118.7)))),0)*0.25
+                    local cam_parent = chip()
+                    
+                    
+                    player_ent:setPos(chip():localToWorld(Vector(-35,0,0)*transition_to_flight)+Vector(0,0,math.random(0,100)/10000))
+                    player_ent:setAngles(cam_parent:localToWorldAngles(Angle(90*transition_to_flight,0,0)))
+                    
+                    local pitch_IN = (-25+ang_in.p)/90/(1+boost)*transition_to_flight
+                    local yaw_IN = -cam_parent:worldToLocalAngles(ang_in).y/90/(1+boost)*transition_to_flight
+                    
+                    local pitch = math.easeOutSine(pitch_IN)/(1+boost)*1.5
+                    
+                    local yaw = math.easeOutSine(yaw_IN)*1.5
+                    
+                    
+                    local yaw_look = cam_parent:worldToLocalAngles(ang_in).y/20*transition_to_flight
+                    local pitch_look = -(-75+cam_parent:worldToLocalAngles(ang_in).p-math.abs(yaw_look*10))/75*transition_to_flight
+                    
+                    
+                    local wing_left_in = ((pitch/(1+math.abs(yaw)*0.3)+yaw*0.5)/(1+boost*2)+boost)
+                    
+                    local wing_right_in = ((pitch/(1+math.abs(yaw)*0.3)-yaw*0.5)/(1+boost*2)+boost)
+                    
+                    
+                    local bone = "Pelvis"
+                    local ang = Angle(15*yaw,3*yaw,(1+25*pitch))
+                    
+                    local ang_but_transitioning = Angle(0,0,0)
+                    
+                    
+                    local bone_id = bone_ids[bone]
+                    player_ent:manipulateBoneAngles(bone_id, math.slerpQuaternion(ang_but_transitioning:getQuaternion(), ang:getQuaternion(), transition_to_flight):getEulerAngle())
+                    
+                    local bone = "Spine"
+                    local ang = Angle(15*yaw,-4+10*pitch,15*yaw)/3
+                    
+                    local bone_id = bone_ids[bone]
+                    player_ent:manipulateBoneAngles(bone_id, math.slerpQuaternion(ang_but_transitioning:getQuaternion(), ang:getQuaternion(), transition_to_flight):getEulerAngle())
+                    
+                    local bone = "Spine1"
+                    local bone_id = bone_ids[bone]
+                    player_ent:manipulateBoneAngles(bone_id, math.slerpQuaternion(ang_but_transitioning:getQuaternion(), ang:getQuaternion(), transition_to_flight):getEulerAngle())
+                    
+                    local bone = "Spine2"
+                    local bone_id = bone_ids[bone]
+                    player_ent:manipulateBoneAngles(bone_id, math.slerpQuaternion(ang_but_transitioning:getQuaternion(), ang:getQuaternion(), transition_to_flight):getEulerAngle())
+                    
+                    local bone = "Neck1"
+                    local ang = Angle(10*yaw_look,30*pitch_look,10*yaw_look)/2
+                    
+                    local bone_id = bone_ids[bone]
+                    player_ent:manipulateBoneAngles(bone_id, math.slerpQuaternion(ang_but_transitioning:getQuaternion(), ang:getQuaternion(), transition_to_flight):getEulerAngle())
+                    
+                    local bone = "Head1"
+                    local ang = Angle(5*yaw_look,35*pitch_look,5*yaw_look)/1.5
+                    
+                    local bone_id = bone_ids[bone]
+                    player_ent:manipulateBoneAngles(bone_id, math.slerpQuaternion(ang_but_transitioning:getQuaternion(), ang:getQuaternion(), transition_to_flight):getEulerAngle())
+                    
+                    
+                    local bone = "L_Thigh"
+                    local ang = Angle(-5+6*wing_right_in,15*math.clamp(math.easeInOutSine(-pitch_IN),0,1)+5*yaw,-8-4*yaw)
+                    
+                    local bone_id = bone_ids[bone]
+                    player_ent:manipulateBoneAngles(bone_id, math.slerpQuaternion(ang_but_transitioning:getQuaternion(), ang:getQuaternion(), transition_to_flight):getEulerAngle())
+                    
+                    local bone = "R_Thigh"
+                    local ang = Angle(5-6*wing_right_in,15*math.clamp(math.easeInOutSine(-pitch_IN),0,1)-5*yaw,8+4*yaw)
+                    
+                    local bone_id = bone_ids[bone]
+                    player_ent:manipulateBoneAngles(bone_id, math.slerpQuaternion(ang_but_transitioning:getQuaternion(), ang:getQuaternion(), transition_to_flight):getEulerAngle())
+                    
+                    
+                    local bone = "L_Calf"
+                    local ang = Angle(0,8*math.clamp(math.easeInOutSine(pitch_IN),0,1)+25*math.easeOutSine(math.abs(yaw))/(1+math.easeInOutSine(math.clamp(-yaw,0,1))*6),0)
+                    
+                    local bone_id = bone_ids[bone]
+                    player_ent:manipulateBoneAngles(bone_id, math.slerpQuaternion(ang_but_transitioning:getQuaternion(), ang:getQuaternion(), transition_to_flight):getEulerAngle())
+                    
+                    local bone = "R_Calf"
+                    local ang = Angle(0,8*math.clamp(math.easeInOutSine(pitch_IN),0,1)+25*math.easeOutSine(math.abs(yaw))/(1+math.easeInOutSine(math.clamp(yaw,0,1))*6),0)
+                    
+                    local bone_id = bone_ids[bone]
+                    player_ent:manipulateBoneAngles(bone_id, math.slerpQuaternion(ang_but_transitioning:getQuaternion(), ang:getQuaternion(), transition_to_flight):getEulerAngle())
+                    
+                    
+                    local bone = "L_Foot"
+                    local ang = Angle(0,30,0)
+                    
+                    local bone_id = bone_ids[bone]
+                    player_ent:manipulateBoneAngles(bone_id, math.slerpQuaternion(ang_but_transitioning:getQuaternion(), ang:getQuaternion(), transition_to_flight):getEulerAngle())
+                    
+                    
+                    local bone = "R_Foot"
+                    local ang = Angle(0,30,0)
+                    
+                    local bone_id = bone_ids[bone]
+                    player_ent:manipulateBoneAngles(bone_id, math.slerpQuaternion(ang_but_transitioning:getQuaternion(), ang:getQuaternion(), transition_to_flight):getEulerAngle())
+                    
+                    
+                    
+                    local bone = "L_UpperArm"
+                    local ang = Angle(-5+35*wing_left_in,5+20*math.abs(yaw)+10*wing_left_in,-45-15*(yaw-pitch/(1+math.abs(yaw)*0.3))):rotateAroundAxis(Vector(0,1*math.sin(math.rad(yaw*45)),1),5*(-yaw+pitch/(1+math.abs(yaw)*0.3)*0.4))
+                    
+                    local bone_id = bone_ids[bone]
+                    player_ent:manipulateBoneAngles(bone_id, math.slerpQuaternion(ang_but_transitioning:getQuaternion(), ang:getQuaternion(), transition_to_flight):getEulerAngle())
+                    
+                    local bone = "L_Forearm"
+                    local ang = Angle(0,25*math.clamp((pitch/(1+math.abs(yaw)*0.3)-1)/2,-1,0),0)
+                    
+                    local bone_id = bone_ids[bone]
+                    player_ent:manipulateBoneAngles(bone_id, math.slerpQuaternion(ang_but_transitioning:getQuaternion(), ang:getQuaternion(), transition_to_flight):getEulerAngle())
+                    
+                    local bone = "R_UpperArm"
+                    local ang = Angle(5-35*wing_right_in,5+20*math.abs(yaw)+10*wing_left_in,45+15*(-yaw-pitch/(1+math.abs(yaw)*0.3))):rotateAroundAxis(Vector(0,1*math.sin(math.rad(yaw*45)),1),5*(yaw+pitch/(1+math.abs(yaw)*0.3)*0.4))
+                    
+                    local bone_id = bone_ids[bone]
+                    player_ent:manipulateBoneAngles(bone_id, math.slerpQuaternion(ang_but_transitioning:getQuaternion(), ang:getQuaternion(), transition_to_flight):getEulerAngle())
+                    
+                    local bone = "R_Forearm"
+                    local ang = Angle(0,25*math.clamp((pitch/(1+math.abs(yaw)*0.3)-1)/2,-1,0),0)
+                    
+                    local bone_id = bone_ids[bone]
+                    player_ent:manipulateBoneAngles(bone_id, math.slerpQuaternion(ang_but_transitioning:getQuaternion(), ang:getQuaternion(), transition_to_flight):getEulerAngle())
+                    
+                end
+                
+                if timer.curtime() - CT2 > (0.025 + 1*(1-(cpuMax()-cpuAverage())/cpuMax())) and cpuAverage()*1.1 < cpuMax() then
+                    local top_corner_pos = backpack:localToWorld(Vector(9,0,7))
+                    local start_pos = wing_attach_bottom:localToWorld(Vector(-2*2,0,6))
+                    local end_pos_no_excess = left_hand:getPos()
+                    local end_pos = end_pos_no_excess + (start_pos-top_corner_pos):getNormalized()*2
+                    
+                    local top_pos = top_corner_pos - (start_pos-top_corner_pos):getNormalized()*20
+                    
+                    local wing_dir = (end_pos - start_pos):getNormalized()
+                    
+                    for i = 1, detail do
+                        local base_pos = math.lerpVector(math.lerp(0.25,((i - 0.5)/detail),math.easeInOutSine((i - 0.5)/detail)), start_pos, end_pos_no_excess)
+                        local up = (top_pos - base_pos):getNormalized()
+                        local offset = -up*25*0.1 - up*2*(i/detail)
+                        segment_positions[i] = base_pos + offset
+                    end
+                    
+                    for i = 1, detail do
+                        local _pos = segment_positions[i]
+                        local up = (top_pos - _pos):getNormalized()
+                        local forward = (start_pos - end_pos_no_excess):getNormalized()
+                        local right = up:cross(forward):getNormalized()
+                        forward = right:cross(up):getNormalized()
+                        
+                        local m = Matrix()
+                        m:setForward(right)
+                        m:setRight(forward)
+                        m:setUp(up)
+                        
+                        local _ang = m:getAngles()
+                        
+                        local _width
+                        if i < detail then
+                            _width = _pos:getDistance(segment_positions[i+1])
+                        else
+                            _width = _pos:getDistance(segment_positions[i-1])
+                        end
+                        
+                        local _thickness = 1
+                        local scale = Vector(_thickness*(0.05+math.sin(math.rad((i/detail)*180))*0.95), _width / 2 + _pos:getDistance(end_pos_no_excess)/detail*(i==detail and 0.06 or 0.25)*i/detail, (top_pos - _pos):getLength() / 2) / Vector(24, 24, 12)
+                        
+                        wing_holos[i]:setPos(_pos)
+                        wing_holos[i]:setAngles(_ang)
+                        wing_holos[i]:setScale(scale)
+                        wing_holos[i.."_bottom"]:setScale(scale * Vector(-1, 1, 1))
+                        
+                        
+                        local local_normal = player_ent:worldToLocalAngles(wing_dir:rotateAroundAxis(right,90):getAngleEx(right))
+                        local local_pos = player_ent:worldToLocal(start_pos)
+                        
+                        wing_holos[i]:setClip(2, true, local_pos, local_normal:getForward(), player_ent)
+                        wing_holos[i.."_bottom"]:setClip(2, true, local_pos, local_normal:getForward(), player_ent)
+                        
+                        local local_normal = player_ent:worldToLocalAngles((end_pos_no_excess - top_corner_pos):getNormalized():rotateAroundAxis(right, -90):getAngleEx(right))
+                        local local_pos = player_ent:worldToLocal(top_corner_pos)
+                        
+                        wing_holos[i]:setClip(3, true, local_pos, local_normal:getForward(), player_ent)
+                        wing_holos[i.."_bottom"]:setClip(3, true, local_pos, local_normal:getForward(), player_ent)
+                    end
+                    local top_corner_pos = backpack:localToWorld(Vector(9,0,-7))
+                    local start_pos = wing_attach_bottom:localToWorld(Vector(-2*2,0,-6))
+                    local end_pos_no_excess = right_hand:getPos()
+                    local end_pos = end_pos_no_excess + (start_pos-top_corner_pos):getNormalized()*2
+                    
+                    local top_pos = top_corner_pos - (start_pos-top_corner_pos):getNormalized()*20
+                    
+                    local wing_dir = (end_pos - start_pos):getNormalized()
+                    
+                    for i = 1, detail do
+                        local base_pos = math.lerpVector(math.lerp(0.25,((i - 0.5)/detail),math.easeInOutSine((i - 0.5)/detail)), start_pos, end_pos_no_excess)
+                        local up = (top_pos - base_pos):getNormalized()
+                        local offset = -up*25*0.1 - up*2*(i/detail)
+                        segment_positions[i.."_right"] = base_pos + offset
+                    end
+                    
+                    for i = 1, detail do
+                        local _pos = segment_positions[i.."_right"]
+                        local up = (top_pos - _pos):getNormalized()
+                        local forward = (start_pos - end_pos_no_excess):getNormalized()
+                        local right = up:cross(forward):getNormalized()
+                        forward = right:cross(up):getNormalized()
+                        
+                        local m = Matrix()
+                        m:setForward(right)
+                        m:setRight(forward)
+                        m:setUp(up)
+                        
+                        local _ang = m:getAngles()
+                        
+                        local _width
+                        if i < detail then
+                            _width = _pos:getDistance(segment_positions[(i+1).."_right"])
+                        else
+                            _width = _pos:getDistance(segment_positions[(i-1).."_right"])
+                        end
+                        
+                        local _thickness = 1
+                        local scale = Vector(_thickness*(0.05+math.sin(math.rad((i/detail)*180))*0.95), _width / 2 + _pos:getDistance(end_pos_no_excess)/detail*(i==detail and 0.06 or 0.25)*i/detail, (top_pos - _pos):getLength() / 2) / Vector(24, 24, 12)
+                        
+                        wing_holos[i.."_right"]:setPos(_pos)
+                        wing_holos[i.."_right"]:setAngles(_ang)
+                        wing_holos[i.."_right"]:setScale(scale)
+                        wing_holos[i.."_bottom".."_right"]:setScale(scale * Vector(-1, 1, 1))
+                        
+                        
+                        local local_normal = player_ent:worldToLocalAngles(wing_dir:rotateAroundAxis(right,90):getAngleEx(right))
+                        local local_pos = player_ent:worldToLocal(start_pos)
+                        
+                        wing_holos[i.."_right"]:setClip(2, true, local_pos, local_normal:getForward(), player_ent)
+                        wing_holos[i.."_bottom".."_right"]:setClip(2, true, local_pos, local_normal:getForward(), player_ent)
+                        
+                        local local_normal = player_ent:worldToLocalAngles((end_pos_no_excess - top_corner_pos):getNormalized():rotateAroundAxis(right, -90):getAngleEx(right))
+                        local local_pos = player_ent:worldToLocal(top_corner_pos)
+                        
+                        wing_holos[i.."_right"]:setClip(3, true, local_pos, local_normal:getForward(), player_ent)
+                        wing_holos[i.."_bottom".."_right"]:setClip(3, true, local_pos, local_normal:getForward(), player_ent)
+                    end
+                    CT2 = timer.curtime()
+                end
+            else
+                if pthl.create_once != true then
+                    create_model()
+                end
+            end
+            CT = timer.curtime()
+        end
+    end)
+    
+    if player() == owner() then
+        enableHud(owner(), true)
+        local seat = nil
+        
+        hook.add("net","",function(name,len,ply)
+            if name == "send_seat" then
+                seat = net.readEntity()
+            end
+        end)
+        hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
+            if seat and seat != nil and seat:isValid() and player_ent and player_ent != nil and player_ent:isValid() then
+                if owner():inVehicle() and owner():getVehicle() == seat then
+                    local is_boosting_mult = math.easeInOutSine(math.sin(math.rad(_boost*90)))
+                    local angle_in = owner():getEyeAngles()
+                    angle_in.r = chip():getAngles().r*0.25
+                    local pos_in = player_ent:localToWorld(Vector(-25,0,60-80*activate_delta))+(7+math.sin(math.rad(timer.curtime()*128)))*Vector(math.sin(math.rad(timer.curtime()*360+math.sin(math.rad(timer.curtime()*263)))),math.cos(math.rad(timer.curtime()*360+math.sin(math.rad(timer.curtime()*118.7)))),0)*0.25+Vector(20*is_boosting_mult-45*activate_delta,0,0):getRotated(owner():getEyeAngles())
+                    return {
+                        origin = pos_in,
+                        angles = angle_in,
+                        fov = 25+75*activate_delta+25*is_boosting_mult
+                    }
+                end
+            end
+        end)
+        local w, h = render.getGameResolution()
+        hook.add("DrawHUD","",function()
+            if owner():inVehicle() and owner():getVehicle() == seat then
+                render.setColor(Color(0,0,0,255*(1-activate_delta)))
+                render.drawRect(0,0,w,h)
+            end
+        end)
+    end
+end
