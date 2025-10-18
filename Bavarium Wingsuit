@@ -402,7 +402,6 @@ else
             end
             
             offset_angle_normalized = Angle(in_vec.x * 45, in_vec.y * 45, 0)
-            
             if pthl.ready then
                 if first != true then
                     first = true
