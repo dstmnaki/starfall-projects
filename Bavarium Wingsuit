@@ -576,7 +576,7 @@ else
                     
                     local boost_button = transition_to_flight == 1 and owner():keyDown(IN_KEY.SPEED) or false
                     
-                    _boost = _boost + (boost_button and 0.1 or -0.1)*0.1
+                    _boost = _boost + (boost_button and 0.1 or -0.1)*0.1*timer.frametime()*100
                     _boost = math.clamp(_boost,0,transition_to_flight)
                     
                     activate_delta = math.easeOutSine(math.clamp(timer.curtime() - activate_ct,0,1))
