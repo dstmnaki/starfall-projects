@@ -554,6 +554,10 @@ else
                     _boost = _boost + (boost_button and 0.1 or -0.1)*0.1
                     _boost = math.clamp(_boost,0,transition_to_flight)
                     
+                    activate_delta = math.easeOutSine(math.clamp(timer.curtime() - activate_ct,0,1))
+                    
+                    local ease_activate_anim = math.easeInOutSine(math.clamp(math.sin(math.rad(activate_delta*180))*1.5,0,1))
+                    
                     if timer.curtime() - CT2 > (0.025 + 1*(1-(cpuMax()-cpuAverage())/cpuMax())) and cpuAverage()*1.1 < cpuMax() then
                         local delta = timer.curtime()-CT
                         
@@ -579,10 +583,6 @@ else
                                 end
                             end
                         end
-                        
-                        activate_delta = math.easeOutSine(math.clamp(timer.curtime() - activate_ct,0,1))
-                        
-                        local ease_activate_anim = math.easeInOutSine(math.clamp(math.sin(math.rad(activate_delta*180))*1.5,0,1))
                         
                         if boost_button then
                             if boost_button_toggle != true then
