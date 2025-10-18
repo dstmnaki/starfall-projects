@@ -388,16 +388,17 @@ else
     local offset_angle_normalized = Angle()
     hook.add("think","main",function()
         if owner() and owner() != nil and owner():isValid() and owner():getHealth() > 0 then
-            W = W + (owner():keyDown(IN_KEY.FORWARD) and 1 or -1)*0.01
+            local frame_time = timer.frametime()*100
+            W = W + (owner():keyDown(IN_KEY.FORWARD) and 1 or -1)*0.01*frame_time
             W = math.clamp(W,0,1)
             
-            S = S + (owner():keyDown(IN_KEY.BACK) and 1 or -1)*0.01
+            S = S + (owner():keyDown(IN_KEY.BACK) and 1 or -1)*0.01*frame_time
             S = math.clamp(S,0,1)
             
-            A = A + (owner():keyDown(IN_KEY.MOVELEFT) and 1 or -1)*0.01
+            A = A + (owner():keyDown(IN_KEY.MOVELEFT) and 1 or -1)*0.01*frame_time
             A = math.clamp(A,0,1)
             
-            D = D + (owner():keyDown(IN_KEY.MOVERIGHT) and 1 or -1)*0.01
+            D = D + (owner():keyDown(IN_KEY.MOVERIGHT) and 1 or -1)*0.01*frame_time
             D = math.clamp(D,0,1)
             
             local in_vec = Vector(W - S, A - D, 0)
@@ -576,7 +577,7 @@ else
                     
                     local boost_button = transition_to_flight == 1 and owner():keyDown(IN_KEY.SPEED) or false
                     
-                    _boost = _boost + (boost_button and 0.1 or -0.1)*0.1*timer.frametime()*100
+                    _boost = _boost + (boost_button and 0.1 or -0.1)*0.1*frame_time
                     _boost = math.clamp(_boost,0,transition_to_flight)
                     
                     activate_delta = math.easeOutSine(math.clamp(timer.curtime() - activate_ct,0,1))
