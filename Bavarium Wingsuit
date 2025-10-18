@@ -5,6 +5,15 @@
 --@shared
 --@model models/hunter/misc/sphere075x075.mdl
 
+--[[
+
+save these to gmod/gmod/data/starfall/nakilibs/
+
+https://github.com/dstmnaki/starfall-projects/blob/main/Nakilibs/bone_manipulate_lib.txt
+https://github.com/dstmnaki/yamato-starfall/blob/main/nakilibs/pac_to_holo_loader.txt
+
+--]]
+
 if SERVER then
     chip():setColor(Color(255,255,255,0))
     chip():setAngles(Angle())
