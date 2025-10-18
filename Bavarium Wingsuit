@@ -44,6 +44,7 @@ if SERVER then
     local force = 2
     local mass = chip():getMass()
     local boost_button_toggle = false
+    local first_time_used = false
     timer.create("int",1/25,0,function()
         local W = owner():keyDown(IN_KEY.FORWARD) and 1 or 0
         local S = owner():keyDown(IN_KEY.BACK) and 1 or 0
@@ -84,6 +85,7 @@ if SERVER then
                         end
                         seat:use(USE_ON, 0)
                         owner():setMaterial("null")
+                        first_time_used = true
                     end)
                 end
             end
@@ -167,7 +169,7 @@ if SERVER then
             chip():applyAngForce(ang_to_vector*force*mass)
             
             
-        else
+        elseif first_time_used == true then
             chip():setPos(Vector())
         end
         seat:setPos(chip():getPos())
