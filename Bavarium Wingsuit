@@ -157,7 +157,7 @@ if SERVER then
             
             local world_damping = chip():localToWorld((damping*(1 + _boost/6000*0.5) / (1 + x_mult * (1 - pitch_mult)))) - chip():getPos()
             
-            local gravity = Vector(0,0,-800 * math.clamp((1 - 1.5*(1 - pitch_mult)*x_mult),0,1))
+            local gravity = Vector(0,0,-1200 * math.clamp((1 - 1.5*(1 - pitch_mult)*x_mult),0,1))
             
             local total_force = forward_force + gravity + world_damping + redir_force
             
