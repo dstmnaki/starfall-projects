@@ -27,6 +27,12 @@ if SERVER then
     seat:setNocollideAll(true)
     seat:setColor(Color(255,255,255,0))
     owner():setMaterial("")
+    
+    snd = sound.create(chip(), "^thrusters/Rocket04.wav", false)
+    printConsole(snd and "Boost sound created successfully" or "Failed to create boost sound")
+    wind = sound.create(chip(), "ambient/levels/canals/windmill_wind_loop1.wav", false)
+    printConsole(wind and "Wind sound created successfully" or "Failed to create wind sound")
+    
     hook.add("Removed","",function()
         owner():setMaterial("")
     end)
@@ -34,9 +40,6 @@ if SERVER then
         net.start("send_seat")
         net.writeEntity(seat)
         net.send(owner(),false)
-        
-        snd = sound.create(chip(), "^thrusters/Rocket04.wav", false)
-        wind = sound.create(chip(), "ambient/levels/canals/windmill_wind_loop1.wav", false)
     end)
     local force = 2
     local mass = chip():getMass()
@@ -163,8 +166,11 @@ if SERVER then
             local ang_to_vector = ang_local-chip():getAngleVelocityAngle()
             chip():applyAngForce(ang_to_vector*force*mass)
             
-            seat:setPos(chip():getPos())
+            
+        else
+            chip():setPos(Vector())
         end
+        seat:setPos(chip():getPos())
     end)
 else
     require("nakilibs/pac_to_holo_loader.txt")
