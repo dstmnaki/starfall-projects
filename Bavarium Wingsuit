@@ -922,6 +922,9 @@ else
         local w, h = render.getGameResolution()
         hook.add("DrawHUD","",function()
             if owner():inVehicle() and owner():getVehicle() == seat then
+                local pos = (chip():getPos()+chip():getForward()*1000):toScreen()
+                render.drawFilledCircle(pos["x"],pos["y"],2)
+                
                 local pos = (chip():getPos()+(owner():getEyeAngles()+offset_angle_normalized):getForward()*1000):toScreen()
                 render.drawCircle(pos["x"],pos["y"],8)
                 
