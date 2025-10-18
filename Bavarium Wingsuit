@@ -118,7 +118,7 @@ if SERVER then
                 wind:setVolume(vel)
             end
             
-            local aim_ang = owner():getEyeAngles()+Angle(45*(W-S),45*(A-D),0):rotateAroundAxis(Vector(1,0,0),chip():getAngles().r)
+            local aim_ang = owner():getEyeAngles()+Angle((W-S) * 45, 0, 0):rotateAroundAxis(Vector(1,0,0),chip():getAngles().r) + Angle(0,(A-D) * 45,0)
             aim_ang.r = math.clamp((ang_in.y-aim_ang.y)*10 + 90*(D-A),-45,45)
             ang_in = math.slerpQuaternion(ang_in:getQuaternion(),aim_ang:getQuaternion(),0.2):getEulerAngle()
             
@@ -401,7 +401,7 @@ else
                 in_vec = in_vec / len
             end
             
-            offset_angle_normalized = Angle(in_vec.x * 45, in_vec.y * 45, 0):rotateAroundAxis(Vector(1,0,0),chip():getAngles().r)
+            offset_angle_normalized = Angle(in_vec.x * 45, 0, 0):rotateAroundAxis(Vector(1,0,0),chip():getAngles().r) + Angle(0,in_vec.y * 45,0)
             if pthl.ready then
                 if first != true then
                     first = true
