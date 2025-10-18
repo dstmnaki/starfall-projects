@@ -8,6 +8,7 @@
 --[[
 
 save these to gmod/gmod/data/starfall/nakilibs/
+you can also save them in starfall editor, just don't change the name, it should write them to the same location
 
 https://github.com/dstmnaki/starfall-projects/blob/main/Nakilibs/bone_manipulate_lib.txt
 https://github.com/dstmnaki/yamato-starfall/blob/main/nakilibs/pac_to_holo_loader.txt
