@@ -242,14 +242,14 @@ else
             print("Bavarium Wingsuit by Nakkitsunami")
             print("Hold R to deploy wingsuit from ground")
             print("Press R to deploy wingsuit when in air")
-            print("A and D to roll")
+            print("Mouse aiming")
+            print("WASD to offset angle")
             print("Shift to boost")
             print("E to exit")
         end
     end
-    setup_player_model(owner())
     
-    hc=hc+1 ht[hc]={"player_ent",parent,real_parent,Vector(0,0,0),Angle(0,0,0),player_model_is_valid and owner():getModel() or "models/player/breen.mdl","",Color(255,255,255,255),Vector(1),{}}
+    hc=hc+1 ht[hc]={"player_ent",parent,real_parent,Vector(0,0,0),Angle(0,0,0),owner():getModel(),"",Color(255,255,255,255),Vector(1),{}}
     
     hc=hc+1 ht[hc]={"wing_attach_bottom",parent,real_parent,Vector(0,0,0),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(255,255,255,0),Vector(0.1),{}}
     hc=hc+1 ht[hc]={"left_hand",parent,real_parent,Vector(0,0,0),Angle(0,0,0),"models/sprops/misc/axis_plane.mdl","",Color(255,255,255,0),Vector(0.1),{}}
@@ -379,13 +379,30 @@ else
     local activate_ct = 0
     local activate_delta = 0
     local is_in_seat = false
-    
+    local offset_angle_normalized = Angle()
     hook.add("think","main",function()
         if owner() and owner() != nil and owner():isValid() and owner():getHealth() > 0 then
-            W = owner():keyDown(IN_KEY.FORWARD) and 1 or 0
-            S = owner():keyDown(IN_KEY.BACK) and 1 or 0
-            A = owner():keyDown(IN_KEY.MOVELEFT) and 1 or 0
-            D = owner():keyDown(IN_KEY.MOVERIGHT) and 1 or 0
+            W = W + (owner():keyDown(IN_KEY.FORWARD) and 1 or -1)*0.01
+            W = math.clamp(W,0,1)
+            
+            S = S + (owner():keyDown(IN_KEY.BACK) and 1 or -1)*0.01
+            S = math.clamp(S,0,1)
+            
+            A = A + (owner():keyDown(IN_KEY.MOVELEFT) and 1 or -1)*0.01
+            A = math.clamp(A,0,1)
+            
+            D = D + (owner():keyDown(IN_KEY.MOVERIGHT) and 1 or -1)*0.01
+            D = math.clamp(D,0,1)
+            
+            local in_vec = Vector(W - S, A - D, 0)
+            
+            local len = in_vec:getLength()
+            if len > 1 then
+                in_vec = in_vec / len
+            end
+            
+            offset_angle_normalized = Angle(in_vec.x * 45, in_vec.y * 45, 0)
+            
             if pthl.ready then
                 if first != true then
                     first = true
@@ -398,6 +415,9 @@ else
                     
                     player_ent = pthl.holos["player_ent"]
                     backpack = pthl.holos["backpack"]
+                    
+                    setup_player_model(player_ent)
+                    
                     
                     player_ent:setLOD(0)
                     
@@ -879,10 +899,10 @@ else
             if seat and seat != nil and seat:isValid() and player_ent and player_ent != nil and player_ent:isValid() then
                 if owner():inVehicle() and owner():getVehicle() == seat then
                     local is_boosting_mult = math.easeInOutSine(math.sin(math.rad(_boost*90)))
-                    local angle_in = owner():getEyeAngles()+Angle(45*(W-S),45*(A-D),0)*0.25
-                    angle_in.r = chip():getAngles().r*0.25
+                    local angle_in = owner():getEyeAngles()+offset_angle_normalized*0.5
+                    angle_in.r = chip():getAngles().r*0.25-offset_angle_normalized.y*0.5
                     angle_lerp = math.slerpQuaternion(angle_lerp:getQuaternion(), angle_in:getQuaternion(), 0.025):getEulerAngle()
-                    local pos_in = player_ent:localToWorld(Vector(-25,0,60-80*activate_delta))+(4+math.sin(math.rad(timer.curtime()*128)))*Vector(math.sin(math.rad(timer.curtime()*360+math.sin(math.rad(timer.curtime()*263)))),math.cos(math.rad(timer.curtime()*360+math.sin(math.rad(timer.curtime()*118.7)))),0)*0.25+Vector(20*is_boosting_mult-55*activate_delta,0,0):getRotated(angle_lerp)
+                    local pos_in = player_ent:localToWorld(Vector(35*offset_angle_normalized.p/45,35*offset_angle_normalized.y/45,0)+Vector(-25,0,60-80*activate_delta))+(4+math.sin(math.rad(timer.curtime()*128)))*Vector(math.sin(math.rad(timer.curtime()*360+math.sin(math.rad(timer.curtime()*263)))),math.cos(math.rad(timer.curtime()*360+math.sin(math.rad(timer.curtime()*118.7)))),0)*0.25+Vector(20*is_boosting_mult-55*activate_delta,0,0):getRotated(angle_lerp)
                     return {
                         origin = pos_in,
                         angles = angle_lerp,
@@ -902,7 +922,7 @@ else
         local w, h = render.getGameResolution()
         hook.add("DrawHUD","",function()
             if owner():inVehicle() and owner():getVehicle() == seat then
-                local pos = (chip():getPos()+owner():getAimVector()*1000):toScreen()
+                local pos = (chip():getPos()+(owner():getEyeAngles()+offset_angle_normalized):getForward()*1000):toScreen()
                 render.drawCircle(pos["x"],pos["y"],8)
                 
                 render.setColor(Color(0,0,0,255*(1-activate_delta)))
