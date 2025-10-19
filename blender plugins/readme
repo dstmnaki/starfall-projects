@@ -9,4 +9,9 @@ You should be able to port anything with this as long as parent chains do not ex
 
 Located in 2 places, '3D View > Object > Export Starfall Anim / Armature Properties'
 
+Goes together with my holo loader and animation framework
+
+https://github.com/dstmnaki/yamato-starfall/blob/main/nakilibs/pac_to_holo_loader.txt
+https://github.com/dstmnaki/starfall-projects/blob/main/Nakilibs/animation_framework.txt
+
 I'll post a youtube video on how to use this soon
