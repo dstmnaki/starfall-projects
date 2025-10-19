@@ -3,7 +3,7 @@ bl_info = {
     "author": "Nakkitsunami",
     "version": (1, 3),
     "blender": (2, 80, 0),
-    "location": "3D View > Object > Export Slashblade Anim / Armature Properties",
+    "location": "3D View > Object > Export Starfall Anim / Armature Properties",
     "description": "Export animation keyframes to anim/*.txt & bones/rig to rig/*.txt",
     "category": "Export",
 }
