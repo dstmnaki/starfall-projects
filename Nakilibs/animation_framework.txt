@@ -9,6 +9,7 @@ Animation format:
 Animation = {
     {   -- frame 1
         { Angle(), Angle(), Angle(), ... }, -- bone angles
+        { Vector(), Vector(), Vector(), ... }, -- bone positions
         { frameLength, frameRateModifier }  -- frame data
     },
     { ... }, -- frame 2, etc.
