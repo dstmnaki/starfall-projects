@@ -1,0 +1,12 @@
+This is my latest format, if you wish to convert an animation for my yamato project, use the one below instead!
+https://github.com/dstmnaki/yamato-starfall/blob/main/blender%20animating%20test/blender%20plugins/yamato%20animation%20converter%20for%20starfall/yamato%20animation%20converter.py
+
+Now, introduction
+
+Here's my finalized blender to starfall animation and bone/rig converter, i have done some testing and so far it seems that this works fine as well, i also noticed that the origin of my yamato project's rig was rotated 90 degrees forward by default, one couldn't even see it, but it was still there code wise, that cause the ported animations to point upwards, so i had to add a -90 offset when exporting, that should not be the case with this if your armature is pointing the right direction
+
+You should be able to port anything with this as long as parent chains do not exceed 16, that is a source engine limit which starfall enforces, anything beyond 16 when moved can crash servers, so keep that in mind, i haven't made a way of baking animations into "groups" that divide the armature based on parent count, but if i figure that out one day, i'll update this code
+
+Located in 2 places, '3D View > Object > Export Starfall Anim / Armature Properties'
+
+I'll post a youtube video on how to use this soon
