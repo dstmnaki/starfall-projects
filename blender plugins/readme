@@ -14,4 +14,35 @@ Goes together with my holo loader and animation framework
 https://github.com/dstmnaki/yamato-starfall/blob/main/nakilibs/pac_to_holo_loader.txt
 https://github.com/dstmnaki/starfall-projects/blob/main/Nakilibs/animation_framework.txt
 
+------------------------------
+Animation framework usage
+------------------------------
+
+local Animations={}
+local Anim_Name = "Test Animation"
+Animations[Anim_Name]={Anim_Name,ANIMATION_TABLE_VARIABLE}
+
+
+local function onFrame(frame)
+    --print("Frame:", frame)
+end
+
+local function animation_finished()
+    --print("Animation finished!")
+end
+
+hook.add("think","animation_stuff",function()
+    if pthl.ready then
+        local bones_in = bones
+        local anim_name = "Test Animation"
+        nakilibs.start_animation(size, bones_in, Animations[anim_name][1], Animations[anim_name][2], true, 0.1,
+            function(frame) onFrame(frame) end,
+            function() animation_finished() end
+        )
+        hook.remove("think","animation_stuff")
+    end
+end)
+
+------------------------------
+
 I'll post a youtube video on how to use this soon
