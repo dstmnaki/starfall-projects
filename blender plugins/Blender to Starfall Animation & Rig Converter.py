@@ -43,10 +43,14 @@ def pose_bone_relative_euler_degrees(arm_obj, bone):
     # Torso (root) bone — world space
     if bone.parent is None:
         rel_matrix = bone.matrix
-        rotation = 90
+        rotationx = 0
+        rotationy = 0
+        rotationz = 0
     else:
         rel_matrix = bone.parent.matrix.inverted() @ bone.matrix
-        rotation = 0
+        rotationx = 0
+        rotationy = 0
+        rotationz = 0
 
     # Convert to ZXY Euler to match in-game convention
     euler = rel_matrix.to_euler('ZXY')
@@ -54,9 +58,9 @@ def pose_bone_relative_euler_degrees(arm_obj, bone):
     # Convert to degrees
     
     return (
-        math.degrees(euler.x) - rotation,
-        math.degrees(euler.y),
-        math.degrees(euler.z)
+        math.degrees(euler.x) - rotationx,
+        math.degrees(euler.y) - rotationy,
+        math.degrees(euler.z) - rotationz
     )
 
 def pose_bone_relative_vector_position(arm_obj, bone):
