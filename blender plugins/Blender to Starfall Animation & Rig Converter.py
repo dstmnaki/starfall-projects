@@ -176,10 +176,14 @@ def export_action_to_starfall_text(context, arm_obj, action, out_path):
     anim_name = action.name
     anim_name_lower = anim_name.lower().replace(" ", "_")
     anim_name_upper = anim_name.upper().replace(" ", "_")
+    
+    frame_rate_modifier = 50  # Default rate mod (you can expose this later if needed)
 
-    header = f"--@name {project_name_lower}/anim/{anim_name_lower}\n{anim_name_upper}={{\n"
+    header = f"--@name {project_name_lower}/anim/{anim_name_lower}\n{anim_name_upper}="
     lines = [header]
-
+    lines.append("{\n")
+    lines.append(f"{frame_rate_modifier},\n")
+    
     orig_frame = scene.frame_current
 
     # ------------------------------------------------------------
@@ -213,26 +217,41 @@ def export_action_to_starfall_text(context, arm_obj, action, out_path):
         else:
             frame_length = 1  # fallback for last key
 
-        frame_rate_modifier = 50  # Default rate mod (you can expose this later if needed)
-
         # Collect all bone angles in hierarchical order
         angle_lines = []
-        for bone_name in bone_order:
-            try:
-                pb = arm_obj.pose.bones[bone_name]
-                degs = pose_bone_relative_euler_degrees(arm_obj, pb)
-                angle_lines.append(f"{vec_to_angle_str(degs)}, -- {bone_name}")
-            except KeyError:
-                angle_lines.append("Angle(0,0,0)")
-        
         position_lines = []
-        for bone_name in bone_order:
-            try:
-                pb = arm_obj.pose.bones[bone_name]
-                vec = pose_bone_relative_vector_position(arm_obj, pb)
-                position_lines.append(f"{vec_to_str(vec)},")
-            except KeyError:
-                position_lines.append("Vector(0,0,0)")
+        if i == 0:
+            for bone_name in bone_order:
+                try:
+                    pb = arm_obj.pose.bones[bone_name]
+                    degs = pose_bone_relative_euler_degrees(arm_obj, pb)
+                    angle_lines.append(f"{vec_to_angle_str(degs)}, -- {bone_name}")
+                except KeyError:
+                    angle_lines.append("Angle(0,0,0)")
+            for bone_name in bone_order:
+                try:
+                    pb = arm_obj.pose.bones[bone_name]
+                    vec = pose_bone_relative_vector_position(arm_obj, pb)
+                    position_lines.append(f"{vec_to_str(vec)}, -- {bone_name}")
+                except KeyError:
+                    position_lines.append("Vector(0,0,0)")
+            
+        else:
+            for bone_name in bone_order:
+                try:
+                    pb = arm_obj.pose.bones[bone_name]
+                    degs = pose_bone_relative_euler_degrees(arm_obj, pb)
+                    angle_lines.append(f"{vec_to_angle_str(degs)},")
+                except KeyError:
+                    angle_lines.append("Angle(0,0,0)")
+            for bone_name in bone_order:
+                try:
+                    pb = arm_obj.pose.bones[bone_name]
+                    vec = pose_bone_relative_vector_position(arm_obj, pb)
+                    position_lines.append(f"{vec_to_str(vec)},")
+                except KeyError:
+                    position_lines.append("Vector(0,0,0)")
+            
         
         # Frame block start
         lines.append("{\n")
@@ -247,12 +266,9 @@ def export_action_to_starfall_text(context, arm_obj, action, out_path):
         for pos in position_lines:
             lines.append(f"        {pos}\n")
         lines.append("    },\n")
-        
+            
         # Frame data table
-        lines.append("    {\n")
-        lines.append(f"        {frame_length},\n")
-        lines.append(f"        {frame_rate_modifier}\n")
-        lines.append("    }\n")
+        lines.append(f"    {frame_length}\n")
 
         # End frame
         if i < len(keyframes) - 1:
