@@ -9,7 +9,6 @@ Animation format:
 Animation = {
     {   -- frame 1
         { Angle(), Angle(), Angle(), ... }, -- bone angles
-        { Vector(), Vector(), Vector(), ... }, -- bone positions
         { frameLength, frameRateModifier }  -- frame data
     },
     { ... }, -- frame 2, etc.
@@ -29,6 +28,7 @@ function nakilibs.start_animation(size, bones_table, animName, animData, looping
     end
 
     local Frame       = 1
+    local Frame_Real  = Frame + 1
     local FrameTime   = 0
     local CT          = timer.curtime()
     local FrameCount  = #animData
@@ -39,16 +39,15 @@ function nakilibs.start_animation(size, bones_table, animName, animData, looping
     
     hook.add("think", hookID, function()
         local DELTA = timer.curtime() - CT
-        local frame = animData[Frame]
-        local nextFrame = animData[math.clamp(Frame + 1, 1, FrameCount)]
+        local frame = animData[Frame_Real]
+        local nextFrame = animData[math.clamp(Frame_Real + 1, 1, FrameCount)]
         
         if not frame or not frame[1] then return end
         
         local boneAngles = frame[1]
         local bonePositions = frame[2]
-        local frameData  = frame[3] or {1, 1}
-        local frameLength = frameData[1] or 1
-        local frameRateMod = frameData[2] or 1
+        local frameLength = frame[3]
+        local frameRateMod = animData[1]
         
         FrameRate = frameLength
         
@@ -84,15 +83,15 @@ function nakilibs.start_animation(size, bones_table, animName, animData, looping
         
         if FrameTime >= FrameRate then
             FrameTime = 0
-            Frame = Frame + 1
+            Frame_Real = Frame_Real + 1
             
-            if onFrame then onFrame(Frame) end
+            if onFrame then onFrame(Frame_Real) end
         end
         
-        if Frame > FrameCount then
+        if Frame_Real > FrameCount then
             if onFinish then onFinish(animName) end
             if looping then
-                Frame = 1
+                Frame_Real = 1
                 if onFrame then onFrame(1) end
             else
                 hook.remove("think", hookID)
@@ -102,5 +101,5 @@ function nakilibs.start_animation(size, bones_table, animName, animData, looping
         CT = timer.curtime()
     end)
     
-    print("[Animation] Started animation:", animName)
+    --print("[Animation] Started animation:", animName)
 end
