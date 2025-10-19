@@ -7,9 +7,11 @@ nakilibs = nakilibs or {}
 --[[
 Animation format:
 Animation = {
+    frame length modifier,
     {   -- frame 1
         { Angle(), Angle(), Angle(), ... }, -- bone angles
-        { frameLength, frameRateModifier }  -- frame data
+        { Vector(), Vector(), Vector(), ... } -- bone positions
+        frameLength  -- frame data
     },
     { ... }, -- frame 2, etc.
 }
