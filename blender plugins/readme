@@ -31,11 +31,14 @@ local function animation_finished()
     --print("Animation finished!")
 end
 
+local is_looping = false
+local animation_rate = 1
+
 hook.add("think","animation_stuff",function()
     if pthl.ready then
         local bones_in = bones
         local anim_name = "Test Animation"
-        nakilibs.start_animation(size, bones_in, Animations[anim_name][1], Animations[anim_name][2], true, 0.1,
+        nakilibs.start_animation(size, bones_in, Animations[anim_name][1], Animations[anim_name][2], is_looping, animation_rate,
             function(frame) onFrame(frame) end,
             function() animation_finished() end
         )
