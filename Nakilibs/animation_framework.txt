@@ -93,10 +93,10 @@ function nakilibs.start_animation(size, bones_table, animName, animData, looping
             
             local frame = animData[Frame+1]
             
-            if not frame or not frame[1] then return end
-            
-            boneAngles = frame[1]
-            bonePositions = frame[2]
+            if frame and frame[1] then
+                boneAngles = frame[1]
+                bonePositions = frame[2]
+            end
         end
         
         if Frame > FrameCount then
