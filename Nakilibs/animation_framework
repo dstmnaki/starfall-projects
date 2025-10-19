@@ -1,0 +1,105 @@
+--@name nakilibs/animation_framework
+--@author Nakkitsunami
+--@client
+
+nakilibs = nakilibs or {}
+
+--[[
+Animation format:
+Animation = {
+    {   -- frame 1
+        { Angle(), Angle(), Angle(), ... }, -- bone angles
+        { frameLength, frameRateModifier }  -- frame data
+    },
+    { ... }, -- frame 2, etc.
+}
+
+Usage:
+nakilibs.start_animation(number size_multiplier, table bones, string animation_name, table animation_data, boolean looping,
+    function(frame) print("Frame:", frame) end,
+    function() print("Animation finished!") end
+)
+]]
+
+function nakilibs.start_animation(size, bones_table, animName, animData, looping, frame_rate_mult_custom, onFrame, onFinish)
+    if not animData or #animData == 0 then
+        error("Invalid animation data for: " .. tostring(animName))
+        return
+    end
+
+    local Frame       = 1
+    local FrameTime   = 0
+    local CT          = timer.curtime()
+    local FrameCount  = #animData
+    local FrameRate   = 0.05
+    local hookID      = "_animation_framework_" .. animName
+    
+    if onFrame then onFrame(1) end
+    
+    hook.add("think", hookID, function()
+        local DELTA = timer.curtime() - CT
+        local frame = animData[Frame]
+        local nextFrame = animData[math.clamp(Frame + 1, 1, FrameCount)]
+        
+        if not frame or not frame[1] then return end
+        
+        local boneAngles = frame[1]
+        local bonePositions = frame[2]
+        local frameData  = frame[3] or {1, 1}
+        local frameLength = frameData[1] or 1
+        local frameRateMod = frameData[2] or 1
+        
+        FrameRate = frameLength
+        
+        for i = 1, #boneAngles do
+            local bone = bones_table[i]
+            if bone then
+                local parent = bone:getParent()
+                if parent and parent:isValid() then
+                    local currentAng = boneAngles[i]
+                    local nextAng = nextFrame[1][math.clamp(i, 1, #nextFrame[1])]
+                    bone:setAngles(parent:localToWorldAngles(
+                        math.slerpQuaternion(
+                            currentAng:getQuaternion(),
+                            nextAng:getQuaternion(),
+                            (FrameTime / FrameRate)
+                        ):getEulerAngle()
+                    ))
+                    local currentPos = bonePositions[i]*size
+                    local nextPos = nextFrame[2][math.clamp(i, 1, #nextFrame[1])]*size
+                    bone:setPos(parent:localToWorld(
+                        math.lerpVector((FrameTime / FrameRate),
+                            currentPos,
+                            nextPos
+                        )
+                    ))
+                end
+            end
+        end
+        
+        -- frame timing
+        FrameTime = FrameTime + frameRateMod * DELTA * (frame_rate_mult_custom and frame_rate_mult_custom or 1)
+        FrameTime = math.clamp(FrameTime, 0, FrameRate)
+        
+        if FrameTime >= FrameRate then
+            FrameTime = 0
+            Frame = Frame + 1
+            
+            if onFrame then onFrame(Frame) end
+        end
+        
+        if Frame > FrameCount then
+            if onFinish then onFinish(animName) end
+            if looping then
+                Frame = 1
+                if onFrame then onFrame(1) end
+            else
+                hook.remove("think", hookID)
+            end
+        end
+        
+        CT = timer.curtime()
+    end)
+    
+    print("[Animation] Started animation:", animName)
+end
