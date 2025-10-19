@@ -38,6 +38,10 @@ function nakilibs.start_animation(size, bones_table, animName, animData, looping
     
     if onFrame then onFrame(1) end
     
+    local frame = animData[Frame+1]
+    local boneAngles = frame[1]
+    local bonePositions = frame[2]
+    
     hook.add("think", hookID, function()
         local DELTA = timer.curtime() - CT
         local frame = animData[Frame+1]
@@ -45,8 +49,6 @@ function nakilibs.start_animation(size, bones_table, animName, animData, looping
         
         if not frame or not frame[1] then return end
         
-        local boneAngles = frame[1]
-        local bonePositions = frame[2]
         local frameLength = frame[3]
         local frameRateMod = animData[1]
         
@@ -83,10 +85,18 @@ function nakilibs.start_animation(size, bones_table, animName, animData, looping
         FrameTime = math.clamp(FrameTime, 0, FrameRate)
         
         if FrameTime >= FrameRate then
+            
             FrameTime = 0
             Frame = Frame + 1
             
             if onFrame then onFrame(Frame) end
+            
+            local frame = animData[Frame+1]
+            
+            if not frame or not frame[1] then return end
+            
+            boneAngles = frame[1]
+            bonePositions = frame[2]
         end
         
         if Frame > FrameCount then
