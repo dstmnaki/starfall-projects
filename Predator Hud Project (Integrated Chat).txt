@@ -801,6 +801,7 @@ if CLIENT then
     local npc_table = {}
     
     function createHolos(disconnected_player)
+        if player() ~= owner() then return end
         player_table = {}
         function filter(a)
             if disconnected_player and disconnected_player == a then return false end
@@ -830,23 +831,25 @@ if CLIENT then
     createHolos(nil)
     hook.add("think","",function()
         if owner():getHealth() > 0 then
-            if player_table and #player_table >= 0 then
-                for k, v in pairs(player_table) do
-                    local ply = v.ply
-                    if ply and ply != nil and ply:isValid() and ply:getHealth() > 0 then
-                    else
-                        v.ply_holo:remove()
-                        table.remove(player_table,k)
+            if player() == owner() then
+                if player_table and #player_table >= 0 then
+                    for k, v in pairs(player_table) do
+                        local ply = v.ply
+                        if ply and ply != nil and ply:isValid() and ply:getHealth() > 0 then
+                        else
+                            v.ply_holo:remove()
+                            table.remove(player_table,k)
+                        end
                     end
                 end
-            end
-            if npc_table and #npc_table >= 0 then
-                for k, v in pairs(npc_table) do
-                    local npc = v.npc
-                    if npc and npc != nil and npc:isValid() and npc:getHealth() > 0 then
-                    else
-                        v.npc_holo:remove()
-                        table.remove(npc_table,k)
+                if npc_table and #npc_table >= 0 then
+                    for k, v in pairs(npc_table) do
+                        local npc = v.npc
+                        if npc and npc != nil and npc:isValid() and npc:getHealth() > 0 then
+                        else
+                            v.npc_holo:remove()
+                            table.remove(npc_table,k)
+                        end
                     end
                 end
             end
@@ -914,9 +917,11 @@ if CLIENT then
             table.insert(npc_table,ent_table)
         end
     end)
-    timer.create("find unoptimized shit",1,0,function()
-        createHolos(nil)
-    end)
+    if player() == owner() then
+        timer.create("find unoptimized shit",1,0,function()
+            createHolos(nil)
+        end)
+    end
     function changeVision()
         thermalOn = thermalOn +1
         owner():emitSound("cpthazama/avp/predator/vision/vision_change_02.ogg", 100, 100, 1, CHANNEL_AUTO)
