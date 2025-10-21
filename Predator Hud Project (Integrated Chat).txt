@@ -817,7 +817,9 @@ if CLIENT then
             player_table[k].ply_holo:suppressEngineLighting(true)
             player_table[k].ply_holo:setParent(v)
             player_table[k].ply_holo:addEffects(EF.BONEMERGE)
-            player_table[k].ply_holo:setColor(Color(255,255,255,0))
+            
+            player_table[k].ply_holo:setColor(Color(255,255,255,thermalOn==1 and 255 or 0))
+            player_table[k].ply:setColor(Color(255,255,255,thermalOn==1 and 0 or 255))
         end
     end
     hook.add("PlayerInitialSpawn", "", function(ply, transition)
@@ -904,24 +906,6 @@ if CLIENT then
     
     concmd("pp_texturize_scale 15") -- i forgot this to 1...my bad guys...
     
-    hook.add("OnEntityCreated", "", function(ent)
-        if ent and ent != nil and ent:isValid() and ent:isNPC() and ent:getHealth() > 0 then
-            ent_table = {}
-            ent_table.npc = ent
-            ent_table.npc_holo = hologram.create(Vector(), Angle(), ent:getModel(), Vector(1,1,1))
-            ent_table.npc_holo:setMaterial("models/debug/debugwhite")
-            ent_table.npc_holo:suppressEngineLighting(true)
-            ent_table.npc_holo:setParent(ent)
-            ent_table.npc_holo:addEffects(EF.BONEMERGE)
-            ent_table.npc_holo:setColor(Color(255,255,255,0))
-            table.insert(npc_table,ent_table)
-        end
-    end)
-    if player() == owner() then
-        timer.create("find unoptimized shit",1,0,function()
-            createHolos(nil)
-        end)
-    end
     function changeVision()
         thermalOn = thermalOn +1
         owner():emitSound("cpthazama/avp/predator/vision/vision_change_02.ogg", 100, 100, 1, CHANNEL_AUTO)
@@ -989,40 +973,58 @@ if CLIENT then
         end
         ]]
     end
-    render.createRenderTarget("canvas")
-    hook.add("Render", "", function()
-        if thermalOn == 1 then
-            render.selectRenderTarget("canvas")
-                render.clear(Color(0,0,0,0), true)
-                render.setColor(Color(0,255,255))
+    if player() == owner() then
+        hook.add("OnEntityCreated", "", function(ent)
+            if ent and ent != nil and ent:isValid() and ent:isNPC() and ent:getHealth() > 0 then
+                ent_table = {}
+                ent_table.npc = ent
+                ent_table.npc_holo = hologram.create(Vector(), Angle(), ent:getModel(), Vector(1,1,1))
+                ent_table.npc_holo:setMaterial("models/debug/debugwhite")
+                ent_table.npc_holo:suppressEngineLighting(true)
+                ent_table.npc_holo:setParent(ent)
+                ent_table.npc_holo:addEffects(EF.BONEMERGE)
                 
-                render.pushViewMatrix({
-                    type   = "3D",
-                    origin = Vector(),
-                    angles = Angle(),
-                    fov    = 60,
-                    aspect = 1,
-                })
-                if player_table and #player_table >= 0 then
-                    for k, v in pairs(player_table) do
-                        local ply_holo = v.ply_holo
-                        ply_holo:draw()
+                
+                ent_table.npc_holo:setColor(Color(255,255,255,thermalOn==1 and 255 or 0))
+                ent_table.npc:setColor(Color(255,255,255,thermalOn==1 and 0 or 255))
+                table.insert(npc_table,ent_table)
+            end
+        end)
+        render.createRenderTarget("canvas")
+        hook.add("Render", "", function()
+            if thermalOn == 1 then
+                render.selectRenderTarget("canvas")
+                    render.clear(Color(0,0,0,0), true)
+                    render.setColor(Color(0,255,255))
+                    
+                    render.pushViewMatrix({
+                        type   = "3D",
+                        origin = Vector(),
+                        angles = Angle(),
+                        fov    = 60,
+                        aspect = 1,
+                    })
+                    if player_table and #player_table >= 0 then
+                        for k, v in pairs(player_table) do
+                            local ply_holo = v.ply_holo
+                            ply_holo:draw()
+                        end
                     end
-                end
-                if npc_table and #npc_table >= 0 then
-                    for k, v in pairs(npc_table) do
-                        local npc_holo = v.npc_holo
-                        npc_holo:draw()
+                    if npc_table and #npc_table >= 0 then
+                        for k, v in pairs(npc_table) do
+                            local npc_holo = v.npc_holo
+                            npc_holo:draw()
+                        end
                     end
-                end
-                render.popViewMatrix()
-            render.selectRenderTarget()
-            
-            render.setColor(Color(255,255,255))
-            render.setRenderTargetTexture("canvas")
-            render.drawTexturedRect(0, 0, 1024, 1024)
-        end
-    end)
+                    render.popViewMatrix()
+                render.selectRenderTarget()
+                
+                render.setColor(Color(255,255,255))
+                render.setRenderTargetTexture("canvas")
+                render.drawTexturedRect(0, 0, 1024, 1024)
+            end
+        end)
+    end
     
     hook.add("Removed", "", function()
         
