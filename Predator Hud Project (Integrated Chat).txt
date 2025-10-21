@@ -59,7 +59,7 @@
 
                                                   - G I T H U B   M I R R O R -
 
-              https://github.com/dstmnaki/starfall-projects/blob/main/Predator%20Hud%20Project%20(Integrated%20Chat).txt
+                          https://github.com/dstmnaki/starfall-projects/blob/main/Predator%20Hud%20Project
 
 
 ================================================================================================================================
@@ -797,8 +797,59 @@ if CLIENT then
         return table.random(t)
     end
     
+    local player_table = {}
+    local npc_table = {}
+    
+    function createHolos(disconnected_player)
+        player_table = {}
+        function filter(a)
+            if disconnected_player and disconnected_player == a then return false end
+            if a == owner() then return false end
+            if a:getHealth() <= 0 then return false end
+            return true
+        end
+        for k, v in pairs(find.allPlayers(filter)) do
+            player_table[k] = {}
+            player_table[k].ply = v
+            player_table[k].ply_holo = hologram.create(Vector(), Angle(), v:getModel(), Vector(1,1,1))
+            player_table[k].ply_holo:setMaterial("models/debug/debugwhite")
+            player_table[k].ply_holo:suppressEngineLighting(true)
+            player_table[k].ply_holo:setParent(v)
+            player_table[k].ply_holo:addEffects(EF.BONEMERGE)
+            player_table[k].ply_holo:setColor(Color(255,255,255,0))
+        end
+    end
+    hook.add("PlayerInitialSpawn", "", function(ply, transition)
+        createHolos(nil)
+        print("updating...")
+    end)
+    hook.add("PlayerDisconnected", "", function(ply)
+        createHolos(ply)
+        print(ply:getName().." disconnected")
+    end)
+    createHolos(nil)
     hook.add("think","",function()
         if owner():getHealth() > 0 then
+            if player_table and #player_table >= 0 then
+                for k, v in pairs(player_table) do
+                    local ply = v.ply
+                    if ply and ply != nil and ply:isValid() and ply:getHealth() > 0 then
+                    else
+                        v.ply_holo:remove()
+                        table.remove(player_table,k)
+                    end
+                end
+            end
+            if npc_table and #npc_table >= 0 then
+                for k, v in pairs(npc_table) do
+                    local npc = v.npc
+                    if npc and npc != nil and npc:isValid() and npc:getHealth() > 0 then
+                    else
+                        v.npc_holo:remove()
+                        table.remove(npc_table,k)
+                    end
+                end
+            end
             WPNOK = owner():getActiveWeapon() != nil and owner():getActiveWeapon():isValid() and  owner():getActiveWeapon():getClass() == "none"
             
             if input.isMouseDown(MOUSE.MOUSE1) and blockAttack != true and canAttack and owner():isTyping() == false and WPNOK then
@@ -846,9 +897,23 @@ if CLIENT then
             end
         end
     end)
-    local USEFLIR = true
+    local USEFLIR = false
     
     concmd("pp_texturize_scale 15") -- i forgot this to 1...my bad guys...
+    
+    hook.add("OnEntityCreated", "", function(ent)
+        if ent and ent != nil and ent:isValid() and ent:isNPC() and ent:getHealth() > 0 then
+            ent_table = {}
+            ent_table.npc = ent
+            ent_table.npc_holo = hologram.create(Vector(), Angle(), ent:getModel(), Vector(1,1,1))
+            ent_table.npc_holo:setMaterial("models/debug/debugwhite")
+            ent_table.npc_holo:suppressEngineLighting(true)
+            ent_table.npc_holo:setParent(ent)
+            ent_table.npc_holo:addEffects(EF.BONEMERGE)
+            ent_table.npc_holo:setColor(Color(255,255,255,0))
+            table.insert(npc_table,ent_table)
+        end
+    end)
     
     function changeVision()
         thermalOn = thermalOn +1
@@ -870,6 +935,25 @@ if CLIENT then
             local toytown = "pp_toytown 0"
             local flir = (USEFLIR and "; flir_toggle" or "")
             concmd(texturize.."; "..motionblur.."; "..matoverlay.."; "..frameblend.."; "..toytown.."; "..flir)
+        end
+        if not cloakstate then
+            vmHolo:setMaterial(thermalOn == 0 and "" or "models/debug/debugwhite")
+        end
+        if player_table and #player_table >= 0 then
+            for k, v in pairs(player_table) do
+                local ply_holo = v.ply_holo
+                local ply = v.ply
+                ply_holo:setColor(Color(255,255,255,thermalOn==1 and 255 or 0))
+                ply:setColor(Color(255,255,255,thermalOn==1 and 0 or 255))
+            end
+        end
+        if npc_table and #npc_table >= 0 then
+            for k, v in pairs(npc_table) do
+                local npc_holo = v.npc_holo
+                local npc = v.npc
+                npc_holo:setColor(Color(255,255,255,thermalOn==1 and 255 or 0))
+                npc:setColor(Color(255,255,255,thermalOn==1 and 0 or 255))
+            end
         end
         --[[
         if thermalOn == 1 then
@@ -898,7 +982,53 @@ if CLIENT then
         end
         ]]
     end
+    render.createRenderTarget("canvas")
+    hook.add("Render", "", function()
+        if thermalOn == 1 then
+            render.selectRenderTarget("canvas")
+                render.clear(Color(0,0,0,0), true)
+                render.setColor(Color(0,255,255))
+                
+                render.pushViewMatrix({
+                    type   = "3D",
+                    origin = Vector(),
+                    angles = Angle(),
+                    fov    = 60,
+                    aspect = 1,
+                })
+                if player_table and #player_table >= 0 then
+                    for k, v in pairs(player_table) do
+                        local ply_holo = v.ply_holo
+                        ply_holo:draw()
+                    end
+                end
+                if npc_table and #npc_table >= 0 then
+                    for k, v in pairs(npc_table) do
+                        local npc_holo = v.npc_holo
+                        npc_holo:draw()
+                    end
+                end
+                render.popViewMatrix()
+            render.selectRenderTarget()
+            
+            render.setColor(Color(255,255,255))
+            render.setRenderTargetTexture("canvas")
+            render.drawTexturedRect(0, 0, 1024, 1024)
+        end
+    end)
+    
     hook.add("Removed", "", function()
+        
+        for k, v in pairs(player_table) do
+            if v.ply then
+                v.ply:setColor(Color(255,255,255,255))
+            end
+        end
+        for k, v in pairs(npc_table) do
+            if v.npc then
+                v.npc:setColor(Color(255,255,255,255))
+            end
+        end
         if thermalOn == 1 or thermalOn == 2 then
             local texturize = "pp_texturize \"\""
             local motionblur = "pp_motionblur 0"
@@ -1049,7 +1179,7 @@ if CLIENT then
                 net.writeBool(cloakstate)
                 net.send()
                 owner():emitSound((cloakstate and "cpthazama/avp/predator/cloak/prd_cloak.ogg" or "cpthazama/avp/predator/cloak/prd_uncloak.ogg"), 100, 100, 1, CHANNEL_AUTO)
-                vmHolo:setMaterial(cloakstate and "models/shadertest/predator" or "")
+                vmHolo:setMaterial(cloakstate and "models/shadertest/predator" or thermalOn == 0 and "" or "models/debug/debugwhite")
             end
             lastCloakButtonState = cloakButton
             local zooming = input.isMouseDown(MOUSE.MOUSE4) and owner():isTyping() == false
