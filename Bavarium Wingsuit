@@ -33,6 +33,32 @@ if SERVER then
     wind = sound.create(chip(), "ambient/levels/canals/windmill_wind_loop1.wav", false)
     printConsole(wind and "Wind sound created successfully" or "Failed to create wind sound")
     
+    local ragdoll_ent = nil
+    hook.add("Net","",function(name,len,ply)
+        if name == "send_model" then
+            if not ragdoll_ent or ragdoll_ent == nil then
+                local model = net.readString()
+                ragdoll_ent = prop.createRagdoll(model, false)
+                
+                ragdoll_ent:setNoDraw(true)
+                local player_color_get = owner():getPlayerColor()
+                
+                player_color = Color(math.round(player_color_get[1]*255),math.round(player_color_get[2]*255),math.round(player_color_get[3]*255),255)
+                
+                ragdoll_ent:getPhysicsObject():setPos(chip():getPos())
+                for i = 1, ragdoll_ent:getPhysicsObjectCount() do
+                    local bone = ragdoll_ent:getPhysicsObjectNum(i)
+                    if bone then
+                        bone:setPos(chip():getPos())
+                        bone:enableMotion(true)
+                    end
+                end
+                net.start("send_ragdoll")
+                net.writeEntity(ragdoll_ent)
+                net.send(owner(),false)
+            end
+        end
+    end)
     hook.add("Removed","",function()
         owner():setMaterial("")
     end)
@@ -45,6 +71,45 @@ if SERVER then
     local mass = chip():getMass()
     local boost_button_toggle = false
     local first_time_used = false
+    local last_speed_x = 0
+    local last_speed_y = 0
+    local last_speed_z = 0
+    
+    function kill_ply(stored_velocity)
+        net.start("send_ragdoll")
+        net.writeEntity(ragdoll_ent)
+        net.send(owner(),false)
+        ragdoll_ent:setPos(chip():getPos())
+        ragdoll_ent:enableMotion(true)
+        ragdoll_ent:getPhysicsObject():setPos(chip():getPos())
+        ragdoll_ent:getPhysicsObject():enableMotion(true)
+        ragdoll_ent:getPhysicsObject():setVelocity(stored_velocity)
+        ragdoll_ent:setNocollideAll(true)
+        ragdoll_ent:setNoDraw(false)
+        for i = 1, ragdoll_ent:getPhysicsObjectCount() do
+            local bone = ragdoll_ent:getPhysicsObjectNum(i)
+            if bone then
+                bone:setPos(chip():getPos())
+                bone:setVelocity(stored_velocity)
+            end
+        end
+        net.start("activate_ragdoll")
+        net.writeBool(true)
+        net.send(find.allPlayers(),false)
+        timer.simple(5,function()
+            chip():setPos(ragdoll_ent:getPos())
+            timer.simple(0.5,function()
+                ragdoll_ent:setNoDraw(true)
+                ragdoll_ent:getPhysicsObject():enableMotion(false)
+                seat:ejectDriver()
+                net.start("activate_ragdoll")
+                net.writeBool(false)
+                net.send(find.allPlayers(),false)
+            end)
+        end)
+        chip():enableMotion(false)
+    end
+    local store_vel = Vector()
     timer.create("int",1/25,0,function()
         local W = owner():keyDown(IN_KEY.FORWARD) and 1 or 0
         local S = owner():keyDown(IN_KEY.BACK) and 1 or 0
@@ -106,6 +171,35 @@ if SERVER then
             end
         end
         if owner():inVehicle() and owner():getVehicle() == seat then
+            
+            local cur_speed = chip():getLocalVelocity().x
+            
+            if (cur_speed - last_speed_x)/53 < -50 then
+                print("speed difference x was: "..(cur_speed-last_speed_x)/53)
+                kill_ply(store_vel)
+            end
+            last_speed_x = cur_speed
+            
+            
+            local cur_speed = chip():getLocalVelocity().y
+            
+            if math.abs(cur_speed - last_speed_y)/53 > 50 then
+                print("speed difference y was: "..math.abs(cur_speed - last_speed_y)/53)
+                kill_ply(store_vel)
+            end
+            last_speed_y = cur_speed
+            
+            
+            local cur_speed = chip():getLocalVelocity().z
+            
+            if math.abs(cur_speed - last_speed_y)/53 > 50 then
+                print("speed difference z was: "..math.abs(cur_speed - last_speed_y)/53)
+                kill_ply(store_vel)
+            end
+            last_speed_z = cur_speed
+            
+            store_vel = chip():getVelocity()
+            
             if snd and snd != nil and wind and wind != nil then
                 if boost_button then
                     if boost_button_toggle != true then
@@ -170,7 +264,7 @@ if SERVER then
             
             
         elseif first_time_used == true then
-            chip():setPos(Vector())
+            --chip():setPos(Vector())
         end
         seat:setPos(chip():getPos())
     end)
@@ -388,6 +482,17 @@ else
     local activate_delta = 0
     local is_in_seat = false
     local offset_angle_normalized = Angle()
+    
+    local ragdoll_view = false
+    
+    function hidePlayer(bool)
+        for k, v in pairs(pthl.holos) do
+            v:setNoDraw(bool)
+        end
+        for k, v in pairs(wing_holos) do
+            v:setNoDraw(bool)
+        end
+    end
     hook.add("think","main",function()
         if owner() and owner() != nil and owner():isValid() and owner():getHealth() > 0 then
             local frame_time = timer.frametime()*100
@@ -570,6 +675,12 @@ else
                         ]]
                         timer.simple(0.2,function()
                             _READY = true
+                            if sent != true then
+                                sent = true
+                                net.start("send_model")
+                                net.writeString(player_ent:getModel())
+                                net.send()
+                            end
                         end)
                     end)
                 end
@@ -589,26 +700,17 @@ else
                     if timer.curtime() - CT2 > (0.025 + 1*(1-(cpuMax()-cpuAverage())/cpuMax())) and cpuAverage()*1.1 < cpuMax() then
                         local delta = timer.curtime()-CT
                         
+                        
                         if owner():inVehicle() then
                             if is_in_seat != true then
                                 is_in_seat = true
                                 activate_ct = timer.curtime()
-                                for k, v in pairs(pthl.holos) do
-                                    v:setNoDraw(false)
-                                end
-                                for k, v in pairs(wing_holos) do
-                                    v:setNoDraw(false)
-                                end
+                                hidePlayer(false)
                             end
                         else
                             if is_in_seat != false then
                                 is_in_seat = false
-                                for k, v in pairs(pthl.holos) do
-                                    v:setNoDraw(true)
-                                end
-                                for k, v in pairs(wing_holos) do
-                                    v:setNoDraw(true)
-                                end
+                                hidePlayer(true)
                             end
                         end
                         
@@ -891,20 +993,37 @@ else
         end
     end)
     
+    local seat = nil
+    local ragdoll_ent = nil
+    hook.add("net","",function(name,len,ply)
+        if name == "send_seat" then
+            seat = net.readEntity()
+        end
+        if name == "send_ragdoll" then
+            ragdoll_ent = net.readEntity()
+        end
+        if name == "activate_ragdoll" then
+            ragdoll_view = net.readBool()
+            hidePlayer(ragdoll_view)
+        end
+    end)
+    
     if player() == owner() then
         enableHud(owner(), true)
-        local seat = nil
-        
-        hook.add("net","",function(name,len,ply)
-            if name == "send_seat" then
-                seat = net.readEntity()
-            end
-        end)
         
         local angle_lerp = owner():getEyeAngles()
         
         hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
-            if seat and seat != nil and seat:isValid() and player_ent and player_ent != nil and player_ent:isValid() then
+            if ragdoll_ent and ragdoll_ent != nil and ragdoll_ent:isValid() then
+                if ragdoll_view then
+                    return {
+                        origin = ragdoll_ent:getPos() - owner():getEyeAngles():getForward() * 100,
+                        angles = owner():getEyeAngles(),
+                        fov = 100
+                    }
+                end
+            end
+            if (not ragdoll_view) and seat and seat != nil and seat:isValid() and player_ent and player_ent != nil and player_ent:isValid() then
                 if owner():inVehicle() and owner():getVehicle() == seat then
                     local is_boosting_mult = math.easeInOutSine(math.sin(math.rad(_boost*90)))
                     local angle_in = owner():getEyeAngles()+offset_angle_normalized*0.5
