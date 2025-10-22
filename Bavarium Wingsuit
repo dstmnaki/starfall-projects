@@ -34,6 +34,7 @@ if SERVER then
     printConsole(wind and "Wind sound created successfully" or "Failed to create wind sound")
     
     local ragdoll_ent = nil
+    local ragdoll_view = false
     hook.add("Net","",function(name,len,ply)
         if name == "send_model" then
             if not ragdoll_ent or ragdoll_ent == nil then
@@ -86,6 +87,7 @@ if SERVER then
         ragdoll_ent:getPhysicsObject():setVelocity(stored_velocity)
         ragdoll_ent:setNocollideAll(true)
         ragdoll_ent:setNoDraw(false)
+        ragdoll_view = true
         for i = 1, ragdoll_ent:getPhysicsObjectCount() do
             local bone = ragdoll_ent:getPhysicsObjectNum(i)
             if bone then
@@ -105,21 +107,23 @@ if SERVER then
                 net.start("activate_ragdoll")
                 net.writeBool(false)
                 net.send(find.allPlayers(),false)
+                ragdoll_view = false
             end)
         end)
         chip():enableMotion(false)
     end
     local store_vel = Vector()
     timer.create("int",1/25,0,function()
-        local W = owner():keyDown(IN_KEY.FORWARD) and 1 or 0
-        local S = owner():keyDown(IN_KEY.BACK) and 1 or 0
-        local A = owner():keyDown(IN_KEY.MOVELEFT) and 1 or 0
-        local D = owner():keyDown(IN_KEY.MOVERIGHT) and 1 or 0
-        
-        local R = owner():keyDown(IN_KEY.RELOAD)
-        
-        local boost_button = owner():keyDown(IN_KEY.SPEED)
-        
+        if not ragdoll_view then
+            local W = owner():keyDown(IN_KEY.FORWARD) and 1 or 0
+            local S = owner():keyDown(IN_KEY.BACK) and 1 or 0
+            local A = owner():keyDown(IN_KEY.MOVELEFT) and 1 or 0
+            local D = owner():keyDown(IN_KEY.MOVERIGHT) and 1 or 0
+            
+            local R = owner():keyDown(IN_KEY.RELOAD)
+            
+            local boost_button = owner():keyDown(IN_KEY.SPEED)
+        end
         if R then
             if R_Toggle != true then
                 R_Toggle = true
@@ -1045,7 +1049,7 @@ else
         end
         local w, h = render.getGameResolution()
         hook.add("DrawHUD","",function()
-            if owner():inVehicle() and owner():getVehicle() == seat then
+            if owner():inVehicle() and owner():getVehicle() == seat and not ragdoll_view then
                 local pos = (chip():getPos()+chip():getForward()*1000):toScreen()
                 render.drawFilledCircle(pos["x"],pos["y"],2)
                 
@@ -1065,7 +1069,7 @@ else
         local Rotation = Angle(-18,-90,-90)
         local Offset = Vector(0,-0.1,3.5)
         hook.add("predrawtranslucentrenderables","",function()
-            if owner():inVehicle() and owner():getVehicle() == seat and afterburner and afterburner != nil and afterburner:isValid() then
+            if owner():inVehicle() and owner():getVehicle() == seat and afterburner and afterburner != nil and afterburner:isValid() and not ragdoll_view then
                 
                 render.pushViewMatrix({type = "3D"})
                 
