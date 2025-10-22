@@ -2096,12 +2096,12 @@ if CLIENT then
             PARENTFIRST = false
         end
     end)
-    local selectCT = 0
+    local MOUSEWHEEL_CT = 0
     hook.add("MouseWheeled", "", function(delta)
-        if (timer.curtime() - selectCT) < 0.05 then
+        if (timer.curtime() - MOUSEWHEEL_CT) > 0.05 then
             ZOOMINVAL = ZOOMINVAL + delta*0.15
             ZOOMINVAL = math.clamp(ZOOMINVAL,0.5,1.1)
-            selectCT = timer.curtime()
+            MOUSEWHEEL_CT = timer.curtime()
         end
     end)
     hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
