@@ -115,14 +115,14 @@ if SERVER then
     local store_vel = Vector()
     timer.create("int",1/25,0,function()
         if not ragdoll_view then
-            local W = owner():keyDown(IN_KEY.FORWARD) and 1 or 0
-            local S = owner():keyDown(IN_KEY.BACK) and 1 or 0
-            local A = owner():keyDown(IN_KEY.MOVELEFT) and 1 or 0
-            local D = owner():keyDown(IN_KEY.MOVERIGHT) and 1 or 0
+            W = owner():keyDown(IN_KEY.FORWARD) and 1 or 0
+            S = owner():keyDown(IN_KEY.BACK) and 1 or 0
+            A = owner():keyDown(IN_KEY.MOVELEFT) and 1 or 0
+            D = owner():keyDown(IN_KEY.MOVERIGHT) and 1 or 0
             
-            local R = owner():keyDown(IN_KEY.RELOAD)
+            R = owner():keyDown(IN_KEY.RELOAD)
             
-            local boost_button = owner():keyDown(IN_KEY.SPEED)
+            boost_button = owner():keyDown(IN_KEY.SPEED)
         end
         if R then
             if R_Toggle != true then
