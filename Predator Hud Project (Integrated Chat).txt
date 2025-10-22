@@ -824,11 +824,9 @@ if CLIENT then
     end
     hook.add("PlayerInitialSpawn", "", function(ply, transition)
         createHolos(nil)
-        print("updating...")
     end)
     hook.add("PlayerDisconnected", "", function(ply)
         createHolos(ply)
-        print(ply:getName().." disconnected")
     end)
     createHolos(nil)
     hook.add("think","",function()
@@ -2098,10 +2096,13 @@ if CLIENT then
             PARENTFIRST = false
         end
     end)
-    
+    local selectCT = 0
     hook.add("MouseWheeled", "", function(delta)
-        ZOOMINVAL = ZOOMINVAL + delta*0.15
-        ZOOMINVAL = math.clamp(ZOOMINVAL,0.5,1.1)
+        if (timer.curtime() - selectCT) < 0.05 then
+            ZOOMINVAL = ZOOMINVAL + delta*0.15
+            ZOOMINVAL = math.clamp(ZOOMINVAL,0.5,1.1)
+            selectCT = timer.curtime()
+        end
     end)
     hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
         if owner():getHealth() > 0 then
