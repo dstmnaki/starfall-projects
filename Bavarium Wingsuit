@@ -175,7 +175,6 @@ if SERVER then
             local cur_speed = chip():getLocalVelocity().x
             
             if (cur_speed - last_speed_x)/53 < -50 then
-                print("speed difference x was: "..(cur_speed-last_speed_x)/53)
                 kill_ply(store_vel)
             end
             last_speed_x = cur_speed
@@ -184,7 +183,6 @@ if SERVER then
             local cur_speed = chip():getLocalVelocity().y
             
             if math.abs(cur_speed - last_speed_y)/53 > 50 then
-                print("speed difference y was: "..math.abs(cur_speed - last_speed_y)/53)
                 kill_ply(store_vel)
             end
             last_speed_y = cur_speed
@@ -193,7 +191,6 @@ if SERVER then
             local cur_speed = chip():getLocalVelocity().z
             
             if math.abs(cur_speed - last_speed_y)/53 > 50 then
-                print("speed difference z was: "..math.abs(cur_speed - last_speed_y)/53)
                 kill_ply(store_vel)
             end
             last_speed_z = cur_speed
@@ -1004,7 +1001,7 @@ else
         end
         if name == "activate_ragdoll" then
             ragdoll_view = net.readBool()
-            hidePlayer(ragdoll_view)
+            hidePlayer(true)
         end
     end)
     
