@@ -108,6 +108,7 @@ if SERVER then
                 net.writeBool(false)
                 net.send(find.allPlayers(),false)
                 ragdoll_view = false
+                owner():setMaterial("")
             end)
         end)
         chip():enableMotion(false)
