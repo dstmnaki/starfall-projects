@@ -229,7 +229,7 @@ hook.add("net","",function(name,len,ply)
     if name == "sendcloak" then
         local bool = net.readBool()
         owner():setMaterial(bool and "models/shadertest/predator" or "")
-        owner():setColor(bool and Color(255,255,255,0) or Color(255,255,255,255))
+        owner():setColor(bool and Color(255,255,255,1) or Color(255,255,255,255))
         if SERVER then
             if hasPermission("entities.setRenderProperty", owner()) then
                 owner():setDrawShadow(not bool)
