@@ -1,0 +1,231 @@
+--@name Prototype-PSR1
+--@author Nakkitsunami
+--@include nakilibs/pac_to_holo_loader.txt
+--@shared
+
+--[[
+      
+      This was made to work on buildstruct, requires weapon_railcannon
+      
+--]]
+
+if SERVER or (CLIENT and player() == owner()) then
+    local SWEP_NAME = "weapon_railcannon"
+    
+    local weapon_ent = nil
+    
+    local parented = false
+    
+    local fired_ct = 0
+    
+    timer.create("int",0.1,0,function()
+        if owner() and owner() != nil and owner():getHealth() > 0 then
+            if weapon_ent and weapon_ent != nil then
+                if SERVER then
+                    if owner():getActiveWeapon() == weapon_ent then
+                        owner():setAmmo(999, weapon_ent:getPrimaryAmmoType())
+                    end
+                end
+            else
+                local get_weapon = owner():getWeapon(SWEP_NAME)
+                if weapon_ent == nil and get_weapon and get_weapon != nil and tostring(get_weapon) != "(null entity)" then
+                    weapon_ent = get_weapon
+                    if CLIENT then
+                        require("nakilibs/pac_to_holo_loader.txt")
+                        local fullbright, translucent, ht, hc = {}, {}, {}, 0
+                        
+                        local size = 1
+                        
+                        local parent = chip()
+                        local real_parent = chip()
+                        
+                        hc=hc+1 ht[hc]={"vm",parent,real_parent,Vector(0,0,0),Angle(0,0,0)}
+                        
+                        hc=hc+1 ht[hc]={"root","vm","vm",Vector(8,-10,-8.5),Angle(0,0,0)}
+                        
+                        parent = "root"
+                        real_parent = "root"
+                        
+                        hc=hc+1 ht[hc]={"beam",parent,real_parent,Vector(13.6,0,3),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","models/debug/debugwhite",Color(0,161,255,255),Vector(1.2,0.15,0.15),{}}
+                        table.insert(fullbright,"beam")
+                        
+                        hc=hc+1 ht[hc]={"indicator_1",parent,real_parent,Vector(3.4,0,3.4),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","models/debug/debugwhite",Color(0,161,255,255),Vector(0.1,0.27,0.05),{}}
+                        table.insert(fullbright,"indicator_1")
+                        
+                        hc=hc+1 ht[hc]={"indicator_2",parent,real_parent,Vector(2,0,3.4),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","models/debug/debugwhite",Color(0,161,255,255),Vector(0.1,0.27,0.05),{}}
+                        table.insert(fullbright,"indicator_2")
+                        
+                        hc=hc+1 ht[hc]={"indicator_3",parent,real_parent,Vector(0.6,0,3.4),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","models/debug/debugwhite",Color(0,161,255,255),Vector(0.1,0.27,0.05),{}}
+                        table.insert(fullbright,"indicator_3")
+                        
+                        hc=hc+1 ht[hc]={"indicator_4",parent,real_parent,Vector(-0.8,0,3.4),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","models/debug/debugwhite",Color(0,161,255,255),Vector(0.1,0.27,0.05),{}}
+                        table.insert(fullbright,"indicator_4")
+                        
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(20.5,0,3),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","models/props_lab/xencrystal_sheet",Color(255,255,255,255),Vector(0.25,0.25,0.25),{}}
+                        table.insert(translucent,hc)
+                        
+                        hc=hc+1 ht[hc]={"panel_1",parent,real_parent,Vector(15.5,0,3),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(153,153,153,255),Vector(0.1,0.25,0.65),{}}
+                        hc=hc+1 ht[hc]={"panel_2",parent,real_parent,Vector(11.5,0,3),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(153,153,153,255),Vector(0.1,0.25,0.65),{}}
+                        
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-4.3,0,-1.1),Angle(101.4,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(152,157,178,255),Vector(0.2,0.14,0.8),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-8.7,0,0.96),Angle(0,0,90),"models/hunter/plates/platehole3.mdl","models/debug/debugwhite",Color(255,255,255,255),Vector(0.0313,0.0313,0.6438),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-6.41,0,0.64),Angle(23.5,0,90),"models/hunter/triangles/025x025mirrored.mdl","models/debug/debugwhite",Color(255,255,255,255),Vector(0.075,0.175,0.6437),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(5.4,0,2.2),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(140,140,140,255),Vector(0.3,0.15,0.5),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(4.1,0,0.905),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(120,120,120,255),Vector(0.1,0.09,0.2),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,0,0),Angle(20,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(152,157,178,255),Vector(0.2,0.15,0.5),{{1,Vector(0,0,-2),Vector(0.661,0,0.75)}}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(5.4,0,-0.22),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(120,120,120,255),Vector(0.31,0.16,0.1),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6.7,0,2.95),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(100,100,100,255),Vector(0.1,0.18,0.64),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(3.6,0,5.52),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(189,194,209,255),Vector(0.6,0.15,0.2),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-10.55,0,0.94),Angle(90,0,0),"models/hunter/blocks/cube025x025x025.mdl","models/debug/debugwhite",Color(255,255,255,255),Vector(0.255,0.1635,0.063),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6,0,0.5),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(100,100,100,255),Vector(0.2,0.17,0.2),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-0.35,0,5.44),Angle(45,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(189,194,209,255),Vector(0.1,0.14,0.2),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(4.85,0,-1.09),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(255,191,0,255),Vector(0.216,0.162,0.027),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(4.363,0,7.019),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(145,145,145,255),Vector(0.06,0.1,0.1),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(1.6,0,0.305),Angle(-6.5,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(145,145,145,255),Vector(0.05,0.079,0.1),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-12.1,0,1.9),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(100,100,100,255),Vector(0.2,0.16,0.56),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(14,0,0.5),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(100,100,100,255),Vector(1.25,0.15,0.15),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-2.7,0,2.5),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","models/debug/debugwhite",Color(255,255,255,255),Vector(0.11,0.17,0.05),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-0.5,0,3.4),Angle(90,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(130,135,154,255),Vector(0.3,0.16,1.3),{{1,Vector(0,0,-4.5),Vector(0,0,1)},{2,Vector(0,0,-5),Vector(-0.707,0,0.707)}}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-8.4,0,1.9),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(152,157,178,255),Vector(0.8,0.15,0.55),{{1,Vector(-0.6,0,-3.25),Vector(-0.242,0,0.97)}}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(20.5,0,3),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(100,100,100,255),Vector(0.15,0.14,0.57),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(4.85,0,-2.39),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(110,117,136,255),Vector(0.207,0.153,0.27),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-11.4,0,1.9),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(255,191,0,255),Vector(0.03,0.17,0.57),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-9.02,0,3.26),Angle(-113.5,0,90),"models/hunter/triangles/025x025mirrored.mdl","models/debug/debugwhite",Color(255,255,255,255),Vector(0.075,0.175,0.6437),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0.7,0,7.02),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(145,145,145,255),Vector(0.06,0.1,0.1),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-8.7,0,0.96),Angle(0,0,90),"models/hunter/tubes/circle2x2.mdl","models/debug/debugwhite",Color(255,255,255,255),Vector(0.025,0.025,0.6375),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-9.07,0,-0.88),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","models/debug/debugwhite",Color(255,255,255,255),Vector(0.315,0.1635,0.063),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(4.85,0,-1.59),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(255,191,0,255),Vector(0.216,0.162,0.027),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(1.3,0,3.4),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(100,100,100,255),Vector(0.5,0.25,0.1),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(2.7,0,-0.295),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(120,120,120,255),Vector(0.3,0.1,0.03),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(1.3,0,0.905),Angle(8.3,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(145,145,145,255),Vector(0.1,0.08,0.2),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(2.5,0,8.32),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(189,194,209,255),Vector(0.5,0.15,0.15),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(14,0,5.5),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(100,100,100,255),Vector(1.25,0.15,0.15),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(6,0,5.5),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","",Color(100,100,100,255),Vector(0.2,0.17,0.2),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-2.7,0,3.39),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","models/debug/debugwhite",Color(255,255,255,255),Vector(0.05,0.17,0.11),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0.1,0,8.32),Angle(0,0,0),"models/hunter/blocks/cube1x1x1.mdl","effects/combinedisplay001a",Color(255,255,255,255),Vector(0.025,0.03,0.03),{}}
+                        hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-2.52,0,4.28),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","models/debug/debugwhite",Color(255,255,255,255),Vector(0.08,0.17,0.05),{}}
+                    
+                        
+                        pthl.createHolos(hc,ht,false,size)
+                        
+                        hook.add("think","_apply_modifications",function()
+                            if pthl.ready then
+                                for k, v in pairs(fullbright) do
+                                    pthl.holos[v]:suppressEngineLighting(true)
+                                end
+                                for k, v in pairs(translucent) do
+                                    pthl.holos[v]:setRenderMode(RENDERMODE.WORLDGLOW)
+                                end
+                                for k, v in pairs(pthl.holos) do
+                                    v:setNoDraw(true)
+                                end
+                                hook.remove("think","_apply_modifications")
+                            end
+                        end)
+                        
+                        local last_clip1 = 1
+                        
+                        hook.add("think","_main",function()
+                            if owner() and owner() != nil and owner():getHealth() > 0 then
+                                if pthl.ready then
+                                    if owner():getActiveWeapon() == weapon_ent then
+                                        if weapon_active != true then
+                                            weapon_active = true
+                                            concmd("-reload")
+                                            for k, v in pairs(pthl.holos) do
+                                                v:setNoDraw(false)
+                                            end
+                                            if weapon_ent:clip1() == 0 then
+                                                fired_ct = timer.curtime()
+                                                timer.simple(0.5,function()
+                                                    concmd("+reload")
+                                                    timer.simple(0.1,function()
+                                                        concmd("-reload")
+                                                    end)
+                                                end)
+                                            end
+                                        end
+                                    else
+                                        if weapon_active != false then
+                                            weapon_active = false
+                                            concmd("-reload")
+                                            for k, v in pairs(pthl.holos) do
+                                                v:setNoDraw(true)
+                                            end
+                                        end
+                                    end
+                                end
+                                local viewmodel = owner():getViewModel()
+                                if viewmodel and viewmodel != nil then
+                                    
+                                    viewmodel:setNoDraw(owner():getActiveWeapon() == weapon_ent)
+                                    
+                                    if pthl.ready == true and parented != true then
+                                        parented = true
+                                        pthl.holos["vm"]:setParent(nil)
+                                        pthl.holos["vm"]:setParent(owner():getActiveWeapon())
+                                    end
+                                end
+                                if weapon_ent and weapon_ent != nil then
+                                    local clip1 = weapon_ent:clip1()
+                                    if clip1 ~= last_clip1 and clip1 == 0 then
+                                        fired_ct = timer.curtime()
+                                        concmd("+reload")
+                                        timer.simple(0.1,function()
+                                            concmd("-reload")
+                                        end)
+                                    end
+                                    last_clip1 = clip1
+                                    
+                                    if pthl.ready then
+                                        local vm = pthl.holos["vm"]
+                                        vm:setPos(owner():getEyePos())
+                                        vm:setAngles(owner():getEyeAngles())
+                                        
+                                        local animation_val = math.clamp(timer.curtime() - fired_ct,0,3)/3
+                                        local animation_val2 = math.clamp(-0.1+(timer.curtime() - fired_ct),0,3)/3
+                                        
+                                        local parent = pthl.holos["root"]
+                                        
+                                        local panel_val = math.sin(math.rad(math.easeInCubic(math.clamp(1-animation_val*5,0,1))*180))
+                                        local panel_val2 = math.sin(math.rad(math.easeInCubic(math.clamp(1-animation_val2*5,0,1))*180))
+                                        
+                                        pthl.holos["panel_1"]:setPos(parent:localToWorld(Vector(15.5-5*panel_val,0,3)))
+                                        pthl.holos["panel_2"]:setPos(parent:localToWorld(Vector(11.5-3.25*panel_val2,0,3)))
+                                        
+                                        local color1_val = math.clamp((-0.3+animation_val*2)*2,0,1)
+                                        local color2_val = math.clamp((-0.45+animation_val*2)*2,0,1)
+                                        local color3_val = math.clamp((-0.6+animation_val*2)*2,0,1)
+                                        local color4_val = math.clamp((-0.75+animation_val*2)*2,0,1)
+                                        
+                                        pthl.holos["indicator_1"]:setColor(Color(0,161*color1_val,255*color1_val,255))
+                                        pthl.holos["indicator_2"]:setColor(Color(0,161*color2_val,255*color2_val,255))
+                                        pthl.holos["indicator_3"]:setColor(Color(0,161*color3_val,255*color3_val,255))
+                                        pthl.holos["indicator_4"]:setColor(Color(0,161*color4_val,255*color4_val,255))
+                                    end
+                                end
+                            end
+                        end)
+                    end
+                end
+            end
+        else
+            hologram.removeAll()
+            if weapon_ent then
+                weapon_ent = nil
+                viewmodel = nil
+                if CLIENT then
+                    pthl.holos = {}
+                    pthl.ready = false
+                    parented = false
+                end
+            end
+        end
+        
+        hook.add("removed", "", function()
+            if owner():getViewModel() then
+                owner():getViewModel():setNoDraw(false)
+            end
+        end)  
+    end)
+end
