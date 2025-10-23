@@ -340,6 +340,7 @@ if SERVER then
         holo:suppressEngineLighting(true)
         holo:setMaterial("models/debug/debugwhite")
     end
+
     hook.add("think","",function()
         TARGETSERVER = TARGETSERVERSET
     
@@ -733,7 +734,10 @@ if CLIENT then
         return lastVocals
     end
     enableHud(owner(), true)
-    
+    local fps_limit = convar.getInt("fps_max")
+    if fps_limit != 60 then
+        print("Run fps_max 60 in console to fix blur in thermal!")
+    end
     local centerHolo = hologram.create(chip():getPos(), Angle(0,0,0), "models/props_c17/oildrum001.mdl", Vector(0))
     centerHolo:setParent(owner())
     
