@@ -35,6 +35,7 @@ if SERVER then
     
     local ragdoll_ent = nil
     local ragdoll_view = false
+    --[[
     hook.add("Net","",function(name,len,ply)
         if name == "send_model" then
             if not ragdoll_ent or ragdoll_ent == nil then
@@ -59,7 +60,7 @@ if SERVER then
                 net.send(owner(),false)
             end
         end
-    end)
+    end)]]
     hook.add("Removed","",function()
         owner():setMaterial("")
     end)
@@ -77,6 +78,7 @@ if SERVER then
     local last_speed_z = 0
     
     function kill_ply(stored_velocity)
+        --[[
         net.start("send_ragdoll")
         net.writeEntity(ragdoll_ent)
         net.send(owner(),false)
@@ -111,7 +113,7 @@ if SERVER then
                 owner():setMaterial("")
             end)
         end)
-        chip():enableMotion(false)
+        chip():enableMotion(false)]]
     end
     local store_vel = Vector()
     timer.create("int",1/25,0,function()
