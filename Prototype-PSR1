@@ -116,8 +116,10 @@ if SERVER or (CLIENT and player() == owner()) then
                                 for k, v in pairs(translucent) do
                                     pthl.holos[v]:setRenderMode(RENDERMODE.WORLDGLOW)
                                 end
-                                for k, v in pairs(pthl.holos) do
-                                    v:setNoDraw(true)
+                                if owner():getActiveWeapon() != weapon_ent then
+                                    for k, v in pairs(pthl.holos) do
+                                        v:setNoDraw(true)
+                                    end
                                 end
                                 hook.remove("think","_apply_modifications")
                             end
