@@ -1693,8 +1693,8 @@ if CLIENT then
                     local players = find.allPlayers()
                     local npcs = find.byClass("npc_*")
                     local entities = {}
-                    table.merge(entities, players)
-                    table.merge(entities, npcs)
+                    entities = table.merge(npcs, players)
+                    
                     for i, e in pairs(entities) do
                         if e:getClass() == "npc_tripmine" and e:getClass() == "npc_rollermine" and e:getClass() == "npc_turret_ceiling" or e:getHealth() <= 0 then
                             table.remove(entities,i)
