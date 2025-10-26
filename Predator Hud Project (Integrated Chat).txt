@@ -1690,16 +1690,14 @@ if CLIENT then
             --TRACKING TRIANGLES
             if TRACKING and equipmentSelected == 0 then
                 if TARGET == nil then
-                    local players = find.allPlayers()
-                    local npcs = find.byClass("npc_*")
-                    local entities = {}
-                    entities = table.merge(npcs, players)
-                    
-                    for i, e in pairs(entities) do
-                        if e:getClass() == "npc_tripmine" and e:getClass() == "npc_rollermine" and e:getClass() == "npc_turret_ceiling" or e:getHealth() <= 0 then
-                            table.remove(entities,i)
+                    function filter(a)
+                        if (a:isPlayer() or a:isNPC()) and a:getClass() != "npc_tripmine" and a:getClass() != "npc_rollermine" and a:getClass() != "npc_turret_ceiling" and a:getHealth() > 0 then
+                            return true
+                        else
+                            return false
                         end
                     end
+                    local entities = find.all(filter)
                     local cursorX, cursorY = input.getCursorPos() // 2D cursor position on screen
                     
                     local bestTarget = nil
