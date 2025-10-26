@@ -2,6 +2,7 @@
 --@author Nakkitsunami
 --@client
 --@owneronly
+
 local t = {}
 t["hide_hud_elements"] = {}
 t2 = t["hide_hud_elements"]
@@ -44,8 +45,8 @@ t["ammo_position_distance"]         = 10
 t["draw_clip_primary"]              = true
 t["draw_ammo_primary"]              = true
 
-t["draw_clip_secondary"]            = true
-t["draw_ammo_secondary"]            = true
+t["draw_clip_secondary"]            = false
+t["draw_ammo_secondary"]            = false
 
 
 t["color_ammo"]                     = Color(255,255,255,75)
@@ -57,6 +58,7 @@ t2["CHudCrosshair"]                 = true
 t2["CHudHealth"]                    = true
 t2["CHudBattery"]                   = true
 t2["CHudAmmo"]                      = true
+t2["CHudSecondaryAmmo"]             = true
 t2["CHudChat"]                      = false
 t2["CHudZoom"]                      = false
 t2["CHudDamageIndicator"]           = false
