@@ -1691,7 +1691,7 @@ if CLIENT then
             if TRACKING and equipmentSelected == 0 then
                 if TARGET == nil then
                     function filter(a)
-                        if (a:isPlayer() or a:isNPC()) and a:getClass() != "npc_tripmine" and a:getClass() != "npc_rollermine" and a:getClass() != "npc_turret_ceiling" and a:getHealth() > 0 then
+                        if (a:isPlayer() or a:isNPC() or (string.lower(string.sub(a:getClass(),1,4)) == "npc_")) and a:getClass() != "npc_tripmine" and a:getClass() != "npc_rollermine" and a:getClass() != "npc_turret_ceiling" and a:getHealth() > 0 then
                             return true
                         else
                             return false
@@ -1862,13 +1862,14 @@ if CLIENT then
                 aimEntityOG = owner():getEyeTrace().Entity
                 aimEntity = (((aimEntityOG:isNPC() or aimEntityOG:isPlayer()) and aimEntityOG or nil))
                 if aimEntity == nil then
-                    local players = find.allPlayers()
-                    local npcs = find.byClass("npc_*")
-                    local entities = {}
-                    
-                    // Merge players and NPCs
-                    table.merge(entities, players)
-                    table.merge(entities, npcs)
+                    function filter(a)
+                        if (a:isPlayer() or a:isNPC() or (string.lower(string.sub(a:getClass(),1,4)) == "npc_")) and a:getClass() != "npc_tripmine" and a:getClass() != "npc_rollermine" and a:getClass() != "npc_turret_ceiling" and a:getHealth() > 0 then
+                            return true
+                        else
+                            return false
+                        end
+                    end
+                    local entities = find.all(filter)
                     
                     local closestEnt = nil
                     local closestDist = 1e9
@@ -1982,11 +1983,11 @@ if CLIENT then
                     render.drawTexturedRect(w-h/4, h/3.5, h/8, h/8)
                     
                     render.setFont("DermaLarge")
-                    if TARGET2:isNPC() then
-                        render.drawText(w-h/5, h/2.1, "HUMAN: "..TARGET2:getClass(), TEXT_ALIGN.CENTER)
-                        render.drawText(w-h/5, h/1.6, "HEALTH: "..TARGET2:getHealth(), TEXT_ALIGN.CENTER)
-                    elseif TARGET2:isPlayer() then
+                    if TARGET2:isPlayer() then
                         render.drawText(w-h/5, h/2.1, "HUMAN: "..TARGET2:getName(), TEXT_ALIGN.CENTER)
+                        render.drawText(w-h/5, h/1.6, "HEALTH: "..TARGET2:getHealth(), TEXT_ALIGN.CENTER)
+                    else
+                        render.drawText(w-h/5, h/2.1, "HUMAN: "..TARGET2:getClass(), TEXT_ALIGN.CENTER)
                         render.drawText(w-h/5, h/1.6, "HEALTH: "..TARGET2:getHealth(), TEXT_ALIGN.CENTER)
                     end
                 end
