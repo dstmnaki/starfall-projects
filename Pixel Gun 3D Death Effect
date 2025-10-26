@@ -10,13 +10,13 @@ local death_animation_table = {}
 local allplayers = {}
 function findplayers()
     function filter(a)
-        return (a:isPlayer() or a:isNPC()) and not (a:getClass() == "npc_tripmine" or a:getClass() == "npc_rollermine" or a:getClass() == "npc_turret_ceiling")
+        return a:getHealth() > 0 and (a:isPlayer() or a:isNPC()) and not (a:getClass() == "npc_tripmine" or a:getClass() == "npc_rollermine" or a:getClass() == "npc_turret_ceiling")
     end
     local getPlayers = find.all(filter)
     for _, v in pairs(getPlayers) do
         if v and v != nil and v:isValid() then
             local key = tostring(v:entIndex())
-            if not allplayers[key] then
+            if not allplayers[key] or allplayers[key].isDead != false then
                 allplayers[key] = {
                     ent = v,
                     isDead = false
@@ -111,12 +111,13 @@ hook.add("tick","",function()
                     end
                     death_pos = owner():getEyePos()
                 else
-                    if v.isDead != false then
-                        v.isDead = false
-                    end
+                    table.remove(allplayers,k)
                 end
             end
         else
+            table.remove(allplayers,k)
+        end
+        if v.isDead == true then
             table.remove(allplayers,k)
         end
     end
