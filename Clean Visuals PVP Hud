@@ -94,6 +94,7 @@ if t["negate_viewpunch_recoil"] > 0 then
 end
 
 hook.add("DrawHUD","",function()
+    if not (owner() and owner() != nil and owner():isValid() and owner():getHealth() > 0) then return end
     if t["draw_health"] then
         render.setColor(t["color_health"])
         
@@ -108,7 +109,7 @@ hook.add("DrawHUD","",function()
     
     if t["draw_ammo"] then
         local weapon = owner():getActiveWeapon()
-        if weapon then
+        if weapon and weapon != nil and weapon:isValid() then
             
             if t["draw_clip_primary"] or t["draw_ammo_primary"] then
                 local clip1, ammo1 = weapon:clip1(), owner():getAmmoCount(weapon:getPrimaryAmmoType())
