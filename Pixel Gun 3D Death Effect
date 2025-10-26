@@ -1,0 +1,143 @@
+--@name Pixel Gun 3D Death Effect
+--@author Nakkitsunami
+--@client
+--@owneronly
+
+enableHud(owner(), true)
+
+local death_animation_table = {}
+
+local allplayers = {}
+function findplayers()
+    function filter(a)
+        return (a:isPlayer() or a:isNPC()) and not (a:getClass() == "npc_tripmine" or a:getClass() == "npc_rollermine" or a:getClass() == "npc_turret_ceiling")
+    end
+    local getPlayers = find.all(filter)
+    for _, v in pairs(getPlayers) do
+        if v and v != nil and v:isValid() then
+            local key = tostring(v:entIndex())
+            if not allplayers[key] then
+                allplayers[key] = {
+                    ent = v,
+                    isDead = false
+                }
+            end
+        end
+    end
+end
+timer.create("find_players",1,0,function()
+    findplayers()
+end)
+
+local death_pos = owner():getPos()
+local death_ang = owner():getEyeAngles()
+local death_ct = 0
+local amDead = false
+local time = 0
+local recoil = Angle()
+local w, h = render.getGameResolution()
+
+hook.add("HUDShouldDraw", "", function(str)
+    if str == "CHudCrosshair" then
+        return false
+    end
+end)
+hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
+    time = math.easeInSine(math.clamp((timer.curtime()-death_ct)*2,0,1))
+    recoil = ang
+    if amDead == true then
+        return {
+            origin = death_pos + Vector(0,0,500*time),
+            angles = death_ang
+        }
+    else
+        return {
+            angles = Angle(owner():getEyeAngles().p,owner():getEyeAngles().y,0)
+        }
+    end
+end)
+hook.add("DrawHUD","",function()
+    local recoil_dir = owner():getEyePos()+Vector(10000,0,0):getRotated(recoil)
+    
+    local pos = recoil_dir:toScreen()
+    
+    render.drawCircle(pos["x"], pos["y"], 3)
+    
+    render.setColor(Color(125,125,125,125))
+    render.drawFilledCircle(w/2, h/2, 1.5)
+    
+    if amDead == true then
+        render.setColor(Color(255,255,255,255*time))
+        render.drawRect(0,0,w,h)
+    end
+end)
+hook.add("tick","",function()
+    for k, v in pairs(death_animation_table) do
+        local ent = v[1]
+        if ent then
+            local pos = v[2]
+            local ct = v[3]
+            local time = (timer.curtime()-ct)/3
+            ent:setPos(pos+Vector(0,0,50*time))
+            ent:setColor(Color(255,255,255,175*(1-time)))
+            if time > 1 then
+                if ent and ent != nil and ent:isValid() then
+                    ent:remove()
+                end
+                table.remove(death_animation_table,k)
+            end
+        else
+            table.remove(death_animation_table,k)
+        end
+    end
+    for k, v in pairs(allplayers) do
+        local ent = v.ent
+        if ent and ent != nil and ent:isValid() then
+            if ent:getHealth() <= 0 then
+                if ent == owner() then
+                    if amDead != true then
+                        amDead = true
+                        death_ang = owner():getEyeAngles()
+                        death_ct = timer.curtime()
+                        if ent:getDeathRagdoll() and ent:getDeathRagdoll() != nil and ent:getDeathRagdoll():isValid() then
+                            ent:getDeathRagdoll():setNoDraw(true)
+                        end
+                    end
+                else
+                    if v.isDead != true then
+                        v.isDead = true
+                        
+                        local holo = hologram.create(ent:getPos(), Angle(0,ent:getEyeAngles().y,0), ent:getModel(), Vector(1))
+                        holo:suppressEngineLighting(true)
+                        holo:setMaterial("models/debug/debugwhite")
+                        holo:setColor(Color(255,255,255,175))
+                        holo:setRenderMode(RENDERMODE.WORLDGLOW)
+                        table.insert(death_animation_table,{holo,ent:getPos(),timer.curtime()})
+                        
+                        if ent:isPlayer() then
+                            if ent:getDeathRagdoll() and ent:getDeathRagdoll() != nil and ent:getDeathRagdoll():isValid() then
+                                ent:getDeathRagdoll():setNoDraw(true)
+                            end
+                        else
+                            ent:setNoDraw(true)
+                            ent:setColor(Color(0,0,0,0))
+                        end
+                    end
+                end
+            else
+                if ent == owner() then
+                    if amDead != false then
+                        amDead = false
+                    end
+                    death_pos = owner():getEyePos()
+                else
+                    if v.isDead != false then
+                        v.isDead = false
+                    end
+                end
+            end
+        else
+            table.remove(allplayers,k)
+        end
+    end
+end)
