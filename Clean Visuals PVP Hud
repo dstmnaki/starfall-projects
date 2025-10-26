@@ -61,7 +61,7 @@ t2["CHudAmmo"]                      = true
 t2["CHudSecondaryAmmo"]             = true
 t2["CHudChat"]                      = false
 t2["CHudZoom"]                      = false
-t2["CHudDamageIndicator"]           = false
+t2["CHudDamageIndicator"]           = true
 
 --[[----------------------------------------------------------------------------------------------
 
