@@ -34,38 +34,18 @@ local death_ang = owner():getEyeAngles()
 local death_ct = 0
 local amDead = false
 local time = 0
-local recoil = Angle()
 local w, h = render.getGameResolution()
 
-hook.add("HUDShouldDraw", "", function(str)
-    if str == "CHudCrosshair" then
-        return false
-    end
-end)
 hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
     time = math.easeInSine(math.clamp((timer.curtime()-death_ct)*2,0,1))
-    recoil = ang
     if amDead == true then
         return {
             origin = death_pos + Vector(0,0,500*time),
             angles = death_ang
         }
-    else
-        return {
-            angles = Angle(owner():getEyeAngles().p,owner():getEyeAngles().y,0)
-        }
     end
 end)
 hook.add("DrawHUD","",function()
-    local recoil_dir = owner():getEyePos()+Vector(10000,0,0):getRotated(recoil)
-    
-    local pos = recoil_dir:toScreen()
-    
-    render.drawCircle(pos["x"], pos["y"], 3)
-    
-    render.setColor(Color(125,125,125,125))
-    render.drawFilledCircle(w/2, h/2, 1.5)
-    
     if amDead == true then
         render.setColor(Color(255,255,255,255*time))
         render.drawRect(0,0,w,h)
