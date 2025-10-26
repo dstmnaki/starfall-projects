@@ -1,0 +1,175 @@
+--@name Clean Visuals PVP Hud by Nakkitsunami
+--@author Nakkitsunami
+--@client
+--@owneronly
+local t = {}
+t["hide_hud_elements"] = {}
+t2 = t["hide_hud_elements"]
+
+--[[----------------------------------------------------------------------------------------------
+
+                               ~ C O N F I G   S T A R T S   H E R E ~
+
+----------------------------------------------------------------------------------------------]]--
+
+                                 -- crosshair and viewpunch/recoil
+
+t["negate_viewpunch_recoil"]        = 1.0
+                                 -- 0.0 - 1.0, 0 normal recoil, 0-1 csgo/2 style recoil (crosshair moves), 1 only crosshair moves
+
+t["draw_custom_crosshair"]          = true
+t["crosshair_radius"]               = 3.0
+t["crosshair_radius_static"]        = 1.5
+
+t["color_crosshair"]                = Color(255,255,255,255)
+t["color_crosshair_static"]         = Color(125,125,125,125)
+
+                                 -- ammo and health display
+
+t["text_height_distance"]           = 15
+
+t["draw_health"]                    = true
+t["draw_armor"]                     = true
+t["health_armor_position_height"]   = 15
+t["health_armor_position_distance"] = 10
+
+t["color_health"]                   = Color(255,0,0,75)
+t["color_armor"]                    = Color(150,255,255,75)
+
+
+t["draw_ammo"]                      = true
+t["ammo_position_height"]           = 15
+t["ammo_position_distance"]         = 10
+
+t["draw_clip_primary"]              = true
+t["draw_ammo_primary"]              = true
+
+t["draw_clip_secondary"]            = true
+t["draw_ammo_secondary"]            = true
+
+
+t["color_ammo"]                     = Color(255,255,255,75)
+t["color_ammo_empty"]               = Color(125,75,75,25)
+
+                                 -- hide hud elements list
+
+t2["CHudCrosshair"]                 = true 
+t2["CHudHealth"]                    = true
+t2["CHudBattery"]                   = true
+t2["CHudAmmo"]                      = true
+t2["CHudChat"]                      = false
+t2["CHudZoom"]                      = false
+t2["CHudDamageIndicator"]           = false
+
+--[[----------------------------------------------------------------------------------------------
+
+                                 ~ C O D E   S T A R T S   H E R E ~
+
+----------------------------------------------------------------------------------------------]]--
+
+enableHud(owner(), true)
+
+if t["draw_custom_crosshair"] == true then t2["CHudCrosshair"] = true end
+t["negate_viewpunch_recoil"] = math.clamp(t["negate_viewpunch_recoil"],0,1)
+local recoil = Angle()
+local w, h = render.getGameResolution()
+
+hook.add("HUDShouldDraw", "", function(str)
+    for k, v in pairs(t2) do
+        if str == k then
+            return not v
+        end
+    end
+end)
+
+if t["negate_viewpunch_recoil"] > 0 then
+    hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
+        recoil = ang
+        return {
+            angles = math.slerpQuaternion(ang:getQuaternion(), owner():getEyeAngles():getQuaternion(), t["negate_viewpunch_recoil"]):getEulerAngle()
+        }
+    end)
+end
+
+hook.add("DrawHUD","",function()
+    if t["draw_health"] then
+        render.setColor(t["color_health"])
+        
+        render.drawText(w/2-w*0.01, h/2-t["health_armor_position_height"], tostring(owner():getHealth()), TEXT_ALIGN.RIGHT)
+    end
+    
+    if t["draw_armor"] then
+        render.setColor(t["color_armor"])
+        
+        render.drawText(w/2-w*0.01, h/2-t["health_armor_position_height"]+t["text_height_distance"], tostring(owner():getArmor()), TEXT_ALIGN.RIGHT)
+    end
+    
+    if t["draw_ammo"] then
+        local weapon = owner():getActiveWeapon()
+        if weapon then
+            
+            if t["draw_clip_primary"] or t["draw_ammo_primary"] then
+                local clip1, ammo1 = weapon:clip1(), owner():getAmmoCount(weapon:getPrimaryAmmoType())
+                
+                if t["draw_clip_primary"] then
+                    render.setColor(clip1 <= 0 and t["color_ammo_empty"] or t["color_ammo"])
+                    
+                    if clip1 != -1 then
+                        render.drawText(w/2+w*0.01, h/2-t["ammo_position_height"], tostring(clip1), TEXT_ALIGN.LEFT)
+                    else
+                        render.drawText(w/2+w*0.01, h/2-t["ammo_position_height"], "---", TEXT_ALIGN.LEFT)
+                    end
+                end
+                
+                if t["draw_ammo_primary"] then
+                    render.setColor(ammo1 <= 0 and t["color_ammo_empty"] or t["color_ammo"])
+                    
+                    if ammo1 != -1 then
+                        render.drawText(w/2+w*0.01, h/2-t["ammo_position_height"]+t["text_height_distance"], tostring(ammo1), TEXT_ALIGN.LEFT)
+                    else
+                        render.drawText(w/2+w*0.01, h/2-t["ammo_position_height"]+t["text_height_distance"], "---", TEXT_ALIGN.LEFT)
+                    end
+                end
+            end
+            
+            if t["draw_clip_secondary"] or t["draw_ammo_secondary"] then
+                local clip2, ammo2 = weapon:clip2(), owner():getAmmoCount(weapon:getSecondaryAmmoType())
+                
+                if t["draw_clip_secondary"] then
+                    render.setColor(clip2 <= 0 and t["color_ammo_empty"] or t["color_ammo"])
+                    
+                    if clip2 != -1 then
+                        render.drawText(w/2+w*0.01, h/2+15-t["ammo_position_height"]+t["text_height_distance"], tostring(clip2), TEXT_ALIGN.LEFT)
+                    else
+                        render.drawText(w/2+w*0.01, h/2+15-t["ammo_position_height"]+t["text_height_distance"], "---", TEXT_ALIGN.LEFT)
+                    end
+                end
+                
+                if t["draw_ammo_secondary"] then
+                    render.setColor(ammo2 <= 0 and t["color_ammo_empty"] or t["color_ammo"])
+                    
+                    if ammo2 != -1 then
+                        render.drawText(w/2+w*0.01, h/2+30-t["ammo_position_height"]+t["text_height_distance"], tostring(ammo2), TEXT_ALIGN.LEFT)
+                    else
+                        render.drawText(w/2+w*0.01, h/2+30-t["ammo_position_height"]+t["text_height_distance"], "---", TEXT_ALIGN.LEFT)
+                    end
+                end
+            end
+        end
+    end
+    
+    if t["draw_custom_crosshair"] then
+        local recoil_dir = owner():getEyePos()+Vector(10000,0,0):getRotated(recoil)
+        
+        local dir = recoil_dir:toScreen()
+        
+        local pos = math.lerpVector(t["negate_viewpunch_recoil"],Vector(w/2,h/2,0),Vector(dir["x"],dir["y"],0))
+        
+        render.setColor(t["color_crosshair"])
+        
+        render.drawCircle(pos["x"], pos["y"], t["crosshair_radius"])
+        
+        render.setColor(t["color_crosshair_static"])
+        render.drawFilledCircle(w/2, h/2, t["crosshair_radius_static"])
+    end
+end)
