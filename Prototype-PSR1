@@ -322,7 +322,7 @@ if SERVER or (CLIENT and player() == owner()) then
                             if v.isDead != true then
                                 v.isDead = true
                                 
-                                local holo = hologram.create(ent:getPos(), Angle(0,ent:getAngles().y,0), ent:getModel(), Vector(1))
+                                local holo = hologram.create(ent:getPos(), Angle(0,ent:getEyeAngles().y,0), ent:getModel(), Vector(1))
                                 holo:suppressEngineLighting(true)
                                 holo:setMaterial("models/debug/debugwhite")
                                 holo:setColor(Color(255,255,255,175))
