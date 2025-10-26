@@ -45,8 +45,8 @@ t["ammo_position_distance"]         = 10
 t["draw_clip_primary"]              = true
 t["draw_ammo_primary"]              = true
 
-t["draw_clip_secondary"]            = false
-t["draw_ammo_secondary"]            = false
+t["draw_clip_secondary"]            = true
+t["draw_ammo_secondary"]            = true
 
 
 t["color_ammo"]                     = Color(255,255,255,75)
