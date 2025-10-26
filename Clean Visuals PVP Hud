@@ -168,11 +168,12 @@ hook.add("DrawHUD","",function()
         
         local pos = math.lerpVector(t["negate_viewpunch_recoil"],Vector(w/2,h/2,0),Vector(dir["x"],dir["y"],0))
         
+        render.setColor(t["color_crosshair_static"])
+        render.drawFilledCircle(w/2, h/2, t["crosshair_radius_static"])
+        
         render.setColor(t["color_crosshair"])
         
         render.drawCircle(pos["x"], pos["y"], t["crosshair_radius"])
         
-        render.setColor(t["color_crosshair_static"])
-        render.drawFilledCircle(w/2, h/2, t["crosshair_radius_static"])
     end
 end)
