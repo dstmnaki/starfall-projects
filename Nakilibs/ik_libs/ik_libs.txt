@@ -196,6 +196,6 @@ function ik_libs.four_segment_ik(BoneTable, Target)
     local LengthX = math.min(AxisLocal:getLength(), (LengthC + LengthD))
     local AxisQuat = (AxisAngle):getQuaternion() * ik_libs.qRotation(Vector(0, 1, 0), ik_libs.icos(LengthX, LengthC, LengthD))
     
-    H3:setAngles(H2:localToWorldAngles(AxisQuat:getEulerAngle()))
+    H3:setAngles(H2:localToWorldAngles(Angle(AxisQuat:getEulerAngle().p,0,0)))
     H4:setAngles(H3:localToWorldAngles(Angle(ik_libs.icos(LengthC, LengthD, LengthX) + 180, 0, 0)))
 end
