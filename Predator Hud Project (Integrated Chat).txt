@@ -1120,10 +1120,12 @@ if CLIENT then
             visionChangeVal = visionChangeVal + 0.15*timer.frametime()*66
             visionChangeVal = math.clamp(visionChangeVal,0,1)
             
-            visionChangeVal2 = visionChangeVal2 + (0.12-0.1*visionChangeVal2)*0.4*timer.frametime()*66
+            visionChangeVal2 = visionChangeVal2 + (0.12-0.11*visionChangeVal2)*0.4*timer.frametime()*66
             visionChangeVal2 = math.clamp(visionChangeVal2,0,1)
             
             if thermalOn == 1 then
+                render.setColor(Color(255,0,0,255*math.sin(math.rad(visionChangeVal2*180))))
+                render.drawRect(0,0,w,h)
                 if not lightThing then
                     lightThing = light.createProjected()--light.create(owner():getPos(), 100000, 1, Color(25,25,25,25))
                     lightThing:setFOV(175)
@@ -1134,13 +1136,21 @@ if CLIENT then
                     lightThing:setLinearAttenuation(100000)
                 end
                 if lightThing != nil then
-                    lightThing:setBrightness(20-19.85*visionChangeVal2)
+                    if setOnce != false then
+                        setOnce = false
+                        lightThing:setFOV(175)
+                        lightThing:setFarZ(100000)
+                    end
+                    lightThing:setBrightness(10-9.85*visionChangeVal2)
                     lightThing:setPos(owner():getEyePos()+owner():getAimVector()*15)
                     lightThing:setAngles(owner():getEyeAngles())
                     lightThing:update()
                 end
             else
-                if lightThing != nil then
+                if lightThing != nil and setOnce != true then
+                    setOnce = true
+                    lightThing:setFOV(0)
+                    lightThing:setFarZ(0)
                     lightThing:setBrightness(0)
                     lightThing:update()
                 end
