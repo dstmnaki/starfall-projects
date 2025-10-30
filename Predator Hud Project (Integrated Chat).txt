@@ -920,19 +920,21 @@ if CLIENT then
             local texturize = "pp_texturize \"hud/cpthazama/avp/thermal.png\""
             local motionblur = "pp_motionblur 1; pp_motionblur_drawalpha 0.95; pp_motionblur_delay 0; pp_motionblur_addalpha 0.2"
             local matoverlay = "pp_mat_overlay \"effects/water_warp01\"; pp_mat_overlay_refractamount 0.03"
+            local bloom = "pp_bloom 1; pp_bloom_color 1; pp_bloom_color_b 255; pp_bloom_color_g 255; pp_bloom_color_r 255; pp_bloom_darken 0.6; pp_bloom_multiply 2; pp_bloom_passes 0; pp_bloom_sizex 0; pp_bloom_sizey 50"
             local frameblend = "pp_fb 0"
             local toytown = "pp_toytown 0"
             local flir = (USEFLIR and "; flir_toggle" or "")
-            concmd(texturize.."; "..motionblur.."; "..matoverlay.."; "..frameblend.."; "..toytown.."; "..flir)
+            concmd(texturize.."; "..motionblur.."; "..matoverlay.."; "..bloom.."; "..frameblend.."; "..toytown.."; "..flir)
         elseif thermalOn == 2 then
             thermalOn = 0
             local texturize = "pp_texturize \"\""
             local motionblur = "pp_motionblur 0"
             local matoverlay = "pp_mat_overlay \"\""
+            local bloom = "pp_bloom 0"
             local frameblend = "pp_fb 0"
             local toytown = "pp_toytown 0"
             local flir = (USEFLIR and "; flir_toggle" or "")
-            concmd(texturize.."; "..motionblur.."; "..matoverlay.."; "..frameblend.."; "..toytown.."; "..flir)
+            concmd(texturize.."; "..motionblur.."; "..matoverlay.."; "..bloom.."; "..frameblend.."; "..toytown.."; "..flir)
         end
         vmHolo:suppressEngineLighting(thermalOn == 1)
         if not cloakstate then
@@ -1054,10 +1056,11 @@ if CLIENT then
             local texturize = "pp_texturize \"\""
             local motionblur = "pp_motionblur 0"
             local matoverlay = "pp_mat_overlay \"\""
+            local bloom = "pp_bloom 0"
             local frameblend = "pp_fb 0"
             local toytown = "pp_toytown 0"
             local flir = (USEFLIR and "; flir_toggle" or "")
-            concmd(texturize.."; "..motionblur.."; "..matoverlay.."; "..frameblend.."; "..flir)
+            concmd(texturize.."; "..motionblur.."; "..matoverlay.."; "..bloom.."; "..frameblend.."; "..flir)
         end
         if cloakstate then
             print("CLOAK WAS LEFT ON BEFORE REMOVING, YOUR ARE STILL INVISIBLE, RESPAWN ME AND UNCLOAK BEFORE REMOVING ME!")
@@ -1110,9 +1113,38 @@ if CLIENT then
     local mapReadyFirst = false
     local FRAME2 = 0
     local PARENTFIRST = false
-    
+    local frame_ct = 0
     hook.add("drawhud", "", function()
         if owner():getHealth() > 0 and owner():getActiveWeapon() != nil and isValid(owner():getActiveWeapon()) then
+            
+            visionChangeVal = visionChangeVal + 0.15*timer.frametime()*66
+            visionChangeVal = math.clamp(visionChangeVal,0,1)
+            
+            visionChangeVal2 = visionChangeVal2 + (0.12-0.1*visionChangeVal2)*0.4*timer.frametime()*66
+            visionChangeVal2 = math.clamp(visionChangeVal2,0,1)
+            
+            if thermalOn == 1 then
+                if not lightThing then
+                    lightThing = light.createProjected()--light.create(owner():getPos(), 100000, 1, Color(25,25,25,25))
+                    lightThing:setFOV(175)
+                    lightThing:setFarZ(100000)
+                    lightThing:setTexture("effects/flashlight/square")
+                    lightThing:setLightWorld(true)
+                    lightThing:setEnableShadows(false)
+                    lightThing:setLinearAttenuation(100000)
+                end
+                if lightThing != nil then
+                    lightThing:setBrightness(20-19.85*visionChangeVal2)
+                    lightThing:setPos(owner():getEyePos()+owner():getAimVector()*15)
+                    lightThing:setAngles(owner():getEyeAngles())
+                    lightThing:update()
+                end
+            else
+                if lightThing != nil then
+                    lightThing:setBrightness(0)
+                    lightThing:update()
+                end
+            end
             if mapReady then
                 if mapReadyFirst != true then
                     mapReadyFirst = true
@@ -1579,12 +1611,6 @@ if CLIENT then
             render.setMaterial(CloakMat)
             render.setColor(thermalOn != 0 and Color(125*0.8,165*0.8,255*0.8, 75*(cloakstate and 1 or 0)) or Color(255,0,0, 75*(cloakstate and 1 or 0)))
             render.drawTexturedRect(0, 0, w, h)
-            
-            visionChangeVal = visionChangeVal + 0.15*timer.frametime()*66
-            visionChangeVal = math.clamp(visionChangeVal,0,1)
-            
-            visionChangeVal2 = visionChangeVal2 + (0.12-0.1*visionChangeVal2)*0.4*timer.frametime()*66
-            visionChangeVal2 = math.clamp(visionChangeVal2,0,1)
             
             render.setColor(thermalOn != 0 and Color(125*0.8,165*0.8,255*0.8,255*math.clamp(2-visionChangeVal*2,0,1)) or Color(255,0,0,255*math.clamp(2-visionChangeVal*2,0,1)))
             
