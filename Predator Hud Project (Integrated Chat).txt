@@ -1407,7 +1407,7 @@ if CLIENT then
                                 vmHolo:setAnimation("predator_hud_claws_rest", nil, 1)
                                 if startRandomIdleAnim != true and not BLOCKIDLERANDOMIZER then
                                     startRandomIdleAnim = true
-                                    --[[timer.create("random_idle", math.rand(5,18), 0, function()
+                                    timer.create("random_idle", math.rand(25,45), 0, function()
                                         local selectanim = math.round(math.rand(1,3))
                                         if selectanim == 1 then
                                             Animation = "idle_stretch"
@@ -1423,7 +1423,7 @@ if CLIENT then
                                         anglesLerp = Angle(0,0,0)
                                         manipulatepos = Vector(0,0,0)
                                         manipulateang = Angle(0,0,0)
-                                    end)--]]
+                                    end)
                                 end
                             end
                         end
