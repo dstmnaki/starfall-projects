@@ -1147,6 +1147,9 @@ if CLIENT then
                     lightThing:update()
                 end
             else
+                
+                render.setColor(Color(255,0,0,255*math.sin(math.rad(visionChangeVal*180))))
+                render.drawRect(0,0,w,h)
                 if lightThing != nil and setOnce != true then
                     setOnce = true
                     lightThing:setFOV(0)
