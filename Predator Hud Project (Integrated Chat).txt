@@ -809,12 +809,16 @@ if CLIENT then
         if player() ~= owner() then return end
         player_table = {}
         function filter(a)
-            if disconnected_player and disconnected_player == a then return false end
-            if a == owner() then return false end
-            if a:getHealth() <= 0 then return false end
-            return true
+            if a:getClass():find("npc") or a:isPlayer() or a:isNPC() then
+                if disconnected_player and disconnected_player == a then return false end
+                if a == owner() then return false end
+                if a:getHealth() <= 0 then return false end
+                return true
+            else
+                return false
+            end
         end
-        for k, v in pairs(find.allPlayers(filter)) do
+        for k, v in pairs(find.all(filter)) do
             player_table[k] = {}
             player_table[k].ply = v
             player_table[k].ply_holo = hologram.create(Vector(), Angle(), v:getModel(), Vector(1,1,1))
@@ -833,6 +837,11 @@ if CLIENT then
     hook.add("PlayerDisconnected", "", function(ply)
         createHolos(ply)
     end)
+    hook.add("OnEntityCreated", "", function(ent)
+        if ent and ent != nil and ent:isValid() and (ent:getClass():find("npc") or ent:isNPC()) then
+            createHolos(nil)
+        end
+    end)
     createHolos(nil)
     hook.add("think","",function()
         if owner():getHealth() > 0 then
@@ -840,20 +849,15 @@ if CLIENT then
                 if player_table and #player_table >= 0 then
                     for k, v in pairs(player_table) do
                         local ply = v.ply
-                        if ply and ply != nil and ply:isValid() and ply:getHealth() > 0 then
+                        if ply and ply != nil and ply:isValid() then
+                            if ply:getHealth() > 0 then
+                                v.visible = true
+                            else
+                                v.visible = false
+                            end
                         else
                             v.ply_holo:remove()
                             table.remove(player_table,k)
-                        end
-                    end
-                end
-                if npc_table and #npc_table >= 0 then
-                    for k, v in pairs(npc_table) do
-                        local npc = v.npc
-                        if npc and npc != nil and npc:isValid() and npc:getHealth() > 0 then
-                        else
-                            v.npc_holo:remove()
-                            table.remove(npc_table,k)
                         end
                     end
                 end
@@ -977,23 +981,33 @@ if CLIENT then
         end
         ]]
     end
+    
+    BaseMat = material.createFromImage("hud/cpthazama/avp/predator_hud.png", "noclamp smooth")
+    ZoomMat = material.createFromImage("hud/cpthazama/avp/predator_zoom.png", "noclamp smooth")
+    CloakMat = material.createFromImage("hud/cpthazama/avp/predator_cloak_hud.png", "noclamp smooth")
+    HighlightMat = material.createFromImage("hud/cpthazama/avp/highlight_bar.png", "noclamp smooth")
+    
+    EnergyBarMat = material.createFromImage("hud/cpthazama/avp/pred_energy.png", "noclamp smooth")
+    EnergyBarBGMat = material.createFromImage("hud/cpthazama/avp/pred_hp_warning.png", "noclamp smooth nocull")
+    HealthBarMat = material.createFromImage("hud/cpthazama/avp/pred_hp.png", "noclamp smooth")
+    
+    TargetPlayerMat = material.createFromImage("hud/cpthazama/avp/icons/human.png", "noclamp smooth")
+    
+    VisionChangeMat = material.create("UnlitGeneric")
+    VisionChangeMat:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/3z4y7aq48zj1bkrtaa0fb/vision-change.png?rlkey=xi85zl08cq3lat2uaaxj9qvm8&dl=1", nil, nil)
+    
+    TriangleSideMat = material.create("UnlitGeneric")
+    TriangleSideMat:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/91kbh2h951ickpluwmzwy/betterer-edger.png?rlkey=my7hfigpgk3z86fi0hql976i9&dl=1", nil, nil)
+    
+    PlasmaHighlightMat = material.createFromImage("hud/cpthazama/avp/avp_p_wps_plasma_highlight_v3.png", "noclamp smooth")
+    SpearHighlightMat = material.createFromImage("hud/cpthazama/avp/avp_p_wps_realspear_highlight_v2.png", "noclamp smooth")
+    MineHighlightMat = material.createFromImage("hud/cpthazama/avp/avp_p_wps_mine_highlight_v3.png", "noclamp smooth")
+    
+    healthStabMat = material.createFromImage("gui/point.png", "smooth")
+    
+    
+    local w, h = render.getGameResolution()
     if player() == owner() then
-        hook.add("OnEntityCreated", "", function(ent)
-            if ent and ent != nil and ent:isValid() and ent:isNPC() and ent:getHealth() > 0 then
-                ent_table = {}
-                ent_table.npc = ent
-                ent_table.npc_holo = hologram.create(Vector(), Angle(), ent:getModel(), Vector(1,1,1))
-                ent_table.npc_holo:setMaterial("models/debug/debugwhite")
-                ent_table.npc_holo:suppressEngineLighting(true)
-                ent_table.npc_holo:setParent(ent)
-                ent_table.npc_holo:addEffects(EF.BONEMERGE)
-                
-                
-                ent_table.npc_holo:setColor(Color(255,255,255,thermalOn==1 and 255 or 0))
-                ent_table.npc:setColor(Color(255,255,255,thermalOn==1 and 0 or 255))
-                table.insert(npc_table,ent_table)
-            end
-        end)
         render.createRenderTarget("canvas")
         hook.add("Render", "", function()
             if thermalOn == 1 then
@@ -1004,20 +1018,14 @@ if CLIENT then
                     render.pushViewMatrix({
                         type   = "3D",
                         origin = Vector(),
-                        angles = Angle(),
-                        fov    = 60,
-                        aspect = 1,
+                        angles = Angle()
                     })
                     if player_table and #player_table >= 0 then
                         for k, v in pairs(player_table) do
-                            local ply_holo = v.ply_holo
-                            ply_holo:draw()
-                        end
-                    end
-                    if npc_table and #npc_table >= 0 then
-                        for k, v in pairs(npc_table) do
-                            local npc_holo = v.npc_holo
-                            npc_holo:draw()
+                            if v.visible == true then
+                                local ply_holo = v.ply_holo
+                                ply_holo:draw()
+                            end
                         end
                     end
                     render.popViewMatrix()
@@ -1056,28 +1064,6 @@ if CLIENT then
         end
         owner():stopSound("cpthazama/avp/predator/vision_loopfx.wav")
     end)
-    BaseMat = material.createFromImage("hud/cpthazama/avp/predator_hud.png", "noclamp smooth")
-    ZoomMat = material.createFromImage("hud/cpthazama/avp/predator_zoom.png", "noclamp smooth")
-    CloakMat = material.createFromImage("hud/cpthazama/avp/predator_cloak_hud.png", "noclamp smooth")
-    HighlightMat = material.createFromImage("hud/cpthazama/avp/highlight_bar.png", "noclamp smooth")
-    
-    EnergyBarMat = material.createFromImage("hud/cpthazama/avp/pred_energy.png", "noclamp smooth")
-    EnergyBarBGMat = material.createFromImage("hud/cpthazama/avp/pred_hp_warning.png", "noclamp smooth nocull")
-    HealthBarMat = material.createFromImage("hud/cpthazama/avp/pred_hp.png", "noclamp smooth")
-    
-    TargetPlayerMat = material.createFromImage("hud/cpthazama/avp/icons/human.png", "noclamp smooth")
-    
-    VisionChangeMat = material.create("UnlitGeneric")
-    VisionChangeMat:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/3z4y7aq48zj1bkrtaa0fb/vision-change.png?rlkey=xi85zl08cq3lat2uaaxj9qvm8&dl=1", nil, nil)
-    
-    TriangleSideMat = material.create("UnlitGeneric")
-    TriangleSideMat:setTextureURL("$basetexture", "https://dl.dropboxusercontent.com/scl/fi/91kbh2h951ickpluwmzwy/betterer-edger.png?rlkey=my7hfigpgk3z86fi0hql976i9&dl=1", nil, nil)
-    
-    PlasmaHighlightMat = material.createFromImage("hud/cpthazama/avp/avp_p_wps_plasma_highlight_v3.png", "noclamp smooth")
-    SpearHighlightMat = material.createFromImage("hud/cpthazama/avp/avp_p_wps_realspear_highlight_v2.png", "noclamp smooth")
-    MineHighlightMat = material.createFromImage("hud/cpthazama/avp/avp_p_wps_mine_highlight_v3.png", "noclamp smooth")
-    
-    healthStabMat = material.createFromImage("gui/point.png", "smooth")
     
     hook.add("HUDShouldDraw", "", function(str)
         if str == "CHudCrosshair" then
@@ -1124,12 +1110,13 @@ if CLIENT then
     local mapReadyFirst = false
     local FRAME2 = 0
     local PARENTFIRST = false
+    
     hook.add("drawhud", "", function()
         if owner():getHealth() > 0 and owner():getActiveWeapon() != nil and isValid(owner():getActiveWeapon()) then
             if mapReady then
                 if mapReadyFirst != true then
                     mapReadyFirst = true
-                    mapHolo:setParent(owner():getActiveWeapon())
+                    mapHolo:setParent(oner():getActiveWeapon())
                 end
                 local ArmPos, _ = vmHolo:getBonePosition(vmHolo:lookupBone("left arm twister"))
                 if ArmPos != nil then
@@ -1378,7 +1365,7 @@ if CLIENT then
                                 vmHolo:setAnimation("predator_hud_claws_rest", nil, 1)
                                 if startRandomIdleAnim != true and not BLOCKIDLERANDOMIZER then
                                     startRandomIdleAnim = true
-                                    timer.create("random_idle", math.rand(5,18), 0, function()
+                                    --[[timer.create("random_idle", math.rand(5,18), 0, function()
                                         local selectanim = math.round(math.rand(1,3))
                                         if selectanim == 1 then
                                             Animation = "idle_stretch"
@@ -1394,7 +1381,7 @@ if CLIENT then
                                         anglesLerp = Angle(0,0,0)
                                         manipulatepos = Vector(0,0,0)
                                         manipulateang = Angle(0,0,0)
-                                    end)
+                                    end)--]]
                                 end
                             end
                         end
@@ -1551,8 +1538,6 @@ if CLIENT then
             else
                 blockVisionChange = false
             end
-            
-            local w, h = render.getGameResolution()
             
             render.setMaterial(ZoomMat)
             render.setColor(thermalOn != 0 and Color(125*0.8,165*0.8,255*0.8,255*ZoomVal) or Color(255,0,0,255*ZoomVal))
