@@ -3,6 +3,8 @@
 --@include nakilibs/ik_libs/shared.txt
 --@client
 require("nakilibs/ik_libs/shared.txt")
+-- Huge thanks to shadowscion for having a public library of simple ik functions for expression2
+-- i've converted digi and two seg, also a custom digi that i used in my arachnid from starship troopers (wip) and a not so good 4 seg used in my current project, corruptor from horizon zero dawn
 
 ik_libs = ik_libs or {}
 
