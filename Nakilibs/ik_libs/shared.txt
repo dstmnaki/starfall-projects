@@ -8,7 +8,17 @@ function ik_libs.icos(A, B, C)
     return math.deg(math.acos((A^2 + B^2 - C^2) / (2*A*B)))
 end
 
-function ik_libs.toLocalAxis(ent,offset)
-    local AxisLocal, _ = worldToLocal(offset,Angle(),Vector(),ent:getAngles())
-    return AxisLocal
+function ik_libs.toLocalAxis(ent, worldVector)
+    return ent:worldToLocal(worldVector + ent:getPos())
+end
+
+function ik_libs.bearing(originpos, originangle, pos)
+    pos = worldToLocal(pos, Angle(), originpos, originangle)
+    return -math.deg(math.atan2(pos.y, pos.x))
+end
+
+function ik_libs.qRotation(axis, ang)
+    local ax = axis:getNormalized()
+    local half = math.rad(ang) * 0.5
+    return Quaternion(math.cos(half), ax.x * math.sin(half), ax.y * math.sin(half), ax.z * math.sin(half))
 end
