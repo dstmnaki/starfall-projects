@@ -92,7 +92,7 @@ function ik_libs.two_seg_ik_shadowscion(BoneTable, Target)
     local Knee = BoneTable["Knee"]
     local Foot = BoneTable["Foot"]
     
-    local reverseKnee = BoneTable["Reversed"] or false
+    local reverseKnee = BoneTable["Reversed"] == false
     
     if not (LengthA and LengthB) then return end
     if not (Base and Base != nil and Base:isValid()) then return end
@@ -119,15 +119,83 @@ function ik_libs.two_seg_ik_shadowscion(BoneTable, Target)
     Foot:setAngles(Base:getAngles())
 end
 
-
-
-
-
-
-
-
-
-
-
-
-
+function ik_libs.four_segment_ik(BoneTable, Target)
+    local LengthA = BoneTable["Length_A"]
+    local LengthB = BoneTable["Length_B"]
+    local LengthC = BoneTable["Length_C"]
+    local LengthD = BoneTable["Length_D"]
+    
+    local Base = BoneTable["Base"]
+    
+    local H1 = BoneTable["H1"]
+    local H2 = BoneTable["H2"]
+    local H3 = BoneTable["H3"]
+    local H4 = BoneTable["H4"]
+    
+    local reverseKnee = BoneTable["Reversed"] == true
+    
+    if not (LengthA and LengthB and LengthC and LengthD) then return end
+    if not (Base and Base != nil and Base:isValid()) then return end
+    if not (H1 and H1 != nil and H1:isValid()) then return end
+    if not (H2 and H2 != nil and H2:isValid()) then return end
+    if not (H3 and H3 != nil and H3:isValid()) then return end
+    if not (H4 and H4 != nil and H4:isValid()) then return end
+    
+    local Origin = H1:getPos()
+    local AxisLocal = ik_libs.toLocalAxis(Base,Target - Origin)
+    
+    local AxisAngle = AxisLocal:getAngle()
+    if reverseKnee then
+        AxisAngle.r = -ik_libs.bearing(Origin, Base:getAngles(), Target)
+    else
+        AxisAngle.r = -ik_libs.bearing(Target, Base:getAngles(), Origin)
+    end
+    
+    local First2 = (LengthA + LengthB)*1
+    local Second2 = (LengthC + LengthD)/2.5
+    
+    local LengthX = math.min(AxisLocal:getLength(), First2+Second2)
+    local AxisQuat = (AxisAngle):getQuaternion() * ik_libs.qRotation(Vector(0, 1, 0), ik_libs.icos(LengthX, First2, Second2))
+    
+    H1:setAngles(Base:localToWorldAngles(AxisQuat:getEulerAngle()))
+    
+    local Origin = H2:getPos()
+    local AxisLocal = ik_libs.toLocalAxis(H1, Target - Origin)
+    
+    local AxisAngle = AxisLocal:getAngle()
+    if reverseKnee then
+        AxisAngle.r = -ik_libs.bearing(Target, H1:getAngles(), Origin)
+    else
+        AxisAngle.r = -ik_libs.bearing(Origin, H1:getAngles(), Target)
+    end
+    
+    local H2_Dist = ik_libs.toLocalAxis(H2, Target - Origin):getLength()
+    local AddMult = math.clamp(H2_Dist / (LengthB + LengthC + LengthD), 0, 1)
+    
+    local Mult = 1.41 - 0.4 * math.clamp((-8.75 + AddMult * 10) / 1.25, 0, 1)
+    local Length_A = LengthB + math.clamp(LengthC * (H2_Dist / (LengthB + LengthC)) * Mult, 0, LengthC * Mult)
+    local Mult2 = (0.6 + 0.4 * AddMult) * math.clamp(-1 + (0.5 + math.sin(math.rad(AddMult * 180))) * 2, 0.1, 1)
+    
+    local MultFirst = 0.3 * AddMult
+    local MultSecond = 0.9 * (1 - AddMult) + math.clamp(3 * AddMult, 0, 1) * 1.5
+    
+    local Length_D = LengthD * (0.7 + MultFirst) + LengthC * (-(2 - 1.5 * AddMult) + MultSecond) * math.sin(math.rad(AddMult * 180))
+    local Length_B = Length_D + math.clamp(LengthC * (1 - (H2_Dist / (LengthC + LengthD))) * Mult2, 0, LengthC * Mult2)
+    
+    local LengthX = math.min(AxisLocal:getLength(), Length_A + Length_B)
+    local AxisQuat = AxisAngle:getQuaternion() * ik_libs.qRotation(Vector(0, 1, 0), 70 * (1 - AddMult) + ik_libs.icos(LengthX, Length_A, Length_B))
+    
+    H2:setAngles(H1:localToWorldAngles(AxisQuat:getEulerAngle()))
+    
+    local Origin = H3:getPos()
+    local AxisLocal = ik_libs.toLocalAxis(H2,Target - Origin)
+    
+    local AxisAngle = AxisLocal:getAngle()
+    AxisAngle.r = (-ik_libs.bearing(Origin, H2:getAngles(), Target)) -- forward knee
+    
+    local LengthX = math.min(AxisLocal:getLength(), (LengthC + LengthD))
+    local AxisQuat = (AxisAngle):getQuaternion() * ik_libs.qRotation(Vector(0, 1, 0), ik_libs.icos(LengthX, LengthC, LengthD))
+    
+    H3:setAngles(H2:localToWorldAngles(AxisQuat:getEulerAngle()))
+    H4:setAngles(H3:localToWorldAngles(Angle(ik_libs.icos(LengthC, LengthD, LengthX) + 180, 0, 0)))
+end
