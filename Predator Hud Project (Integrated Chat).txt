@@ -304,7 +304,7 @@ if SERVER then
             local storeRunSpeed = 400
             local storeJumpPower = 200
             owner():setRunSpeed(storeRunSpeed*1.3)
-            owner():setJumpPower(storeJumpPower*3)
+            owner():setJumpPower(storeJumpPower*5)
             hook.add("Removed", "", function()
                 owner():setRunSpeed(storeRunSpeed)
                 owner():setJumpPower(storeJumpPower)
@@ -486,7 +486,7 @@ if SERVER then
         end
         if owner():getHealth() > 0 and centerHolo:isValid() then
             if owner():keyDown(IN_KEY.ATTACK2) and owner():isTyping() == false then
-                local LaserPos = owner():getEyePos()+owner():getEyeAngles():getRight()*6+owner():getEyeAngles():getUp()*2
+                local LaserPos = owner():getPos()+Vector(0,0,80)
                 local endPos = (TARGETSERVER != owner() and TARGETSERVER != nil and (TARGETSERVER:getPos() + TARGETSERVER:obbCenter()) or owner():getEyeTrace().HitPos)
                 local AngMath = (LaserPos - endPos):getAngle()
                 centerHolo:setPos(LaserPos-Vector(0,0,35))
@@ -946,18 +946,6 @@ if CLIENT then
                 end
             end
             blockAttack = input.isMouseDown(MOUSE.MOUSE1)
-            local LaserPos = owner():getEyePos()+owner():getEyeAngles():getRight()*7+owner():getEyeAngles():getUp()*2
-            local endPos = ((LOCKTARGET2 and LOCKTARGET != nil and LOCKTARGET != owner()) and (LOCKTARGET:getPos() + LOCKTARGET:obbCenter()) or owner():getEyeTrace().HitPos)
-            local AngMath = (LaserPos - endPos):getAngle()
-            centerHolo:setPos(LaserPos)
-            centerHolo:setAngles(AngMath:rotateAroundAxis(AngMath:getRight(), 90))
-            
-            local DistMath = centerHolo:getPos():getDistance(endPos)
-            
-            LeftTop:setScale(Vector(0.02,0.02,DistMath/45)*(owner():keyDown(IN_KEY.ATTACK2) and 1 or 0))
-            RightMiddle:setScale(Vector(0.02,0.02,DistMath/45)*(owner():keyDown(IN_KEY.ATTACK2) and 1 or 0))
-            LeftBottom:setScale(Vector(0.02,0.02,DistMath/45)*(owner():keyDown(IN_KEY.ATTACK2) and 1 or 0))
-            
             
             for i, holo in pairs({LeftTop, RightMiddle, LeftBottom}) do
                 holo:setColor(Color(255,0,0,75*(owner():keyDown(IN_KEY.ATTACK2) and owner():isTyping() == false  and 1 or 0)))
@@ -1301,14 +1289,21 @@ if CLIENT then
             else
                 healFirst = false
             end
-            local cloakButton = input.isKeyDown(KEY.R) and owner():isTyping() == false 
+            local cloakButton = input.isKeyDown(KEY.R) and owner():isTyping() == false
             if cloakButton ~= lastCloakButtonState and cloakButton and cantogglecloak then
                 startRandomIdleAnim = false
                 timer.stop("random_idle")
                 FRAME = 0
-                Animation = "cloaktoggle"
-                AnimationPlaying = true
                 cantogglecloak = false
+                if owner():isOnGround() then
+                    Animation = "cloaktoggle"
+                    AnimationPlaying = true
+                else
+                    timer.simple(1,function()
+                        cantogglecloak = true
+                    end)
+                end
+                
                 cloakstate = !cloakstate
                 net.start("sendcloak")
                 net.writeBool(cloakstate)
@@ -1524,7 +1519,7 @@ if CLIENT then
                         sway = 0
                         sway2 = 0
                         sprintFirst = false
-                        vmHolo:setAnimation("predator_hud_claws_jump_long", 0.9, 0)
+                        vmHolo:setAnimation("predator_hud_claws_jump_shallow", nil, 1)
                         timer.stop("random_idle")
                     end
                 end
@@ -2222,19 +2217,65 @@ if CLIENT then
             MOUSEWHEEL_CT = timer.curtime()
         end
     end)
+    local last_ground_pos = owner():getEyePos()
+    local jump_ct = 0
+    local land_ct = 0
+    local flight_pitch = 0
+    local jumping = 0
     hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
         if owner():getHealth() > 0 then
-            if vmHolo then
-                vmHolo:setPos(owner():getEyePos())
-                vmHolo:setAngles(Angle(owner():getEyeAngles().pitch+45*(1-FRAME)*(input.isMouseDown(MOUSE.MOUSE2) and 1 or 0)*((equipmentSelected == 2 and MINESTATE != "out" and HasMine) and 1 or 0)-15*math.clamp(math.sin(math.rad(FRAME*180))*2,0,1)*((Animation == "assigntarget" or Animation == "unassigntarget" and AnimationPlaying) and 1 or 0), owner():getEyeAngles().yaw, 0))
+            if owner():isOnGround() then
+                last_ground_pos = owner():getEyePos()
+                
+                if jumping != 0 then
+                    jumping = 0
+                    land_ct = timer.curtime()
+                end
+            else
+                if jumping != 1 then
+                    jumping = 1
+                    jump_ct = timer.curtime()
+                end
             end
+            local jump_time = math.clamp((math.clamp((timer.curtime()-jump_ct)*1.2,0,1)-math.clamp((timer.curtime()-land_ct)/0.5,0,1)*(1-jumping)),0,1)
+            local base_pitch = owner():getVelocity():getAngle()*jumping
+            local start_pitch = math.easeInSine(math.sin(math.rad(math.clamp((timer.curtime()-jump_ct)/0.4,0,1)*180)))
+            local land_pitch = math.easeInSine(math.sin(math.rad(math.clamp((timer.curtime()-land_ct)*3,0,1)*180)))
+            local flight_pitch_in = (base_pitch.pitch-360*(base_pitch.pitch>180 and 1 or 0))*0.75*jump_time
+            flight_pitch = math.lerp(0.2,flight_pitch, flight_pitch_in)
+            local jump_pitch = -20*start_pitch*jumping+flight_pitch+55*math.sin(math.rad(jump_time*180))*jumping+7*land_pitch
+            local jump_pitch2 = 20*start_pitch*jumping+flight_pitch*0.75+5*land_pitch
+            local vel_in = owner():getVelocity():getNormalized()
+            local vel_test = tostring(vel_in.x) != "nan" and vel_in or Vector()
+            
+            local flight_pos = math.lerpVector(math.easeOutSine(math.clamp((timer.curtime()-jump_ct)/2,0,1)), last_ground_pos-(vel_test*25)*(math.clamp((timer.curtime()-jump_ct)*5,0,1))*jumping, owner():getEyePos())
+            
+            if vmHolo then
+                vmHolo:setPos(flight_pos)
+                vmHolo:setAngles(Angle(owner():getEyeAngles().pitch+jump_pitch+45*(1-FRAME)*(input.isMouseDown(MOUSE.MOUSE2) and 1 or 0)*((equipmentSelected == 2 and MINESTATE != "out" and HasMine) and 1 or 0)-15*math.clamp(math.sin(math.rad(FRAME*180))*2,0,1)*((Animation == "assigntarget" or Animation == "unassigntarget" and AnimationPlaying) and 1 or 0), owner():getEyeAngles().yaw, 0))
+            end
+            
+            local head_ang = Angle(owner():getEyeAngles().pitch+jump_pitch2,owner():getEyeAngles().yaw,0):rotateAroundAxis(owner():getAimVector(),1*sway*(input.isMouseDown(MOUSE.MOUSE2) and 0 or 1))
+            local LaserPos = flight_pos+head_ang:getRight()*7+head_ang:getUp()*2
+            local endPos = ((LOCKTARGET2 and LOCKTARGET != nil and LOCKTARGET != owner()) and (LOCKTARGET:getPos() + LOCKTARGET:obbCenter()) or owner():getEyeTrace().HitPos)
+            local AngMath = (LaserPos - endPos):getAngle()
+            centerHolo:setPos(LaserPos)
+            centerHolo:setAngles(AngMath:rotateAroundAxis(AngMath:getRight(), 90+jump_pitch2))
+            
+            local DistMath = centerHolo:getPos():getDistance(endPos)
+            
+            LeftTop:setScale(Vector(0.02,0.02,DistMath/45)*(owner():keyDown(IN_KEY.ATTACK2) and 1 or 0))
+            RightMiddle:setScale(Vector(0.02,0.02,DistMath/45)*(owner():keyDown(IN_KEY.ATTACK2) and 1 or 0))
+            LeftBottom:setScale(Vector(0.02,0.02,DistMath/45)*(owner():keyDown(IN_KEY.ATTACK2) and 1 or 0))
+            
+            
             if AnimationPlaying and Animation != "lookAtMap" and Animation != "cloaktoggle" and Animation != "attack_light" and Animation != "heal" and Animation != "assigntarget" and Animation != "unassigntarget" then
                 anglesLerp = math.lerpAngle(0.2,anglesLerp, manipulateang and manipulateang or ang)
                 originLerp = math.lerpVector(0.2, originLerp, manipulatepos and manipulatepos or pos)
                 fovLerp = math.lerp(0.2, fovLerp, manipulatefov and manipulatefov or 80)
                 return {
-                    angles = owner():getEyeAngles()+anglesLerp,
-                    origin = owner():getEyePos()+originLerp,
+                    angles = Angle(owner():getEyeAngles().pitch+jump_pitch2+anglesLerp.pitch,owner():getEyeAngles().yaw+anglesLerp.yaw,anglesLerp.roll),
+                    origin = flight_pos+originLerp,
                     fov = fovLerp
                 }
             else
@@ -2242,10 +2283,10 @@ if CLIENT then
                 SPRINTVAL = math.clamp(SPRINTVAL,0,1)
                 anglesLerp = Angle(0,0,0)
                 originLerp = math.lerpVector(0.2, originLerp, owner():getEyeAngles():getRight()*5*sway+owner():getEyeAngles():getUp()*2*sway2)
-                fovLerp = math.lerp(0.2, fovLerp, 80-60*ZoomVal*ZOOMINVAL+35*math.clamp(owner():getVelocity():getLength()/53*0.1*SPRINTVAL,0,1))
+                fovLerp = math.lerp(0.2, fovLerp, 80-60*ZoomVal*ZOOMINVAL+35*math.clamp(owner():getVelocity():getLength()/53*0.1*SPRINTVAL,0,1-jump_time))
                 return {
-                    angles = Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,0):rotateAroundAxis(owner():getAimVector(),1*sway*(input.isMouseDown(MOUSE.MOUSE2) and 0 or 1)),
-                    origin = owner():getEyePos()+originLerp*(input.isMouseDown(MOUSE.MOUSE2) and 0 or 1),
+                    angles = Angle(owner():getEyeAngles().pitch+jump_pitch2,owner():getEyeAngles().yaw,0):rotateAroundAxis(owner():getAimVector(),1*sway*(input.isMouseDown(MOUSE.MOUSE2) and 0 or 1)),
+                    origin = flight_pos+originLerp*(input.isMouseDown(MOUSE.MOUSE2) and 0 or 1),
                     fov = fovLerp
                 }
             end
