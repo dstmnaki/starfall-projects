@@ -2258,15 +2258,15 @@ if CLIENT then
             
             if vmHolo then
                 vmHolo:setPos(flight_pos)
-                vmHolo:setAngles(Angle(owner():getEyeAngles().pitch+jump_pitch+45*(1-FRAME)*(input.isMouseDown(MOUSE.MOUSE2) and 1 or 0)*((equipmentSelected == 2 and MINESTATE != "out" and HasMine) and 1 or 0)-15*math.clamp(math.sin(math.rad(FRAME*180))*2,0,1)*((Animation == "assigntarget" or Animation == "unassigntarget" and AnimationPlaying) and 1 or 0), owner():getEyeAngles().yaw, 0))
+                vmHolo:setAngles(Angle(math.clamp(owner():getEyeAngles().pitch+jump_pitch+45*(1-FRAME)*(input.isMouseDown(MOUSE.MOUSE2) and 1 or 0)*((equipmentSelected == 2 and MINESTATE != "out" and HasMine) and 1 or 0)-15*math.clamp(math.sin(math.rad(FRAME*180))*2,0,1)*((Animation == "assigntarget" or Animation == "unassigntarget" and AnimationPlaying) and 1 or 0),-90,90), owner():getEyeAngles().yaw, 0))
             end
             
-            local head_ang = Angle(owner():getEyeAngles().pitch+jump_pitch2,owner():getEyeAngles().yaw,0):rotateAroundAxis(owner():getAimVector(),1*sway*(input.isMouseDown(MOUSE.MOUSE2) and 0 or 1))
+            local head_ang = Angle(math.clamp(owner():getEyeAngles().pitch+jump_pitch2,-90,90),owner():getEyeAngles().yaw,0):rotateAroundAxis(owner():getAimVector(),1*sway*(input.isMouseDown(MOUSE.MOUSE2) and 0 or 1))
             local LaserPos = flight_pos+head_ang:getRight()*7+head_ang:getUp()*2
             local endPos = ((LOCKTARGET2 and LOCKTARGET != nil and LOCKTARGET != owner()) and (LOCKTARGET:getPos() + LOCKTARGET:obbCenter()) or owner():getEyeTrace().HitPos)
             local AngMath = (LaserPos - endPos):getAngle()
             centerHolo:setPos(LaserPos)
-            centerHolo:setAngles(AngMath:rotateAroundAxis(AngMath:getRight(), 90+jump_pitch2))
+            centerHolo:setAngles(AngMath:rotateAroundAxis(AngMath:getRight(), 90+math.clamp(jump_pitch2,-90,90)))
             
             local DistMath = centerHolo:getPos():getDistance(endPos)
             
@@ -2280,7 +2280,7 @@ if CLIENT then
                 originLerp = math.lerpVector(0.2, originLerp, manipulatepos and manipulatepos or pos)
                 fovLerp = math.lerp(0.2, fovLerp, manipulatefov and manipulatefov or 80)
                 return {
-                    angles = Angle(owner():getEyeAngles().pitch+jump_pitch2+anglesLerp.pitch,owner():getEyeAngles().yaw+anglesLerp.yaw,anglesLerp.roll),
+                    angles = Angle(math.clamp(owner():getEyeAngles().pitch+jump_pitch2,-90,90)+anglesLerp.pitch,owner():getEyeAngles().yaw+anglesLerp.yaw,anglesLerp.roll),
                     origin = flight_pos+originLerp,
                     fov = fovLerp
                 }
@@ -2291,7 +2291,7 @@ if CLIENT then
                 originLerp = math.lerpVector(0.2, originLerp, owner():getEyeAngles():getRight()*5*sway+owner():getEyeAngles():getUp()*2*sway2)
                 fovLerp = math.lerp(0.2, fovLerp, 80-60*ZoomVal*ZOOMINVAL+35*math.clamp(owner():getVelocity():getLength()/53*0.1*SPRINTVAL,0,1-math.clamp(jump_time+start_pitch,0,1)))
                 return {
-                    angles = Angle(owner():getEyeAngles().pitch+jump_pitch2,owner():getEyeAngles().yaw,0):rotateAroundAxis(owner():getAimVector(),1*sway*(input.isMouseDown(MOUSE.MOUSE2) and 0 or 1)),
+                    angles = Angle(math.clamp(owner():getEyeAngles().pitch+jump_pitch2,-90,90),owner():getEyeAngles().yaw,0):rotateAroundAxis(owner():getAimVector(),1*sway*(input.isMouseDown(MOUSE.MOUSE2) and 0 or 1)),
                     origin = flight_pos+originLerp*(input.isMouseDown(MOUSE.MOUSE2) and 0 or 1),
                     fov = fovLerp
                 }
