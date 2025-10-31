@@ -233,6 +233,7 @@ hook.add("net","",function(name,len,ply)
         if SERVER then
             if hasPermission("entities.setRenderProperty", owner()) then
                 owner():setDrawShadow(not bool)
+                owner():setRenderMode(bool and RENDERMODE.WORLDGLOW or RENDERMODE.NORMAL)
             end
         end
     end
