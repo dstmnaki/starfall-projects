@@ -843,7 +843,7 @@ if CLIENT then
                 end
             end
         end
-        if find_again and (table.count(_find) > hologram.canSpawn()) then
+        if find_again and (table.count(_find) > hologram.hologramsLeft()) then
             block_npcs = true
             print("Hologram limit exceeded, excluding npcs from thermal!")
         else
