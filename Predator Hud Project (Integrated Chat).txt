@@ -804,32 +804,81 @@ if CLIENT then
     end
     
     local player_table = {}
+    local block_npcs = false
+    local spawned_holos = {}
     
     function createHolos(disconnected_player)
         if player() ~= owner() then return end
         player_table = {}
         function filter(a)
-            if a:getClass():find("npc") or a:isPlayer() or a:isNPC() then
-                if disconnected_player and disconnected_player == a then return false end
-                if a == owner() then return false end
-                if a:getHealth() <= 0 then return false end
-                return true
+            if block_npcs then
+                if a:isPlayer() then
+                    if disconnected_player and disconnected_player == a then return false end
+                    if a == owner() then return false end
+                    if a:getHealth() <= 0 then return false end
+                    return true
+                else
+                    return false
+                end
             else
-                return false
+                if a:getClass():find("npc") or a:isPlayer() or a:isNPC() then
+                    if disconnected_player and disconnected_player == a then return false end
+                    if a == owner() then return false end
+                    if a:getHealth() <= 0 then return false end
+                    return true
+                else
+                    return false
+                end
             end
         end
-        for k, v in pairs(find.all(filter)) do
-            if player_table[k] and player_table[k].ply_holo then player_table[k].ply_holo:remove() end
-            player_table[k] = {}
-            player_table[k].ply = v
-            player_table[k].ply_holo = hologram.create(Vector(), Angle(), v:getModel(), Vector(1,1,1))
-            player_table[k].ply_holo:setMaterial("models/debug/debugwhite")
-            player_table[k].ply_holo:suppressEngineLighting(true)
-            player_table[k].ply_holo:setParent(v)
-            player_table[k].ply_holo:addEffects(EF.BONEMERGE)
-            
-            player_table[k].ply_holo:setColor(Color(255,255,255,thermalOn==1 and 255 or 0))
-            player_table[k].ply:setColor(Color(255,255,255,thermalOn==1 and 0 or 255))
+        local _find = find.all(filter)
+        
+        for k, v in pairs(spawned_holos) do
+            if v and v != nil and v:isValid() then
+                local parent = v:getParent()
+                if not (parent and parent != nil and parent:isValid()) then
+                    v:remove()
+                    table.remove(spawned_holos,k)
+                end
+            end
+        end
+        if find_again and table.count(_find) > hologram.canSpawn() then
+            block_npcs = true
+            print("Hologram limit exceeded, excluding npcs from thermal!")
+        else
+            find_again = false
+            for k, v in pairs(_find) do
+                if player_table[k] and player_table[k].ply_holo then player_table[k].ply_holo:remove() end
+                if hologram.canSpawn() then
+                    player_table[k] = {}
+                    player_table[k].ply = v
+                    local localholo = hologram.create(Vector(), Angle(), v:getModel(), Vector(1,1,1))
+                    
+                    localholo:setMaterial("models/debug/debugwhite")
+                    localholo:suppressEngineLighting(true)
+                    localholo:setParent(v)
+                    localholo:addEffects(EF.BONEMERGE)
+                    
+                    localholo:setColor(Color(255,255,255,thermalOn==1 and 255 or 0))
+                    
+                    player_table[k].ply_holo = localholo
+                    
+                    player_table[k].ply:setColor(Color(255,255,255,thermalOn==1 and 0 or 255))
+                    table.insert(spawned_holos,localholo)
+                else
+                    for k, v in pairs(spawned_holos) do
+                        if v and v != nil and v:isValid() then
+                            v:remove()
+                            table.remove(spawned_holos,k)
+                        end
+                    end
+                    timer.simple(1,function()
+                        find_again_block = false
+                        find_again = true
+                    end)
+                    break
+                end
+            end
         end
     end
     hook.add("PlayerInitialSpawn", "", function(ply, transition)
@@ -847,6 +896,10 @@ if CLIENT then
     hook.add("think","",function()
         if owner():getHealth() > 0 then
             if player() == owner() then
+                if find_again and find_again_block != true then
+                    find_again_block = true
+                    createHolos(nil)
+                end
                 if player_table and #player_table >= 0 then
                     for k, v in pairs(player_table) do
                         local ply = v.ply
