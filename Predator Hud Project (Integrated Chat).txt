@@ -2230,7 +2230,6 @@ if CLIENT then
                 
                 if jumping != 0 then
                     jumping = 0
-                    not_falling = false
                     land_ct = timer.curtime()
                 end
             else
