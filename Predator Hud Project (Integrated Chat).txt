@@ -909,7 +909,6 @@ if CLIENT then
             end
         end
     end)
-    local USEFLIR = false
     
     concmd("pp_texturize_scale 15") -- i forgot this to 1...my bad guys...
     
@@ -923,9 +922,11 @@ if CLIENT then
             local bloom = "pp_bloom 1; pp_bloom_color 1; pp_bloom_color_b 255; pp_bloom_color_g 255; pp_bloom_color_r 255; pp_bloom_darken 0.6; pp_bloom_multiply 2; pp_bloom_passes 0; pp_bloom_sizex 0; pp_bloom_sizey 50"
             local frameblend = "pp_fb 0"
             local toytown = "pp_toytown 0"
-            local flir = (USEFLIR and "; flir_toggle" or "")
-            concmd(texturize.."; "..motionblur.."; "..matoverlay.."; "..bloom.."; "..frameblend.."; "..toytown.."; "..flir)
+            concmd(texturize.."; "..motionblur.."; "..matoverlay.."; "..bloom.."; "..frameblend.."; "..toytown)
         elseif thermalOn == 2 then
+            local bloom = "pp_bloom 0"
+            concmd(bloom)
+        elseif thermalOn == 3 then
             thermalOn = 0
             local texturize = "pp_texturize \"\""
             local motionblur = "pp_motionblur 0"
@@ -933,8 +934,7 @@ if CLIENT then
             local bloom = "pp_bloom 0"
             local frameblend = "pp_fb 0"
             local toytown = "pp_toytown 0"
-            local flir = (USEFLIR and "; flir_toggle" or "")
-            concmd(texturize.."; "..motionblur.."; "..matoverlay.."; "..bloom.."; "..frameblend.."; "..toytown.."; "..flir)
+            concmd(texturize.."; "..motionblur.."; "..matoverlay.."; "..bloom.."; "..frameblend.."; "..toytown)
         end
         vmHolo:suppressEngineLighting(thermalOn == 1)
         if not cloakstate then
@@ -1010,6 +1010,37 @@ if CLIENT then
     
     local w, h = render.getGameResolution()
     if player() == owner() then
+        
+        
+        local rtName = "view_rt"
+        render.createRenderTarget(rtName)
+        
+        fullbright_world = material.create("gmodscreenspace")
+        fullbright_world:setTextureRenderTarget("$basetexture", rtName)
+        fullbright_world:setFloat("$alpha",0.35)
+        hook.add("renderscene", "render_view", function(origin, angles)
+            render.selectRenderTarget(rtName)
+            local localOrigin = owner():getEyePos()
+            
+            local localAng = owner():getEyeAngles()
+            
+            render.suppressEngineLighting(true)
+            render.setLightingMode(1)
+            
+            render.renderView({
+                origin = localOrigin,
+                angles = localAng,
+                aspectratio = w / h,
+                x = 0,
+                y = 0,
+                w = w,
+                h = h,
+                drawviewmodel = false,
+                drawviewer = false,
+            })
+            render.selectRenderTarget()
+        end)
+        
         render.createRenderTarget("canvas")
         hook.add("Render", "", function()
             if thermalOn == 1 then
@@ -1059,8 +1090,7 @@ if CLIENT then
             local bloom = "pp_bloom 0"
             local frameblend = "pp_fb 0"
             local toytown = "pp_toytown 0"
-            local flir = (USEFLIR and "; flir_toggle" or "")
-            concmd(texturize.."; "..motionblur.."; "..matoverlay.."; "..bloom.."; "..frameblend.."; "..flir)
+            concmd(texturize.."; "..motionblur.."; "..matoverlay.."; "..bloom.."; "..frameblend)
         end
         if cloakstate then
             print("CLOAK WAS LEFT ON BEFORE REMOVING, YOUR ARE STILL INVISIBLE, RESPAWN ME AND UNCLOAK BEFORE REMOVING ME!")
@@ -1123,36 +1153,51 @@ if CLIENT then
             visionChangeVal2 = visionChangeVal2 + (0.12-0.11*visionChangeVal2)*0.4*timer.frametime()*66
             visionChangeVal2 = math.clamp(visionChangeVal2,0,1)
             
-            if thermalOn == 1 then
-                render.setColor(Color(255,0,0,255*math.sin(math.rad(visionChangeVal2*180))))
-                render.drawRect(0,0,w,h)
-                if not lightThing then
-                    lightThing = light.createProjected()--light.create(owner():getPos(), 100000, 1, Color(25,25,25,25))
-                    lightThing:setFOV(175)
-                    lightThing:setFarZ(100000)
-                    lightThing:setTexture("effects/flashlight/square")
-                    lightThing:setLightWorld(true)
-                    lightThing:setEnableShadows(false)
-                    lightThing:setLinearAttenuation(100000)
+            if thermalOn != 0 then
+                if thermalOn == 1 then
+                    render.setColor(Color(255,0,0,255*math.sin(math.rad(visionChangeVal2*180))))
+                    render.drawRect(0,0,w,h)
+                    if not lightThing then
+                        lightThing = light.createProjected()--light.create(owner():getPos(), 100000, 1, Color(25,25,25,25))
+                        lightThing:setFOV(175)
+                        lightThing:setVerticalFOV(175)
+                        lightThing:setFarZ(100000)
+                        lightThing:setTexture("effects/flashlight/square")
+                        lightThing:setLightWorld(true)
+                        lightThing:setEnableShadows(false)
+                        lightThing:setLinearAttenuation(100000)
+                    end
+                else
+                    render.setMaterial(fullbright_world)
+                    render.drawTexturedRect(0,0,w,h)
+                    render.setColor(Color(255,0,0,255*math.sin(math.rad(math.clamp(visionChangeVal2*2,0,1)*180))))
+                    render.drawRect(0,0,w,h)
                 end
+                
                 if lightThing != nil then
                     if setOnce != false then
                         setOnce = false
                         lightThing:setFOV(175)
+                        lightThing:setVerticalFOV(175)
                         lightThing:setFarZ(100000)
                     end
-                    lightThing:setBrightness(10-9.85*visionChangeVal2)
-                    lightThing:setPos(owner():getEyePos()+owner():getAimVector()*15)
+                    
+                    if thermalOn == 1 then
+                        lightThing:setBrightness(10-9.85*visionChangeVal2)
+                    else
+                        lightThing:setBrightness(10-9.85*(1-math.sin(math.rad(math.clamp(visionChangeVal2*2,0,1)*180))))
+                    end
+                    lightThing:setPos(owner():getEyePos())
                     lightThing:setAngles(owner():getEyeAngles())
                     lightThing:update()
                 end
             else
-                
                 render.setColor(Color(255,0,0,255*math.sin(math.rad(visionChangeVal*180))))
                 render.drawRect(0,0,w,h)
                 if lightThing != nil and setOnce != true then
                     setOnce = true
                     lightThing:setFOV(0)
+                    lightThing:setVerticalFOV(0)
                     lightThing:setFarZ(0)
                     lightThing:setBrightness(0)
                     lightThing:update()
