@@ -1519,7 +1519,7 @@ if CLIENT then
                         sway = 0
                         sway2 = 0
                         sprintFirst = false
-                        vmHolo:setAnimation("predator_hud_claws_jump_shallow", nil, 1)
+                        vmHolo:setAnimation("predator_hud_claws_jump_secondary", nil, 0.5)
                         timer.stop("random_idle")
                     end
                 end
@@ -2239,11 +2239,11 @@ if CLIENT then
             end
             local jump_time = math.clamp((math.clamp((timer.curtime()-jump_ct)*1.2,0,1)-math.clamp((timer.curtime()-land_ct)/0.5,0,1)*(1-jumping)),0,1)
             local base_pitch = owner():getVelocity():getAngle()*jumping
-            local start_pitch = math.easeInSine(math.sin(math.rad(math.clamp((timer.curtime()-jump_ct)/0.4,0,1)*180)))
+            local start_pitch = math.easeInSine(math.sin(math.rad(math.clamp((timer.curtime()-jump_ct)/0.5,0,1)*180)))
             local land_pitch = math.easeInSine(math.sin(math.rad(math.clamp((timer.curtime()-land_ct)*3,0,1)*180)))
             local flight_pitch_in = (base_pitch.pitch-360*(base_pitch.pitch>180 and 1 or 0))*0.75*jump_time
             flight_pitch = math.lerp(0.2,flight_pitch, flight_pitch_in)
-            local jump_pitch = -20*start_pitch*jumping+flight_pitch+55*math.sin(math.rad(jump_time*180))*jumping+7*land_pitch
+            local jump_pitch = -35*start_pitch*jumping+flight_pitch+55*math.sin(math.rad(jump_time*(90+90*land_pitch)))+7*land_pitch
             local jump_pitch2 = 20*start_pitch*jumping+flight_pitch*0.75+5*land_pitch
             local vel_in = owner():getVelocity():getNormalized()
             local vel_test = tostring(vel_in.x) != "nan" and vel_in or Vector()
