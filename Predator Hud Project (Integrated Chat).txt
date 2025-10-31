@@ -1112,7 +1112,7 @@ if CLIENT then
                 v.ply:setColor(Color(255,255,255,255))
             end
         end
-        if thermalOn == 1 or thermalOn == 2 then
+        if thermalOn != 0 then
             local texturize = "pp_texturize \"\""
             local motionblur = "pp_motionblur 0"
             local matoverlay = "pp_mat_overlay \"\""
