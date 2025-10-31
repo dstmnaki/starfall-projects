@@ -239,7 +239,7 @@ hook.add("net","",function(name,len,ply)
     end
     if SERVER then
         if name == "sendProjectileToServer" then
-            This = hologram.create(owner():getShootPos()-owner():getEyeAngles():getRight()*7, ((owner():getShootPos()-owner():getEyeAngles():getRight()*7) - (TARGETSERVER != owner() and TARGETSERVER != nil and (TARGETSERVER:obbCenterW()) or owner():getEyeTrace().HitPos)):getAngle(), "models/hunter/misc/sphere025x025.mdl", Vector(1.6,0.6,0.6)*0.7)
+            This = hologram.create(owner():getEyePos()-owner():getEyeAngles():getRight()*7, ((owner():getEyePos()-owner():getEyeAngles():getRight()*7) - (TARGETSERVER != owner() and TARGETSERVER != nil and (TARGETSERVER:obbCenterW()) or owner():getEyeTrace().HitPos)):getAngle(), "models/hunter/misc/sphere025x025.mdl", Vector(1.6,0.6,0.6)*0.7)
             This:suppressEngineLighting(true)
             This:setMaterial("models/debug/debugwhite")
             This:setTrails(25, 5, 0.2, "trails/laser", Color(0,255,255), nil, nil)
@@ -247,13 +247,13 @@ hook.add("net","",function(name,len,ply)
             table.insert(plasmaholo, -1, This)
         end
         if name == "sendSpearToServer" then
-            Spear = hologram.create(owner():getShootPos()+owner():getEyeAngles():getRight()*7, (owner():getEyeTrace().HitPos - (owner():getShootPos()+owner():getEyeAngles():getRight()*7)):getAngle(), "models/props_junk/harpoon002a.mdl", Vector(1,1,1))
+            Spear = hologram.create(owner():getEyePos()+owner():getEyeAngles():getRight()*7, (owner():getEyeTrace().HitPos - (owner():getEyePos()+owner():getEyeAngles():getRight()*7)):getAngle(), "models/props_junk/harpoon002a.mdl", Vector(1,1,1))
             Spear:setTrails(25, 5, 0.2, "trails/laser", Color(255,255,255,75), nil, nil)
             SpearDir = Spear:getForward()
             SpearTossed = true
         end
         if name == "sendMineToServer" then
-            local spawn = owner():getShootPos() + owner():getEyeAngles():getRight()*7
+            local spawn = owner():getEyePos() + owner():getEyeAngles():getRight()*7
             local target = owner():getEyeTrace().HitPos
             local dt = game.getTickInterval()
             local speed = 30
@@ -271,10 +271,10 @@ hook.add("net","",function(name,len,ply)
             drop = 0
         end
         if name == "slash" then
-            if owner():getShootPos():getDistance(owner():getEyeTrace().HitPos) < 50 then
+            if owner():getEyePos():getDistance(owner():getEyeTrace().HitPos) < 50 then
                 local aimEntity = owner():getEyeTrace().Entity
                 if hasPermission("entities.applyDamage", aimEntity) then
-                    aimEntity:applyDamage(125, owner(), owner(), DAMAGE.SLASH, owner():getShootPos())
+                    aimEntity:applyDamage(125, owner(), owner(), DAMAGE.SLASH, owner():getEyePos())
                 end
             end
         end
@@ -346,9 +346,9 @@ if SERVER then
         TARGETSERVER = TARGETSERVERSET
     
         if isValid(TARGETSERVERSET) and TARGETSERVERSET != owner() then
-            local toEnt = (TARGETSERVERSET:getPos() + TARGETSERVERSET:obbCenter()) - owner():getShootPos()
+            local toEnt = (TARGETSERVERSET:getPos() + TARGETSERVERSET:obbCenter()) - owner():getEyePos()
             local distSqr = toEnt:getLength()
-            local trOK = (TARGETSERVERSET:getPos() + TARGETSERVERSET:obbCenter()):getDistance(trace.line(owner():getShootPos(),(TARGETSERVERSET:getPos() + TARGETSERVERSET:obbCenter()),{owner(),TARGETSERVERSET},nil, COLLISION_GROUP.IN_VEHICLE, false).HitPos)<5
+            local trOK = (TARGETSERVERSET:getPos() + TARGETSERVERSET:obbCenter()):getDistance(trace.line(owner():getEyePos(),(TARGETSERVERSET:getPos() + TARGETSERVERSET:obbCenter()),{owner(),TARGETSERVERSET},nil, COLLISION_GROUP.IN_VEHICLE, false).HitPos)<5
             if distSqr < 15000 and trOK then
                 local dirToEnt = toEnt:getNormalized()
                 local dot = owner():getEyeAngles():getForward():dot(dirToEnt)
@@ -462,7 +462,7 @@ if SERVER then
                     Mine:setPos(lastPos)
                 end
             elseif MineActivated == true then
-                if owner():keyDown(IN_KEY.USE) and Mine:getPos():getDistance(owner():getEyeTrace().HitPos) < 5 and Mine:getPos():getDistance(owner():getShootPos()) < 150 then
+                if owner():keyDown(IN_KEY.USE) and Mine:getPos():getDistance(owner():getEyeTrace().HitPos) < 5 and Mine:getPos():getDistance(owner():getEyePos()) < 150 then
                     net.start("sendMineBack")
                     net.writeFloat(0)
                     net.send(owner(),false)
@@ -486,7 +486,7 @@ if SERVER then
         end
         if owner():getHealth() > 0 and centerHolo:isValid() then
             if owner():keyDown(IN_KEY.ATTACK2) and owner():isTyping() == false then
-                local LaserPos = owner():getShootPos()+owner():getEyeAngles():getRight()*6+owner():getEyeAngles():getUp()*2
+                local LaserPos = owner():getEyePos()+owner():getEyeAngles():getRight()*6+owner():getEyeAngles():getUp()*2
                 local endPos = (TARGETSERVER != owner() and TARGETSERVER != nil and (TARGETSERVER:getPos() + TARGETSERVER:obbCenter()) or owner():getEyeTrace().HitPos)
                 local AngMath = (LaserPos - endPos):getAngle()
                 centerHolo:setPos(LaserPos-Vector(0,0,35))
@@ -933,7 +933,7 @@ if CLIENT then
                     net.start("slash")
                     net.writeFloat(0)
                     net.send()
-                    if owner():getShootPos():getDistance(owner():getEyeTrace().HitPos) < 50 then
+                    if owner():getEyePos():getDistance(owner():getEyeTrace().HitPos) < 50 then
                         local aimEntity = owner():getEyeTrace().Entity
                         if aimEntity:isPlayer() or aimEntity:isNPC() then
                             owner():emitSound(randattackhitsnd(), 100, 100, 1, CHANNEL_AUTO)
@@ -946,7 +946,7 @@ if CLIENT then
                 end
             end
             blockAttack = input.isMouseDown(MOUSE.MOUSE1)
-            local LaserPos = owner():getShootPos()+owner():getEyeAngles():getRight()*7+owner():getEyeAngles():getUp()*2
+            local LaserPos = owner():getEyePos()+owner():getEyeAngles():getRight()*7+owner():getEyeAngles():getUp()*2
             local endPos = ((LOCKTARGET2 and LOCKTARGET != nil and LOCKTARGET != owner()) and (LOCKTARGET:getPos() + LOCKTARGET:obbCenter()) or owner():getEyeTrace().HitPos)
             local AngMath = (LaserPos - endPos):getAngle()
             centerHolo:setPos(LaserPos)
@@ -1269,8 +1269,6 @@ if CLIENT then
                 vmHolo:setParent(owner():getActiveWeapon())
             end
             
-            vmHolo:setPos(owner():getShootPos())
-            vmHolo:setAngles(Angle(owner():getEyeAngles().pitch+45*(1-FRAME)*(input.isMouseDown(MOUSE.MOUSE2) and 1 or 0)*((equipmentSelected == 2 and MINESTATE != "out" and HasMine) and 1 or 0)-15*math.clamp(math.sin(math.rad(FRAME*180))*2,0,1)*((Animation == "assigntarget" or Animation == "unassigntarget" and AnimationPlaying) and 1 or 0), owner():getEyeAngles().yaw, 0))
             if switchEquipmentFirst == nil then switchEquipmentFirst = false end
             if input.isKeyDown(KEY.T) and not input.isMouseDown(MOUSE.MOUSE2) and owner():isTyping() == false then
                 if switchEquipmentFirst != true then
@@ -1831,11 +1829,11 @@ if CLIENT then
                     
                         if dist2D < bestDistance then
                             local entPos = ent:obbCenterW()
-                            local toEnt = entPos - owner():getShootPos()
+                            local toEnt = entPos - owner():getEyePos()
                             local dist3D = toEnt:getLength()
                     
                             if dist3D < 15000 then
-                                local traceRes = trace.line(owner():getShootPos(), entPos, {owner(), ent}, nil, COLLISION_GROUP.IN_VEHICLE, false)
+                                local traceRes = trace.line(owner():getEyePos(), entPos, {owner(), ent}, nil, COLLISION_GROUP.IN_VEHICLE, false)
                                 local trOK = entPos:getDistance(traceRes.HitPos) < 15
                                 
                                 if trOK then
@@ -1881,9 +1879,9 @@ if CLIENT then
                         else
                             LOCKTARGETFIRST = false
                         end
-                        local toEnt = (TARGET:getPos() + TARGET:obbCenter()) - owner():getShootPos()
+                        local toEnt = (TARGET:getPos() + TARGET:obbCenter()) - owner():getEyePos()
                         local distSqr = toEnt:getLength()
-                        local trOK = (TARGET:getPos() + TARGET:obbCenter()):getDistance(trace.line(owner():getShootPos(),(TARGET:getPos() + TARGET:obbCenter()),{owner(),TARGET},nil, COLLISION_GROUP.IN_VEHICLE, false).HitPos)<15
+                        local trOK = (TARGET:getPos() + TARGET:obbCenter()):getDistance(trace.line(owner():getEyePos(),(TARGET:getPos() + TARGET:obbCenter()),{owner(),TARGET},nil, COLLISION_GROUP.IN_VEHICLE, false).HitPos)<15
                         if distSqr < 15000 and trOK then
                             local dirToEnt = toEnt:getNormalized()
                             local dot = owner():getEyeAngles():getForward():dot(dirToEnt)
@@ -2003,7 +2001,7 @@ if CLIENT then
                         
                         if dist2D < closestDist then
                             local entPos = ent:getPos() + ent:obbCenter()
-                            local fromPos = owner():getShootPos()
+                            local fromPos = owner():getEyePos()
                             local toEnt = entPos - fromPos
                             local dist3D = toEnt:getLength()
                 
@@ -2029,7 +2027,7 @@ if CLIENT then
                     if isValid(traceEnt) and traceEnt != owner() then
                         if traceEnt:isPlayer() or traceEnt:getClass():find("npc_") then
                             local entPos = traceEnt:getPos() + traceEnt:obbCenter()
-                            local fromPos = owner():getShootPos()
+                            local fromPos = owner():getEyePos()
                             local toEnt = entPos - fromPos
                 
                             if toEnt:getLength() < 15000 then
@@ -2051,7 +2049,7 @@ if CLIENT then
                         if isValid(aimEntity) and aimEntity != owner() then
                             local entPos = aimEntity:getPos() + aimEntity:obbCenter()
                         
-                            local fromPos = owner():getShootPos()
+                            local fromPos = owner():getEyePos()
                             local toEnt = entPos - fromPos
                             local dist3D = toEnt:getLength()
                         
@@ -2112,9 +2110,9 @@ if CLIENT then
                 if LOCKTARGET:getHealth() > 0 then
                     LOCKTARGET2 = true
                     if isValid(LOCKTARGET) and LOCKTARGET != owner() then
-                        local toEnt = (LOCKTARGET:getPos() + LOCKTARGET:obbCenter()) - owner():getShootPos()
+                        local toEnt = (LOCKTARGET:getPos() + LOCKTARGET:obbCenter()) - owner():getEyePos()
                         local distSqr = toEnt:getLength()
-                        local trOK = (LOCKTARGET:getPos() + LOCKTARGET:obbCenter()):getDistance(trace.line(owner():getShootPos(),(LOCKTARGET:getPos() + LOCKTARGET:obbCenter()),{owner(),LOCKTARGET},nil, COLLISION_GROUP.IN_VEHICLE, false).HitPos)<5
+                        local trOK = (LOCKTARGET:getPos() + LOCKTARGET:obbCenter()):getDistance(trace.line(owner():getEyePos(),(LOCKTARGET:getPos() + LOCKTARGET:obbCenter()),{owner(),LOCKTARGET},nil, COLLISION_GROUP.IN_VEHICLE, false).HitPos)<5
                         if distSqr < 15000 and trOK then
                             local dirToEnt = toEnt:getNormalized()
                             local dot = owner():getEyeAngles():getForward():dot(dirToEnt)
@@ -2226,13 +2224,17 @@ if CLIENT then
     end)
     hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
         if owner():getHealth() > 0 then
+            if vmHolo then
+                vmHolo:setPos(owner():getEyePos())
+                vmHolo:setAngles(Angle(owner():getEyeAngles().pitch+45*(1-FRAME)*(input.isMouseDown(MOUSE.MOUSE2) and 1 or 0)*((equipmentSelected == 2 and MINESTATE != "out" and HasMine) and 1 or 0)-15*math.clamp(math.sin(math.rad(FRAME*180))*2,0,1)*((Animation == "assigntarget" or Animation == "unassigntarget" and AnimationPlaying) and 1 or 0), owner():getEyeAngles().yaw, 0))
+            end
             if AnimationPlaying and Animation != "lookAtMap" and Animation != "cloaktoggle" and Animation != "attack_light" and Animation != "heal" and Animation != "assigntarget" and Animation != "unassigntarget" then
                 anglesLerp = math.lerpAngle(0.2,anglesLerp, manipulateang and manipulateang or ang)
                 originLerp = math.lerpVector(0.2, originLerp, manipulatepos and manipulatepos or pos)
                 fovLerp = math.lerp(0.2, fovLerp, manipulatefov and manipulatefov or 80)
                 return {
                     angles = owner():getEyeAngles()+anglesLerp,
-                    origin = owner():getShootPos()+originLerp,
+                    origin = owner():getEyePos()+originLerp,
                     fov = fovLerp
                 }
             else
@@ -2243,7 +2245,7 @@ if CLIENT then
                 fovLerp = math.lerp(0.2, fovLerp, 80-60*ZoomVal*ZOOMINVAL+35*math.clamp(owner():getVelocity():getLength()/53*0.1*SPRINTVAL,0,1))
                 return {
                     angles = Angle(owner():getEyeAngles().pitch,owner():getEyeAngles().yaw,0):rotateAroundAxis(owner():getAimVector(),1*sway*(input.isMouseDown(MOUSE.MOUSE2) and 0 or 1)),
-                    origin = owner():getShootPos()+originLerp*(input.isMouseDown(MOUSE.MOUSE2) and 0 or 1),
+                    origin = owner():getEyePos()+originLerp*(input.isMouseDown(MOUSE.MOUSE2) and 0 or 1),
                     fov = fovLerp
                 }
             end
