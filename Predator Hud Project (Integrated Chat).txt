@@ -2248,7 +2248,7 @@ if CLIENT then
             local vel_in = owner():getVelocity():getNormalized()
             local vel_test = tostring(vel_in.x) != "nan" and vel_in or Vector()
             
-            local flight_pos = math.lerpVector(math.easeOutSine(math.clamp((timer.curtime()-jump_ct)/2,0,1)), last_ground_pos-(vel_test*25)*(math.clamp((timer.curtime()-jump_ct)*5,0,1))*jumping, owner():getEyePos())
+            local flight_pos = math.lerpVector(math.easeOutSine(math.clamp((timer.curtime()-jump_ct)/2,0,1)), last_ground_pos-(vel_test*50)*(math.clamp((timer.curtime()-jump_ct)*5,0,1))*jumping, owner():getEyePos())
             
             if vmHolo then
                 vmHolo:setPos(flight_pos)
@@ -2283,7 +2283,7 @@ if CLIENT then
                 SPRINTVAL = math.clamp(SPRINTVAL,0,1)
                 anglesLerp = Angle(0,0,0)
                 originLerp = math.lerpVector(0.2, originLerp, owner():getEyeAngles():getRight()*5*sway+owner():getEyeAngles():getUp()*2*sway2)
-                fovLerp = math.lerp(0.2, fovLerp, 80-60*ZoomVal*ZOOMINVAL+35*math.clamp(owner():getVelocity():getLength()/53*0.1*SPRINTVAL,0,1-jump_time))
+                fovLerp = math.lerp(0.2, fovLerp, 80-60*ZoomVal*ZOOMINVAL+35*math.clamp(owner():getVelocity():getLength()/53*0.1*SPRINTVAL,0,1-math.clamp(jump_time+start_pitch,0,1)))
                 return {
                     angles = Angle(owner():getEyeAngles().pitch+jump_pitch2,owner():getEyeAngles().yaw,0):rotateAroundAxis(owner():getAimVector(),1*sway*(input.isMouseDown(MOUSE.MOUSE2) and 0 or 1)),
                     origin = flight_pos+originLerp*(input.isMouseDown(MOUSE.MOUSE2) and 0 or 1),
