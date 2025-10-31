@@ -944,16 +944,8 @@ if CLIENT then
             for k, v in pairs(player_table) do
                 local ply_holo = v.ply_holo
                 local ply = v.ply
-                ply_holo:setColor(Color(255,255,255,thermalOn==1 and 255 or 0))
-                ply:setColor(Color(255,255,255,thermalOn==1 and 0 or 255))
-            end
-        end
-        if npc_table and #npc_table >= 0 then
-            for k, v in pairs(npc_table) do
-                local npc_holo = v.npc_holo
-                local npc = v.npc
-                npc_holo:setColor(Color(255,255,255,thermalOn==1 and 255 or 0))
-                npc:setColor(Color(255,255,255,thermalOn==1 and 0 or 255))
+                ply_holo:setColor(Color(255,255,255,thermalOn!=0 and 255 or 0))
+                ply:setColor(Color(255,255,255,thermalOn!=0 and 0 or 255))
             end
         end
         --[[
