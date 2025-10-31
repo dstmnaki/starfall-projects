@@ -758,7 +758,7 @@ if CLIENT then
     end
     
     local vmHolo = hologram.create(Vector(0,0,0), Angle(0,0,0), "models/cpthazama/avp/predators/hud.mdl", Vector(1,1,1))
-    vmHolo:setParent(owner():getActiveWeapon())
+    --vmHolo:setParent(owner():getActiveWeapon())
     
     function shootPlasmaCaster()
         if plasmacasterct == nil then plasmacasterct = 0 end
@@ -1266,7 +1266,7 @@ if CLIENT then
             
             if PARENTFIRST != true then
                 PARENTFIRST = true
-                vmHolo:setParent(owner():getActiveWeapon())
+                --vmHolo:setParent(owner():getActiveWeapon())
             end
             
             if switchEquipmentFirst == nil then switchEquipmentFirst = false end
