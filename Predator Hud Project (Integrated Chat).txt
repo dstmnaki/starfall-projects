@@ -609,6 +609,7 @@ if CLIENT then
                 local ply = data[1]
                 local message = data[2]
                 table.insert(chatbuffer, ply .. ": " ..message)
+                printConsole(ply..": "..message)
             end
             if name == "sendlasers" then
                 if player() == owner() then
@@ -803,7 +804,6 @@ if CLIENT then
     end
     
     local player_table = {}
-    local npc_table = {}
     
     function createHolos(disconnected_player)
         if player() ~= owner() then return end
@@ -819,6 +819,7 @@ if CLIENT then
             end
         end
         for k, v in pairs(find.all(filter)) do
+            if player_table[k] and player_table[k].ply_holo then player_table[k].ply_holo:remove() end
             player_table[k] = {}
             player_table[k].ply = v
             player_table[k].ply_holo = hologram.create(Vector(), Angle(), v:getModel(), Vector(1,1,1))
