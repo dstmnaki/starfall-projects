@@ -1044,78 +1044,72 @@ if CLIENT then
     
     
     local w, h = render.getGameResolution()
-    if player() == owner() then
+    local rtName = "view_rt"
+    render.createRenderTarget(rtName)
+    
+    fullbright_world = material.create("gmodscreenspace")
+    fullbright_world:setTextureRenderTarget("$basetexture", rtName)
+    fullbright_world:setFloat("$alpha",0.5)
+    hook.add("renderscene", "render_view", function(origin, angles)
+        render.selectRenderTarget(rtName)
+        local localOrigin = owner():getEyePos()
         
+        local localAng = owner():getEyeAngles()
         
-        local rtName = "view_rt"
-        render.createRenderTarget(rtName)
+        render.suppressEngineLighting(true)
+        render.setLightingMode(2)
         
-        fullbright_world = material.create("gmodscreenspace")
-        fullbright_world:setTextureRenderTarget("$basetexture", rtName)
-        fullbright_world:setFloat("$alpha",0.35)
-        hook.add("renderscene", "render_view", function(origin, angles)
-            render.selectRenderTarget(rtName)
-            local localOrigin = owner():getEyePos()
-            
-            local localAng = owner():getEyeAngles()
-            
-            render.suppressEngineLighting(true)
-            render.setLightingMode(1)
-            
-            render.renderView({
-                origin = localOrigin,
-                angles = localAng,
-                aspectratio = w / h,
-                x = 0,
-                y = 0,
-                w = w,
-                h = h,
-                drawviewmodel = false,
-                drawviewer = false,
-            })
-            render.selectRenderTarget()
-        end)
-        
-        render.createRenderTarget("canvas")
-        hook.add("Render", "", function()
-            if thermalOn == 1 then
-                render.selectRenderTarget("canvas")
-                    render.clear(Color(0,0,0,0), true)
-                    render.setColor(Color(0,255,255))
-                    
-                    render.pushViewMatrix({
-                        type   = "3D",
-                        origin = Vector(),
-                        angles = Angle()
-                    })
-                    if player_table and #player_table >= 0 then
-                        for k, v in pairs(player_table) do
-                            if v.visible == true then
-                                local ply_holo = v.ply_holo
-                                ply_holo:draw()
-                            end
+        render.renderView({
+            origin = localOrigin,
+            angles = localAng,
+            aspectratio = w / h,
+            x = 0,
+            y = 0,
+            w = w,
+            h = h,
+            drawviewmodel = false,
+            drawviewer = false,
+        })
+        render.selectRenderTarget()
+    end)
+    
+    render.createRenderTarget("canvas")
+    
+    local debugwhite = material.load("models/debug/debugwhite")
+    
+    hook.add("Render", "", function()
+        if thermalOn != 0 then
+            render.selectRenderTarget("canvas")
+                render.clear(Color(0,0,0,0), true)
+                
+                render.pushViewMatrix({
+                    type   = "3D",
+                    origin = Vector(),
+                    angles = Angle()
+                })
+                if player_table and #player_table >= 0 then
+                    for k, v in pairs(player_table) do
+                        if v.visible == true then
+                            local ply_holo = v.ply_holo
+                            ply_holo:draw()
                         end
                     end
-                    render.popViewMatrix()
-                render.selectRenderTarget()
-                
-                render.setColor(Color(255,255,255))
-                render.setRenderTargetTexture("canvas")
-                render.drawTexturedRect(0, 0, 1024, 1024)
-            end
-        end)
-    end
+                end
+                render.popViewMatrix()
+            render.selectRenderTarget()
+            
+            
+            render.setColor(Color(255,255,255))
+            render.setRenderTargetTexture("canvas")
+            render.drawTexturedRect(0, 0, w, h)
+        end
+    end)
     
     hook.add("Removed", "", function()
         
         for k, v in pairs(player_table) do
             if v.ply then
                 v.ply:setColor(Color(255,255,255,255))
-            end
-        end
-        for k, v in pairs(npc_table) do
-            if v.npc then
-                v.npc:setColor(Color(255,255,255,255))
             end
         end
         if thermalOn == 1 or thermalOn == 2 then
