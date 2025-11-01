@@ -308,10 +308,15 @@ else
         if not models_ready then return end
         if player() == owner() then
             if owner():keyDown(IN_KEY.RELOAD) then
-                --ambient/materials/rock5.wav
                 if toggle_down != true and anim_done == true then
                     toggle_down = true
                     drop = not drop
+                    
+                    
+                    timer.simple(drop and 0 or 0.75,function()
+                        chip():emitSound("ambient/materials/rock5.wav", 80, 100, 2, CHANNEL_AUTO)
+                    end)
+                    
                     net.start("state_to_server")
                     net.writeBool(drop)
                     net.send()
