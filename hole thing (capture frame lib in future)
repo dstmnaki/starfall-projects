@@ -231,7 +231,7 @@ else
     
     local default_size = 47.7
     
-    local area_size = 100
+    local area_size = 256
     
     local holo = hologram.create(chip():localToWorld(Vector(0,0,-47.5/2-0.15)), chip():localToWorldAngles(Angle(0,-90,0)), "models/hunter/blocks/cube1x1x1.mdl", Vector(area_size/default_size,area_size/default_size,1)*0)
     holo:setClip(1, true, Vector(0,0,default_size/2-1), Vector(0,0,1), holo)
@@ -347,10 +347,12 @@ else
                 
                 render.pushViewMatrix({type="3D", x=0, y=0, w=1024, h=1024, origin = reflectedOrigin, angles = reflectedAngle, aspect=1})
                 
+                local anim_length = 1/0.6
+                
                 for k = anim_done and #holos - 25 or 1, #holos do
                     local v = holos[k]
                     if k < #holos - 25 then
-                        local time = math.easeInSine(math.clamp(((timer.curtime()-ct)*1-1.5*k/#holos)/0.6,0,1.1))--math.clamp(0.95-1.5*k/#holos,0,1)--
+                        local time = math.easeInSine(math.clamp(((timer.curtime()-ct)*1-1.5/anim_length*k/#holos)*anim_length,0,1.1))--math.clamp(0.95-1.5*k/#holos,0,1)--
                         
                         if time < 1 then
                             if v.done != true then
