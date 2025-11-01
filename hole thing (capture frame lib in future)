@@ -212,19 +212,8 @@ else
     local anim_done = false
     local drop = false
     
-    hook.add("Net", "", function(name, len, ply)
-        
-        if player() == owner() then
-            if name == "feedback_to_client" then
-                print(net.readString())
-            end
-        else
-            if name == "state_to_client" then
-                drop = net.readBool()
-                if drop then anim_done = false end
-            end
-        end
-    end)
+    local ct = timer.curtime()
+    
     
     local rtName2 = "shatter_rt"
     render.createRenderTarget(rtName2)
@@ -251,8 +240,26 @@ else
     local new_index = 0
     local holos = {}
     
-    local ct = timer.curtime()
-    
+    hook.add("Net", "", function(name, len, ply)
+        
+        if player() == owner() then
+            if name == "feedback_to_client" then
+                print(net.readString())
+            end
+        else
+            if name == "state_to_client" then
+                drop = net.readBool()
+                if drop then
+                    anim_done = false
+                    is_visible = false
+                    ct = timer.curtime()
+                else
+                    holo:setScale(Vector())
+                end
+            end
+        end
+    end)
+    --local findply = find.playersByName("nuke")[1]
     function create_mesh()
         local w, h = 1920/1080, 1080/1080
         local size = area_size/3.84
@@ -279,7 +286,7 @@ else
                     models_ready = true
                     
                     --[[
-                    if player() ~= owner() then
+                    if player() == findply then
                         net.start("feedback_to_server")
                         net.writeString(player():getName().." finished loading!")
                         net.send()
@@ -296,14 +303,13 @@ else
     end
     
     create_mesh()
-    
     --[[
-        if player() ~= owner() then
+        if player() == findply then
             net.start("feedback_to_server")
             net.writeString(player():getName().." model shown!")
             net.send()
         end
-        ]]
+        --]]
     hook.add("renderscene", "_main", function(origin, angles)
         if not models_ready then return end
         if player() == owner() then
