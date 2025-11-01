@@ -1,7 +1,6 @@
 --@name nakilibs/Capture Frame
 --@author Nakkitsunami
 --@shared
-
 --@include nakilibs/screen_shatter_obj.txt
 
 if SERVER then
@@ -209,10 +208,10 @@ else
     }
     
     local ct2 = 0
-    local anim_done = false
+    local anim_done = true
     local drop = false
     
-    local ct = timer.curtime()
+    local ct = 0
     
     
     local rtName2 = "shatter_rt"
@@ -220,7 +219,7 @@ else
     
     local default_size = 47.7
     
-    local area_size = 256
+    local area_size = 90
     
     local holo = hologram.create(chip():localToWorld(Vector(0,0,-47.5/2-0.15)), chip():localToWorldAngles(Angle(0,-90,0)), "models/hunter/blocks/cube1x1x1.mdl", Vector(area_size/default_size,area_size/default_size,1)*0)
     holo:setClip(1, true, Vector(0,0,default_size/2-1), Vector(0,0,1), holo)
@@ -249,13 +248,8 @@ else
         else
             if name == "state_to_client" then
                 drop = net.readBool()
-                if drop then
-                    anim_done = false
-                    is_visible = false
-                    ct = timer.curtime()
-                else
-                    holo:setScale(Vector())
-                end
+                anim_done = false
+                ct = timer.curtime()
             end
         end
     end)
@@ -314,84 +308,136 @@ else
         if not models_ready then return end
         if player() == owner() then
             if owner():keyDown(IN_KEY.RELOAD) then
-                if drop != true then
-                    drop = true
+                --ambient/materials/rock5.wav
+                if toggle_down != true and anim_done == true then
+                    toggle_down = true
+                    drop = not drop
                     net.start("state_to_server")
-                    net.writeBool(true)
+                    net.writeBool(drop)
                     net.send()
                     anim_done = false
                     ct = timer.curtime()
                 end
-            end
-            if owner():keyDown(IN_KEY.ATTACK) then
-                if drop != false then
-                    drop = false
-                    is_visible = false
-                    net.start("state_to_server")
-                    net.writeBool(false)
-                    net.send()
-                    holo:setScale(Vector())
-                end
+            else
+                toggle_down = false
             end
         end
-        
-        if drop then
-            if is_visible != true then
-                is_visible = true
-                holo:setScale(Vector(area_size/default_size,area_size/default_size,1))
-            end
-            if timer.curtime() - ct2 > 0.025 then
-                render.selectRenderTarget(rtName2)
-                render.clear(Color(0,0,0,0), true)
-                
-                local screenEnt = chip()
-                
-                local new_origin = screenEnt:worldToLocal(origin)
-                local reflectedOrigin = Vector(512,512,512/1.59)
-                
-                local reflectedAngle = Angle(90,90,0)
-                
-                render.pushViewMatrix({type="3D", x=0, y=0, w=1024, h=1024, origin = reflectedOrigin, angles = reflectedAngle, aspect=1})
-                
-                local anim_length = 1/0.6
-                
-                for k = anim_done and #holos - 25 or 1, #holos do
+    
+        if is_visible != true then
+            is_visible = true
+            holo:setScale(Vector(area_size/default_size,area_size/default_size,1))
+        end
+        if timer.curtime() - ct2 > 0.01 and cpuAverage() < cpuMax()*0.75 and ramAverage() < ramMax()*0.5 then
+            render.selectRenderTarget(rtName2)
+            render.clear(Color(0,0,0,0), true)
+            
+            local screenEnt = chip()
+            
+            local new_origin = screenEnt:worldToLocal(origin)
+            local reflectedOrigin = Vector(512,512,512/1.59)
+            
+            local reflectedAngle = Angle(90,90,0)
+            
+            render.pushViewMatrix({type="3D", x=0, y=0, w=1024, h=1024, origin = reflectedOrigin, angles = reflectedAngle, aspect=1})
+            
+            local anim_length = 1/0.6
+            
+            if drop then
+                for k = 1, #holos do
                     local v = holos[k]
-                    if k < #holos - 25 then
-                        local time = math.easeInSine(math.clamp(((timer.curtime()-ct)*1-1.5/anim_length*k/#holos)*anim_length,0,1.1))--math.clamp(0.95-1.5*k/#holos,0,1)--
-                        
-                        if time < 1 then
-                            if v.done != true then
-                                v.done = true
-                            end
-                            local ease = math.clamp(math.easeInSine(time),0,1)
-                            local ease_alt = 1-ease
-                            v:setColor(Color(255*ease_alt,255*ease_alt,255*ease_alt,255))
+                    if not anim_done then
+                        if k < #holos - 25 then
+                            local time = math.easeInSine(math.clamp(((timer.curtime()-ct)*1-1.5/anim_length*k/#holos)*anim_length,0,1.1))--math.clamp(0.95-1.5*k/#holos,0,1)--
                             
-                            v:setPos(Vector(512,512,0)+(v.pos-Vector(512,512,0))/(1+new_origin.z/1000*ease)*(1+time*0.25)+Vector(new_origin.x/(1+new_origin.z)*800/(area_size/125),new_origin.y/(1+new_origin.z)*800/(area_size/125),-600)*time)
-                            
-                            
-                            v:setAngles(v.ang:rotateAroundAxis((v.pos-Vector(512,512,0)):getAngle():getRight(),-70*ease))
-                        else
-                            if v.done != false then
-                                v.done = false
-                                if k == #holos-25 then
-                                    anim_done = true
+                            if time < 1 then
+                                if v.done != true then
+                                    v.done = true
                                 end
-                                v:setColor(Color(0,0,0,0))
+                                local time_2 = time
+                                local ease = math.clamp(math.easeInSine(time_2),0,1)
+                                local ease_alt = 1-ease
+                                v:setColor(Color(255*ease_alt,255*ease_alt,255*ease_alt,255))
+                                
+                                v:setPos(Vector(512,512,0)+(v.pos-Vector(512,512,0))/(1+new_origin.z/1000*ease)*(1+time_2*0.25)+Vector(new_origin.x/(1+new_origin.z)*800/(area_size/125),new_origin.y/(1+new_origin.z)*800/(area_size/125),-600)*time_2)
+                                
+                                
+                                v:setAngles(v.ang:rotateAroundAxis((v.pos-Vector(512,512,0)):getAngle():getRight(),-70*ease))
+                            else
+                                if v.done != false then
+                                    v.done = false
+                                    v:setColor(Color(0,0,0,0))
+                                    
+                                    if k == #holos-26 then
+                                        anim_done = true
+                                    end
+                                end
                             end
                         end
                     end
                     v:draw()
                 end
-                render.popViewMatrix()
-                local distance_blur = render.getEyePos():getDistance(chip():getPos())/53/21
-                render.setFilterMag(TEXFILTER.NONE)
-                render.setFilterMin(TEXFILTER.LINEAR)
-                render.drawBlurEffect(distance_blur, distance_blur, 3)
-                render.selectRenderTarget()
-                ct2 = timer.curtime()
+            else
+                for k = 1, #holos do
+                    local v = holos[#holos+1-k]
+                    if not anim_done then
+                        if k > 26 then
+                            local time = math.easeInSine(math.clamp(((timer.curtime()-ct)*1-1.5/anim_length*k/#holos)*anim_length,0,1.1))--math.clamp(0.95-1.5*k/#holos,0,1)--
+                            
+                            if time < 1 then
+                                if v.done != true then
+                                    v.done = true
+                                end
+                                local time_2 = 1-time
+                                local ease = math.clamp(math.easeInSine(time_2),0,1)
+                                local ease_alt = 1-ease
+                                v:setColor(Color(255*ease_alt,255*ease_alt,255*ease_alt,255))
+                                
+                                v:setPos(Vector(512,512,0)+(v.pos-Vector(512,512,0))/(1+new_origin.z/1000*ease)*(1+time_2*0.25)+Vector(new_origin.x/(1+new_origin.z)*800/(area_size/125),new_origin.y/(1+new_origin.z)*800/(area_size/125),-600)*time_2)
+                                
+                                
+                                v:setAngles(v.ang:rotateAroundAxis((v.pos-Vector(512,512,0)):getAngle():getRight(),-70*ease))
+                            else
+                                if v.done != false then
+                                    v.done = false
+                                    v:setColor(Color(255,255,255,255))
+                                    v:setPos(v.pos)
+                                    v:setAngles(v.ang)
+                                    --print(k)
+                                    if k == 77 then
+                                        anim_done = true
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    v:draw()
+                end
             end
+            
+            render.popViewMatrix()
+            local distance_blur = render.getEyePos():getDistance(chip():getPos())/53/21
+            render.setFilterMag(TEXFILTER.NONE)
+            render.setFilterMin(TEXFILTER.LINEAR)
+            render.drawBlurEffect(distance_blur, distance_blur, 3)
+            render.selectRenderTarget()
+            ct2 = timer.curtime()
         end
     end)
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
