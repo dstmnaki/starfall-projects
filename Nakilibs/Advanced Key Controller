@@ -39,8 +39,8 @@ function adv_key_ctrl.configure_key(key_name, key_id, key_real, down_once_callba
         end
     end
     
-    adv_key_ctrl.keys[key_name] = {}
-    local t = adv_key_ctrl.keys[key_name]
+    adv_key_ctrl.keys[key_id] = {}
+    local t = adv_key_ctrl.keys[key_id]
     
     t._key_name = key_name
     
