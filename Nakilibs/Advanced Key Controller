@@ -29,6 +29,9 @@ end
 // The function called when adding buttons to listen
 function adv_key_ctrl.configure_key(custom_key_name, key_string, down_once_callback, down_repeat_callback, up_once_callback, up_repeat_callback)
     local key_string_upper = key_string:upper()
+    
+    if adv_key_ctrl.keys[key_string_upper] != nil then print(key_string_upper.." is mapped already! Skipping...") return end
+    
     local ex = string.explode(".", key_string_upper)
     
     if #ex != 2 then print(custom_key_name.." missing either type or name! use the format \"TYPE.KEY\"") return end
