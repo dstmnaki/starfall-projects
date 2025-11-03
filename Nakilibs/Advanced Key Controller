@@ -1,0 +1,221 @@
+--@name nakilibs/Advanced Key Controller
+--@author Nakkitsunami
+--@client
+-- Neat input detection library
+
+
+// Initializing functions for library use
+local _player = nil
+
+adv_key_ctrl = {}
+adv_key_ctrl.keys = {} -- This one can be used to get all keys that are being listened to
+                        -- Note it returns the full tables including functions, aka a lot of information, do not printTable it
+
+// Debug mode, you can check for input detection through this, '0,1,2' - none, creation, creation + detection
+local _DEBUG = 0
+
+
+// Use this to assign the player you are listening for controls (other clients require networking through server, back to owner!)
+function adv_key_ctrl.assign_listener(player)
+    if not isValid(player) then _player = nil return end
+    _player = player
+end
+
+// Alternative for clearing listener target, you can use the function above with "nil" as the target
+function adv_key_ctrl.clear_listener()
+    _player = nil
+end
+
+// The function called when adding buttons to listen
+function adv_key_ctrl.configure_key(key_name, key_id, key_real, down_once_callback, down_repeat_callback, up_once_callback, up_repeat_callback)
+    local ex = string.explode(".", tostring(key_id:upper()))
+    local ex_first = ex[1]
+    
+    if #ex == 1 then
+        key_name = ex_first
+        t._type = "KEY"
+        if _DEBUG > 0 then
+            print("Key entry missile either type or name! Guessing key from name... (format: TYPE.KEY)")
+        end
+    end
+    
+    adv_key_ctrl.keys[key_name] = {}
+    local t = adv_key_ctrl.keys[key_name]
+    
+    t._key_name = key_name
+    
+    t._key = key_real
+    t._key_id = key_id
+    t.functions_pressed = {}
+    t.functions_pressed.f_once = down_once_callback
+    t.functions_pressed.f_repeat = down_repeat_callback
+    
+    t.functions_released = {}
+    t.functions_released.f_once = up_once_callback
+    t.functions_released.f_repeat = up_repeat_callback
+    
+    t._down = false
+    t._down_ct = 0
+    if not t._type then
+        if ex_first == "KEY" then
+            t._type = "KEY"
+        elseif ex_first == "MOUSE" then
+            t._type = "MOUSE"
+        elseif ex_first == "IN_KEY" then
+            t._type = "IN_KEY"
+        end
+    end
+    if not t._type then
+        if _DEBUG > 0 then
+            print(key_name.." has incorrect type! "..ex_first.." defaulting to KEY")
+            t._type = "KEY"
+        end
+    end
+    
+    if _DEBUG > 0 then
+        print("Input configured: "..tostring(key_id).." "..tostring(key_name).." "..t._type)
+    end
+end
+
+--[[
+            EXAMPLE USAGE
+--]]
+
+// Simplest callback functions
+function down_once_callback(pressed_ct)
+    print("This repeats only once when button is pressed")
+end
+
+function down_repeat_callback(pressed_ct)
+    print("This repeats when button is held down")
+end
+
+function up_once_callback(pressed_ct)
+    print("This repeats only once when button is released")
+end
+
+// This one allows you to get an output when a button is not down, repeatedly
+// you shouldn't be doing anything that uses this, set variables etc once in the function above
+function up_repeat_callback(pressed_ct)
+    if BLOCK != true then
+        BLOCK = true
+        print("This repeats when button is not held down, use sparingly!")
+    end
+end
+
+// Adding a button
+adv_key_ctrl.configure_key(
+"Mmm the M button", -- Button name, completely custom
+"KEY.M", -- The button, but in string form
+KEY.M, -- The button (numbers also work, but calling it through this is easier, it just returns the number for that key)
+down_once_callback, -- Down once callback function, listed above, same for rest
+down_repeat_callback, -- Down repeat callback function, these also are given the time when the button was pressed
+up_once_callback, -- Released once callback function, if you take the time the button was pressed, negate the time from this from it, you get the time the button was held down
+up_repeat_callback -- Released repeat callback function, just in case you need it for something, should be avoided tho
+)
+
+// Assigning a player that will be listened for inputs, if not owner, network it through server, back to you, otherwise you won't know that they are actually pressing something
+adv_key_ctrl.assign_listener(owner())
+
+// The main loop
+hook.add("Think","_advanced_key_controller_main",function()
+    if player() != _player then return end
+    for k, v in pairs(adv_key_ctrl.keys) do
+        local _type = v._type
+        local _key = v._key
+        local _key_name = v._key_name
+        if _type == "KEY" then
+            if input.isKeyDown(_key) then
+                if v._down != true then
+                    v._down = true
+                    v._down_ct = timer.curtime()
+                    if v.functions_pressed.f_once != nil then
+                        v.functions_pressed.f_once(v._down_ct)
+                    end
+                    if _DEBUG == 2 then
+                        print(tostring(_key_name).." pressed!")
+                    end
+                end
+                if v.functions_pressed.f_repeat != nil then
+                    v.functions_pressed.f_repeat(v._down_ct)
+                end
+            else
+                if v._down != false then
+                    v._down = false
+                    v._down_ct = timer.curtime()
+                    if v.functions_released.f_once != nil then
+                        v.functions_released.f_once(v._down_ct)
+                    end
+                    if _DEBUG == 2 then
+                        print(tostring(_key_name).." pressed!")
+                    end
+                end
+                if v.functions_released.f_repeat != nil then
+                    v.functions_released.f_repeat(v._down_ct)
+                end
+            end
+        elseif _type == "MOUSE" then
+            if input.isMouseDown(_key) then
+                if v._down != true then
+                    v._down = true
+                    v._down_ct = timer.curtime()
+                    if v.functions_pressed.f_once != nil then
+                        v.functions_pressed.f_once(v._down_ct)
+                    end
+                    if _DEBUG == 2 then
+                        print(tostring(_key_name).." pressed!")
+                    end
+                end
+                if v.functions_pressed.f_repeat != nil then
+                    v.functions_pressed.f_repeat(v._down_ct)
+                end
+            else
+                if v._down != false then
+                    v._down = false
+                    v._down_ct = timer.curtime()
+                    if v.functions_released.f_once != nil then
+                        v.functions_released.f_once(v._down_ct)
+                    end
+                    if _DEBUG == 2 then
+                        print(tostring(_key_name).." pressed!")
+                    end
+                end
+                if v.functions_released.f_repeat != nil then
+                    v.functions_released.f_repeat(v._down_ct)
+                end
+            end
+        elseif _type == "IN_KEY" then
+            if isValid(player) then
+                if player:keyDown(_key) then
+                    if v._down != true then
+                        v._down = true
+                        v._down_ct = timer.curtime()
+                        if v.functions_pressed.f_once != nil then
+                            v.functions_pressed.f_once(v._down_ct)
+                        end
+                        if _DEBUG == 2 then
+                            print(tostring(_key_name).." pressed!")
+                        end
+                    end
+                    if v.functions_pressed.f_repeat != nil then
+                        v.functions_pressed.f_repeat(v._down_ct)
+                    end
+                else
+                    if v._down != false then
+                        v._down = false
+                        v._down_ct = timer.curtime()
+                        if v.functions_released.f_once != nil then
+                            v.functions_released.f_once(v._down_ct)
+                        end
+                        if _DEBUG == 2 then
+                            print(tostring(_key_name).." pressed!")
+                        end
+                    end
+                    if v.functions_released.f_repeat != nil then
+                        v.functions_released.f_repeat(v._down_ct)
+                    end
+                end
+            end
+        end
+    end
+end)
