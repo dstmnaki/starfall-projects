@@ -119,6 +119,7 @@ adv_key_ctrl.assign_listener(owner())
 
 // The main loop
 hook.add("Think","_advanced_key_controller_main",function()
+    if isValid(_player) then return end
     if player() != _player then return end
     for k, v in pairs(adv_key_ctrl.keys) do
         local _type = v._type
@@ -185,35 +186,33 @@ hook.add("Think","_advanced_key_controller_main",function()
                 end
             end
         elseif _type == "IN_KEY" then
-            if isValid(player) then
-                if player:keyDown(_key) then
-                    if v._down != true then
-                        v._down = true
-                        v._down_ct = timer.curtime()
-                        if v.functions_pressed.f_once != nil then
-                            v.functions_pressed.f_once(v._down_ct)
-                        end
-                        if _DEBUG == 2 then
-                            print(tostring(_key_name).." pressed!")
-                        end
+            if player:keyDown(_key) then
+                if v._down != true then
+                    v._down = true
+                    v._down_ct = timer.curtime()
+                    if v.functions_pressed.f_once != nil then
+                        v.functions_pressed.f_once(v._down_ct)
                     end
-                    if v.functions_pressed.f_repeat != nil then
-                        v.functions_pressed.f_repeat(v._down_ct)
+                    if _DEBUG == 2 then
+                        print(tostring(_key_name).." pressed!")
                     end
-                else
-                    if v._down != false then
-                        v._down = false
-                        v._down_ct = timer.curtime()
-                        if v.functions_released.f_once != nil then
-                            v.functions_released.f_once(v._down_ct)
-                        end
-                        if _DEBUG == 2 then
-                            print(tostring(_key_name).." pressed!")
-                        end
+                end
+                if v.functions_pressed.f_repeat != nil then
+                    v.functions_pressed.f_repeat(v._down_ct)
+                end
+            else
+                if v._down != false then
+                    v._down = false
+                    v._down_ct = timer.curtime()
+                    if v.functions_released.f_once != nil then
+                        v.functions_released.f_once(v._down_ct)
                     end
-                    if v.functions_released.f_repeat != nil then
-                        v.functions_released.f_repeat(v._down_ct)
+                    if _DEBUG == 2 then
+                        print(tostring(_key_name).." pressed!")
                     end
+                end
+                if v.functions_released.f_repeat != nil then
+                    v.functions_released.f_repeat(v._down_ct)
                 end
             end
         end
