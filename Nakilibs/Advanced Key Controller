@@ -27,54 +27,48 @@ function adv_key_ctrl.clear_listener()
 end
 
 // The function called when adding buttons to listen
-function adv_key_ctrl.configure_key(key_name, key_id, key_real, down_once_callback, down_repeat_callback, up_once_callback, up_repeat_callback)
-    local key_upper = key_id:upper()
-    local ex = string.explode(".", key_upper)
-    local ex_first = ex[1]
+function adv_key_ctrl.configure_key(custom_key_name, key_string, down_once_callback, down_repeat_callback, up_once_callback, up_repeat_callback)
+    local key_string_upper = key_string:upper()
+    local ex = string.explode(".", key_string_upper)
     
-    if #ex == 1 then
-        key_name = ex_first
-        t._type = "KEY"
+    if #ex != 2 then print(custom_key_name.." missing either type or name! use the format \"TYPE.KEY\"") return end
+    
+    local expect_type = ex[1]
+    local expect_key = ex[2]
+    
+    if expect_type != "KEY" and expect_type != "MOUSE" and expect_type != "IN_KEY" then
         if _DEBUG > 0 then
-            print("Key entry missile either type or name! Guessing key from name... (format: TYPE.KEY)")
+            print(custom_key_name.." has incorrect type! "..expect_type.." defaulting to KEY")
         end
+        expect_type = "KEY"
     end
     
-    adv_key_ctrl.keys[key_upper] = {}
-    local t = adv_key_ctrl.keys[key_upper]
+    local _target_key = _G[expect_type][expect_key]
     
-    t._key_name = key_name
+    if not _target_key then
+        print(expect_type.." does not have value "..expect_key.."!")
+        return
+    end
     
-    t._key = key_real
-    t._key_id = key_id
-    t.functions_pressed = {}
-    t.functions_pressed.f_once = down_once_callback
-    t.functions_pressed.f_repeat = down_repeat_callback
+    adv_key_ctrl.keys[key_string_upper] = {}
+    local t = adv_key_ctrl.keys[key_string_upper]
     
-    t.functions_released = {}
-    t.functions_released.f_once = up_once_callback
-    t.functions_released.f_repeat = up_repeat_callback
+    t._key_name = custom_key_name
+    
+    t._key = _target_key
+    t._type = expect_type
+    
+    t._pressed_f_once = down_once_callback
+    t._pressed_f_repeat = down_repeat_callback
+    
+    t._released_f_once = up_once_callback
+    t._released_f_repeat = up_repeat_callback
     
     t._down = false
     t._down_ct = 0
-    if not t._type then
-        if ex_first == "KEY" then
-            t._type = "KEY"
-        elseif ex_first == "MOUSE" then
-            t._type = "MOUSE"
-        elseif ex_first == "IN_KEY" then
-            t._type = "IN_KEY"
-        end
-    end
-    if not t._type then
-        if _DEBUG > 0 then
-            print(key_name.." has incorrect type! "..ex_first.." defaulting to KEY")
-            t._type = "KEY"
-        end
-    end
     
     if _DEBUG > 0 then
-        print("Input configured: "..tostring(key_id).." "..tostring(key_name).." "..t._type)
+        print("Input configured: '"..expect_type.."."..expect_key.."' of type '"..t._type.."' custom name '"..custom_key_name.."'")
     end
 end
 
@@ -107,8 +101,7 @@ end
 // Adding a button
 adv_key_ctrl.configure_key(
 "Mmm the M button", -- Button name, completely custom
-"KEY.M", -- The button, but in string form
-KEY.M, -- The button (numbers also work, but calling it through this is easier, it just returns the number for that key)
+"KEY.M", -- The button, in string form
 down_once_callback, -- Down once callback function, listed above, same for rest
 down_repeat_callback, -- Down repeat callback function, these also are given the time when the button was pressed
 up_once_callback, -- Released once callback function, if you take the time the button was pressed, negate the time from this from it, you get the time the button was held down
@@ -125,35 +118,35 @@ hook.add("Think","_advanced_key_controller_main",function()
     for k, v in pairs(adv_key_ctrl.keys) do
         local _type = v._type
         local _key = v._key
-        local _key_name = v._key_name
+        local _key_name = v._key_name -- This is purely for debug purposes, it's not required for this to function
         if _type == "KEY" then
             if input.isKeyDown(_key) then
                 if v._down != true then
                     v._down = true
                     v._down_ct = timer.curtime()
-                    if v.functions_pressed.f_once != nil then
-                        v.functions_pressed.f_once(v._down_ct)
+                    if v._pressed_f_once != nil then
+                        v._pressed_f_once(v._down_ct)
                     end
                     if _DEBUG == 2 then
                         print(tostring(_key_name).." pressed!")
                     end
                 end
-                if v.functions_pressed.f_repeat != nil then
-                    v.functions_pressed.f_repeat(v._down_ct)
+                if v._pressed_f_repeat != nil then
+                    v._pressed_f_repeat(v._down_ct)
                 end
             else
                 if v._down != false then
                     v._down = false
                     v._down_ct = timer.curtime()
-                    if v.functions_released.f_once != nil then
-                        v.functions_released.f_once(v._down_ct)
+                    if v._released_f_once != nil then
+                        v._released_f_once(v._down_ct)
                     end
                     if _DEBUG == 2 then
                         print(tostring(_key_name).." pressed!")
                     end
                 end
-                if v.functions_released.f_repeat != nil then
-                    v.functions_released.f_repeat(v._down_ct)
+                if v._released_f_repeat != nil then
+                    v._released_f_repeat(v._down_ct)
                 end
             end
         elseif _type == "MOUSE" then
@@ -161,29 +154,29 @@ hook.add("Think","_advanced_key_controller_main",function()
                 if v._down != true then
                     v._down = true
                     v._down_ct = timer.curtime()
-                    if v.functions_pressed.f_once != nil then
-                        v.functions_pressed.f_once(v._down_ct)
+                    if v._pressed_f_once != nil then
+                        v._pressed_f_once(v._down_ct)
                     end
                     if _DEBUG == 2 then
                         print(tostring(_key_name).." pressed!")
                     end
                 end
-                if v.functions_pressed.f_repeat != nil then
-                    v.functions_pressed.f_repeat(v._down_ct)
+                if v._pressed_f_repeat != nil then
+                    v._pressed_f_repeat(v._down_ct)
                 end
             else
                 if v._down != false then
                     v._down = false
                     v._down_ct = timer.curtime()
-                    if v.functions_released.f_once != nil then
-                        v.functions_released.f_once(v._down_ct)
+                    if v._released_f_once != nil then
+                        v._released_f_once(v._down_ct)
                     end
                     if _DEBUG == 2 then
                         print(tostring(_key_name).." pressed!")
                     end
                 end
-                if v.functions_released.f_repeat != nil then
-                    v.functions_released.f_repeat(v._down_ct)
+                if v._released_f_repeat != nil then
+                    v._released_f_repeat(v._down_ct)
                 end
             end
         elseif _type == "IN_KEY" then
@@ -191,29 +184,29 @@ hook.add("Think","_advanced_key_controller_main",function()
                 if v._down != true then
                     v._down = true
                     v._down_ct = timer.curtime()
-                    if v.functions_pressed.f_once != nil then
-                        v.functions_pressed.f_once(v._down_ct)
+                    if v._pressed_f_once != nil then
+                        v._pressed_f_once(v._down_ct)
                     end
                     if _DEBUG == 2 then
                         print(tostring(_key_name).." pressed!")
                     end
                 end
-                if v.functions_pressed.f_repeat != nil then
-                    v.functions_pressed.f_repeat(v._down_ct)
+                if v._pressed_f_repeat != nil then
+                    v._pressed_f_repeat(v._down_ct)
                 end
             else
                 if v._down != false then
                     v._down = false
                     v._down_ct = timer.curtime()
-                    if v.functions_released.f_once != nil then
-                        v.functions_released.f_once(v._down_ct)
+                    if v._released_f_once != nil then
+                        v._released_f_once(v._down_ct)
                     end
                     if _DEBUG == 2 then
                         print(tostring(_key_name).." pressed!")
                     end
                 end
-                if v.functions_released.f_repeat != nil then
-                    v.functions_released.f_repeat(v._down_ct)
+                if v._released_f_repeat != nil then
+                    v._released_f_repeat(v._down_ct)
                 end
             end
         end
