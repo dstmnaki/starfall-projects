@@ -28,7 +28,8 @@ end
 
 // The function called when adding buttons to listen
 function adv_key_ctrl.configure_key(key_name, key_id, key_real, down_once_callback, down_repeat_callback, up_once_callback, up_repeat_callback)
-    local ex = string.explode(".", tostring(key_id:upper()))
+    local key_upper = key_id:upper()
+    local ex = string.explode(".", key_upper)
     local ex_first = ex[1]
     
     if #ex == 1 then
@@ -39,8 +40,8 @@ function adv_key_ctrl.configure_key(key_name, key_id, key_real, down_once_callba
         end
     end
     
-    adv_key_ctrl.keys[key_id] = {}
-    local t = adv_key_ctrl.keys[key_id]
+    adv_key_ctrl.keys[key_upper] = {}
+    local t = adv_key_ctrl.keys[key_upper]
     
     t._key_name = key_name
     
@@ -119,7 +120,7 @@ adv_key_ctrl.assign_listener(owner())
 
 // The main loop
 hook.add("Think","_advanced_key_controller_main",function()
-    if isValid(_player) then return end
+    if not isValid(_player) then return end
     if player() != _player then return end
     for k, v in pairs(adv_key_ctrl.keys) do
         local _type = v._type
