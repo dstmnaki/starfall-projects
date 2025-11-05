@@ -1,0 +1,229 @@
+--@name Divider
+--@author Nakkitsunami
+--@shared
+
+if SERVER then
+    
+    hook.add("Net", "", function(name, len, ply)
+        if name == "send_decoy_to_server" then
+            net.start("send_decoy_to_client")
+            net.send(find.allPlayers(function(a) return a != owner() end),false)
+        end
+    end)
+    
+else
+    
+    
+    local the_key = KEY.T
+    
+    
+    local ply = owner()
+    function initialize()
+        
+        local rtName = "name_display"
+        render.createRenderTarget(rtName)
+        
+        local name_plate = material.create("VertexLitGeneric")
+        name_plate:setTextureRenderTarget("$basetexture", rtName)
+        name_plate:setFloat("$alpha",1)
+        
+        hook.add("RenderScene", "", function(origin, angles, fov)
+            render.selectRenderTarget(rtName)
+            render.clear(Color(0,0,0,0))
+            
+            
+            render.setColor(Color(0,0,0,255))
+            render.setFont("TargetID")
+            render.drawText(512+1, 512+28+2, ply:getName(), TEXT_ALIGN.CENTER)
+            
+            render.setFont("TargetIDSmall")
+            render.drawText(512+1, 512+49+2, ply:getArmor() > 0 and ply:getHealth().."%".." "..ply:getArmor().."%" or ply:getHealth().."%", TEXT_ALIGN.CENTER)
+            
+            
+            render.setColor(team.getColor(ply:getTeam()))
+            render.setFont("TargetID")
+            render.drawText(512, 512+28, ply:getName(), TEXT_ALIGN.CENTER)
+            
+            render.setFont("TargetIDSmall")
+            render.drawText(512, 512+49, ply:getArmor() > 0 and ply:getHealth().."%".." "..ply:getArmor().."%" or ply:getHealth().."%", TEXT_ALIGN.CENTER)
+            
+            
+            render.selectRenderTarget()
+            hook.remove("renderscene","_create_name_display")
+        end)
+        
+        local ply_holo = hologram.create(chip():getPos(), Angle(), ply:getModel(), Vector(1))
+        ply_holo:setAnimation(owner():getSequence(), 0, 1)
+        ply_holo:setPlayerColor(ply:getPlayerColor())
+        ply_holo:setNoDraw(true)
+        
+        if player() == owner() then
+            ply_holo:setRenderFX(RENDERFX.HOLOGRAM)
+        end
+        
+        local wpn_holo = hologram.create(Vector(), Angle(), ply:getActiveWeapon():getModel(), Vector())
+        wpn_holo:setParent(ply_holo)
+        wpn_holo:addEffects(EF.BONEMERGE)
+        wpn_holo:setPlayerColor(ply:getPlayerColor())
+        wpn_holo:setNoDraw(true)
+        
+        
+        local tex = hologram.create(chip():getPos()+Vector(0,0,-23.5+3), Angle(), "models/hunter/blocks/cube1x1x1.mdl", Vector(1,0.9,0.95))
+        tex:setClip(1, true, Vector(-23.5,0,0), Vector(-1,0,0), tex)
+        tex:suppressEngineLighting(true)
+        tex:setMaterial("!"..name_plate:getName())
+        tex:setColor(Color(255,255,255,0))
+        tex:setRenderMode(RENDERMODE.WORLDGLOW)
+        
+        local w, h = render.getGameResolution()
+        
+        local last_anim = ""
+        local last_class = ""
+        local dropped = false
+        local drop_ct = 0
+        local cooldown_ct = timer.curtime()-30
+        local down = false
+        
+        local localdir = Angle()
+        
+        local cooldown_done = false
+        
+        function setDecoyPos()
+            local tr = trace.line(ply:getPos(),ply:getPos()-Vector(0,0,250),ply,nil,nil,false,false)
+            ply_holo:setPos(tr.HitPos)
+            
+            dropped = true
+            drop_ct = timer.curtime()
+            ply_holo:setNoDraw(false)
+        end
+        
+        hook.add("Net", "", function(name, len, ply)
+            if name == "send_decoy_to_client" then
+                setDecoyPos()
+            end
+        end)
+        
+        hook.add("RenderOffscreen","",function()
+            if not isValid(ply) then return end
+            if player() == owner() then
+                if not dropped then
+                    if timer.curtime() - cooldown_ct >= 30 then
+                        if cooldown_done != true then
+                            cooldown_done = true
+                            if player() == owner() then
+                                print("Decoy ready!")
+                            end
+                        end
+                    end
+                    if input.isKeyDown(the_key) then
+                        if down != true then
+                            down = true
+                            if cooldown_done == true then
+                                setDecoyPos()
+                                print("Decoy dropped!")
+                                net.start("send_decoy_to_server")
+                                net.send()
+                                cooldown_done = false
+                            else
+                                print("Decoy ability is on cooldown! ("..math.round(30-(timer.curtime()-cooldown_ct)).."s)")
+                            end
+                        end
+                    else
+                        down = false
+                    end
+                end
+            end
+            if not dropped then return end
+            if last_anim != ply:getSequence() then
+                last_anim = ply:getSequence()
+                ply_holo:setAnimation(owner():getSequence(), 0, 1)
+            end
+            if last_wpn != ply:getActiveWeapon() then
+                last_wpn = ply:getActiveWeapon()
+                last_class = last_wpn:getClass()
+                wpn_holo:setModel(ply:getActiveWeapon():getModel())
+            end
+            if last_class == "none" then
+                if wpn_visible != false then
+                    wpn_visible = false
+                    wpn_holo:setNoDraw(true)
+                end
+            else
+                if wpn_visible != true then
+                    wpn_visible = true
+                    wpn_holo:setNoDraw(false)
+                end
+            end
+            
+            
+            local targetPos = player():getEyePos()
+            local dir = (targetPos-(ply_holo:getPos()+Vector(0,0,65))):getAngle()
+            localdir = math.slerpQuaternion(localdir:getQuaternion(), ply_holo:worldToLocalAngles(dir):getQuaternion(), 0.15):getEulerAngle()
+            
+            if math.abs(localdir.yaw) >= 90 then
+                ply_holo:setAngles(Angle(0,ply_holo:getAngles().yaw+localdir.yaw/1.5,0))
+                localdir = Angle(localdir.pitch,localdir.yaw/1.5,0)
+            end
+            
+            local yaw = localdir.yaw
+            local pitch = localdir.pitch
+            
+            ply_holo:setPose("aim_yaw", math.clamp(yaw,-90,90))
+            ply_holo:setPose("aim_pitch", pitch)
+            
+            local pitch_adjust = math.clamp(-pitch/45-0.5,-1,1)
+            
+            local min_to_screen = (ply_holo:getPos()+ply:obbMins()*Vector(-0.6-0.3*pitch_adjust,0.7,1):rotateAroundAxis(Vector(0,0,1),dir.yaw)):toScreen()
+            local max_to_screen = (ply_holo:getPos()+ply:obbMaxs()*Vector(-1*pitch_adjust,0.7,1):rotateAroundAxis(Vector(0,0,1),dir.yaw)):toScreen()
+            
+            local min_x = math.round(min_to_screen["x"] - w/2)
+            local min_y = math.round(min_to_screen["y"] - h/2)
+            
+            local max_x = math.round(max_to_screen["x"] - w/2)
+            local max_y = math.round(max_to_screen["y"] - h/2)
+            
+            if min_x < 0  and min_y > 0 and max_x > 0  and max_y < 0 and render.pixelVisible(ply_holo:obbCenterW(), 30) > 0 then
+                if visible != true then
+                    visible = true
+                    tex:setColor(Color(255,255,255,254))
+                end
+            else
+                if visible != false then
+                    visible = false
+                    tex:setColor(Color(255,255,255,0))
+                end
+            end
+            
+            tex:setPos(player():getEyePos()+player():getAimVector()*(25+24))
+            tex:setAngles(player():getEyeAngles())
+            
+            
+            if timer.curtime() - drop_ct >= 10 then
+                dropped = false
+                last_anim = ""
+                last_class = ""
+                last_wpn = nil
+                wpn_holo:setNoDraw(true)
+                ply_holo:setNoDraw(true)
+                tex:setColor(Color(255,255,255,0))
+                if player() == owner() then
+                    print("Decoy deactivated!")
+                    cooldown_ct = timer.curtime()
+                end
+            end
+        end)
+    end
+    
+    if not isValid(ply) then
+        timer.create("find_ply", 1, 0, function()
+            local get_ply = owner()
+            if isValid(get_ply) then
+                ply = owner()
+                initialize()
+                timer.remove("find_ply")
+            end
+        end)
+    else
+        initialize()
+    end
+end
