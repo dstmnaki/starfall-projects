@@ -11,6 +11,8 @@ if SERVER then
         end
     end)
     
+    chip():setColor(Color(255,255,255,0))
+    
 else
     
     
