@@ -21,8 +21,8 @@ else
     local duration = 10 -- how long the decoy stays down
     local cooldown = 30 -- how long till you can use the decoy again
     
-    // this makes the model look like a hologram for the owner, looks normal for others
-    local hologram_effect_for_owner = true
+    // makes the model transparent for the owner, looks normal for others
+    local transparent_for_owner = true
     
     local ply = owner()
     function initialize()
@@ -64,8 +64,8 @@ else
         ply_holo:setPlayerColor(ply:getPlayerColor())
         ply_holo:setNoDraw(true)
         
-        if player() == owner() and hologram_effect_for_owner then
-            ply_holo:setRenderFX(RENDERFX.HOLOGRAM)
+        if transparent_for_owner == true and player() == owner() then
+            ply_holo:setColor(Color(255,255,255,175))
         end
         
         local wpn_holo = hologram.create(Vector(), Angle(), ply:getActiveWeapon():getModel(), Vector())
