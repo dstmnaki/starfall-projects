@@ -19,6 +19,8 @@ else
     local duration = 10 -- how long the decoy stays down
     local cooldown = 30 -- how long till you can use the decoy again
     
+    // this makes the model look like a hologram for the owner, looks normal for others
+    local hologram_effect_for_owner = true
     
     local ply = owner()
     function initialize()
@@ -60,7 +62,7 @@ else
         ply_holo:setPlayerColor(ply:getPlayerColor())
         ply_holo:setNoDraw(true)
         
-        if player() == owner() then
+        if player() == owner() and hologram_effect_for_owner then
             ply_holo:setRenderFX(RENDERFX.HOLOGRAM)
         end
         
@@ -110,7 +112,7 @@ else
             if not isValid(ply) then return end
             if player() == owner() then
                 if not dropped then
-                    if timer.curtime() - cooldown_ct >= 30 then
+                    if timer.curtime() - cooldown_ct >= cooldown then
                         if cooldown_done != true then
                             cooldown_done = true
                             if player() == owner() then
