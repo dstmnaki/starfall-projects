@@ -9,6 +9,11 @@ if SERVER then
             net.start("send_decoy_to_client")
             net.send(find.allPlayers(function(a) return a != owner() end),false)
         end
+        if name == "loaded_callback_to_server" then
+            net.start("loaded_callback_to_client")
+            net.writeString(net.readString())
+            net.send(owner(),false)
+        end
     end)
     
     chip():setColor(Color(255,255,255,0))
@@ -25,6 +30,9 @@ else
     local transparent_for_owner = true
     
     local ply = owner()
+    
+    local _DEBUG = false
+    
     function initialize()
         
         local rtName = "name_display"
@@ -64,9 +72,18 @@ else
         ply_holo:setPlayerColor(ply:getPlayerColor())
         ply_holo:setNoDraw(true)
         
-        if transparent_for_owner == true and player() == owner() then
-            ply_holo:setColor(Color(255,255,255,175))
+        if player() == owner() then
+            if transparent_for_owner == true then
+                ply_holo:setColor(Color(255,255,255,175))
+            end
+        else
+            if _DEBUG then
+                net.start("loaded_callback_to_server")
+                net.writeString(player():getName())
+                net.send()
+            end
         end
+        
         
         local wpn_holo = hologram.create(Vector(), Angle(), ply:getActiveWeapon():getModel(), Vector())
         wpn_holo:setParent(ply_holo)
@@ -107,6 +124,11 @@ else
         hook.add("Net", "", function(name, len, ply)
             if name == "send_decoy_to_client" then
                 setDecoyPos()
+            end
+            if player() == owner() then
+                if name == "loaded_callback_to_client" then
+                    print(net.readString().." finished loading!")
+                end
             end
         end)
         
