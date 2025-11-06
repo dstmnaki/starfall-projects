@@ -1,7 +1,6 @@
 --@name Dark Souls 3 Area Name Display
 --@author Nakkitsunami
 --@client
---@owneronly
 
 --   SETTINGS   --
 
@@ -17,7 +16,7 @@ local Pos1 = chip():getPos()+Vector(-250,-250,-1)
 local Pos2 = chip():getPos()+Vector(250,250,250)
 
 // Global toggle for playing the dark souls 3 sound for entering an area
-local _USE_SOUND = true
+local _USE_SOUND = false
 
 // Draws a box around the area
 local _DEBUG_LINES = true
