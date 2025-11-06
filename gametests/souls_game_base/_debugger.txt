@@ -4,9 +4,7 @@
 
 // I left this outside of owneronly so other people can help me debug if i connect a hud to the chip
 
-require("GameTests/Souls_Game_Base/_Shared.txt")
-
-hook.add("DrawHUD","",function()
+hook.add("DrawHUD","_debugger_main",function()
     for area_name, area_data in pairs(_areas) do
         local Pos1 = area_data.pos1
         local Pos2 = area_data.pos2
