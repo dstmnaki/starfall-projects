@@ -1,0 +1,165 @@
+--@name GameTests/Souls Game Base/_World
+--@author Nakkitsunami
+--@client
+
+
+local use_enter_area_sound = player() == owner() or hasPermission("bass.loadURL", player())
+
+local line_original = material.load("particle/Particle_Glow_04")
+local line = material.create("UnlitGeneric")
+line:setTexture("$basetexture", line_original:getTexture("$basetexture"))
+line:setFloat("$alpha",1)
+
+area_name_display = {}
+_areas = {}
+
+local _busy = false
+
+local _addArea_queue = {}
+
+function area_name_display.addAreaQueue(name,location)
+    table.insert(_addArea_queue,{name,location})
+end
+
+function area_name_display.addArea(name,location)
+    _busy = true
+    local Pos1 = location[1]
+    local Pos2 = location[2]
+    
+    if Pos1.x > Pos2.x then 
+        local store1 = Pos1.x
+        local store2 = Pos2.x
+        Pos1.x = store2
+        Pos2.x = store1
+        print("Flipped X Coordinates!")
+    end
+    if Pos1.y > Pos2.y then 
+        local store1 = Pos1.y
+        local store2 = Pos2.y
+        Pos1.y = store2
+        Pos2.y = store1
+        print("Flipped Y Coordinates!")
+    end
+    if Pos1.z > Pos2.z then 
+        local store1 = Pos1.z
+        local store2 = Pos2.z
+        Pos1.z = store2
+        Pos2.z = store1
+        print("Flipped Z Coordinates!")
+    end
+    
+    _areas[name] = {
+        name = name,
+        pos1 = Pos1,
+        pos2 = Pos2,
+    }
+    table.remove(_addArea_queue,#_addArea_queue)
+    _busy = false
+end
+
+local enter_area_snd = nil
+
+if use_enter_area_sound then
+    bass.loadURL("https://raw.githubusercontent.com/dstmnaki/starfall-projects/refs/heads/main/ds3_new_area_snd.mp3", "3d noblock noplay", function(snd)
+        if snd then
+            enter_area_snd = snd
+            enter_area_snd:pause()
+            enter_area_snd:setTime(0,true)
+            enter_area_snd:setLooping(false)
+            enter_area_snd:setFade(2000, 2500, true)
+        end
+    end)
+end
+local current_area_name = ""
+local enter_ct = timer.curtime()-5
+
+function area_name_display.display_area_name(_pos,area)
+    local _desired_name = area.name
+    if in_area(_pos,area) then
+        if current_area_name != _desired_name then
+            current_area_name = _desired_name
+            if enter_area_snd != nil then
+                enter_area_snd:setPos(_pos)
+                enter_area_snd:play()
+                enter_area_snd:setVolume(3)
+                enter_area_snd:setTime(0,true)
+            end
+            enter_ct = timer.curtime()
+        end
+    else
+        if math.clamp(timer.curtime()-enter_ct,0,5)/5 >= 1 then
+            if current_area_name != "" then
+                current_area_name = ""
+            end
+        end
+    end
+    if current_area_name != _desired_name then return end
+    local dt = math.clamp(timer.curtime()-enter_ct,0,5)/5
+    local animation_time = math.clamp(math.sin(math.rad(dt*180))*(3.5-(dt>=0.5 and 1 or 0)),0,1)
+    
+    if not (in_area or dt < 1) then return end
+    
+    
+    
+    render.setColor(Color(0,0,0,125*animation_time))
+    render.setMaterial(line)
+    render.drawTexturedRectRotated(_w/2+_w/2*0.5, _h/2, _w*1.25*0.25, 8, 0)
+    render.drawTexturedRectRotated(_w/2+_w/2*0.3, _h/2, _w*1.25*0.4, 8, 0)
+    render.drawTexturedRectRotated(_w/2, _h/2, _w*1.25*0.6, 8, 0)
+    render.drawTexturedRectRotated(_w/2-_w/2*0.3, _h/2, _w*1.25*0.4, 8, 0)
+    render.drawTexturedRectRotated(_w/2-_w/2*0.5, _h/2, _w*1.25*0.25, 8, 0)
+    
+    render.setColor(Color(240,240,240,255*animation_time))
+    render.drawTexturedRectRotated(_w/2+_w/2*0.4, _h/2, _w*1.25*0.35, 5, 0)
+    render.drawTexturedRectRotated(_w/2+_w/2*0.2, _h/2, _w*1.25*0.4, 5, 0)
+    render.drawTexturedRectRotated(_w/2, _h/2, _w*1.25*0.6, 5, 0)
+    render.drawTexturedRectRotated(_w/2-_w/2*0.2, _h/2, _w*1.25*0.4, 5, 0)
+    render.drawTexturedRectRotated(_w/2-_w/2*0.4, _h/2, _w*1.25*0.35, 5, 0)
+    
+    render.setFont(fonts["title"])
+    render.setColor(Color(0,0,0,90*animation_time))
+    render.drawText(_w/2-1, _h/2-41-1, current_area_name, TEXT_ALIGN.CENTER)
+    render.drawText(_w/2+1, _h/2-41+1, current_area_name, TEXT_ALIGN.CENTER)
+    
+    render.setColor(Color(255,255,255,255*animation_time))
+    render.drawText(_w/2, _h/2-41, current_area_name, TEXT_ALIGN.CENTER)
+end
+
+local location = {}
+location[1] = chip():getPos()+Vector(-50,-50,-1)
+location[2] = chip():getPos()+Vector(50,50,100)
+
+area_name_display.addAreaQueue("First Area",location)
+
+location = {}
+location[1] = chip():getPos()+Vector(-50,-50,-1)+Vector(100,0,0)
+location[2] = chip():getPos()+Vector(50,50,100)+Vector(100,0,0)
+
+area_name_display.addAreaQueue("Second Area",location)
+
+location = {}
+location[1] = chip():getPos()+Vector(-100,-100,-1)+Vector(250,0,0)
+location[2] = chip():getPos()+Vector(100,100,100)+Vector(250,0,0)
+
+area_name_display.addAreaQueue("Second Area but Bigger",location)
+
+location = {}
+location[1] = chip():getPos()+Vector(-100,-100,-1)+Vector(450,0,0)
+location[2] = chip():getPos()+Vector(100,100,100)+Vector(450,0,0)
+
+area_name_display.addAreaQueue("Second Area but Biggerer Betterer Fasterer Strongerer",location)
+
+
+hook.add("Think","_addArea_queue",function()
+    if _busy != true and #_addArea_queue != 0 then
+        local entry = _addArea_queue[#_addArea_queue]
+        if entry == nil then return end
+        area_name_display.addArea(entry[1],entry[2])
+    end
+end)
+
+
+
+
+
+

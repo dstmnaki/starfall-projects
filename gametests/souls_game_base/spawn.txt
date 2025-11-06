@@ -1,0 +1,23 @@
+--@name GameTests/Souls Game Base/Spawn
+--@author Nakkitsunami
+
+--@include GameTests/Souls_Game_Base/_Shared.txt
+--@include GameTests/Souls_Game_Base/_World.txt
+--@include GameTests/Souls_Game_Base/_Render.txt
+require("GameTests/Souls_Game_Base/_Shared.txt")
+require("GameTests/Souls_Game_Base/_World.txt")
+require("GameTests/Souls_Game_Base/_Render.txt")
+
+--@client
+
+local _DEBUG = true
+
+if player() == owner() then
+    enableHud(owner(),true)
+end
+
+
+if _DEBUG then
+    --@include GameTests/Souls_Game_Base/_Debugger.txt
+    require("GameTests/Souls_Game_Base/_Debugger.txt")
+end

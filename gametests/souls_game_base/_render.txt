@@ -1,0 +1,36 @@
+--@name GameTests/Souls Game Base/_Render
+--@author Nakkitsunami
+--@client
+
+local _eye_pos = player():getEyePos()
+hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
+    local _eye_ang = player():getEyeAngles()
+    _eye_pos = math.lerpVector(0.1,_eye_pos,player():getEyePos())
+    
+    local ret = {
+        origin = _eye_pos+Vector(-100,0,0):getRotated(_eye_ang),
+        angles = _eye_ang,
+        drawviewer = true,
+        fov = 90,
+    }
+    
+    return ret
+end)
+
+hook.add("HUDShouldDraw", "", function(str)
+    if str == "CHudCrosshair" then
+        return false
+    end
+end)
+
+local player_light = light.create(Vector(), 80, 0.5, Color(225,235,255,100))
+player_light:setNoModel(true)
+
+hook.add("DrawHUD", "_main_render", function()
+    local _pos = player():getPos()
+    player_light:setPos(_pos+Vector(0,0,35))
+    player_light:draw()
+    for area_name, area_data in pairs(_areas) do
+        area_name_display.display_area_name(_pos,area_data)
+    end
+end)

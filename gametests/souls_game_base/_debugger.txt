@@ -1,0 +1,57 @@
+--@name GameTests/Souls Game Base/_Debugger
+--@author Nakkitsunami
+--@client
+
+// I left this outside of owneronly so other people can help me debug if i connect a hud to the chip
+
+require("GameTests/Souls_Game_Base/_Shared.txt")
+
+hook.add("DrawHUD","",function()
+    for area_name, area_data in pairs(_areas) do
+        local Pos1 = area_data.pos1
+        local Pos2 = area_data.pos2
+        
+        if not Pos1 and Pos2 then return end
+        render.setColor(Color(0,255,0))
+        
+        local start_p, end_p = Vector(Pos1[1], Pos1[2], Pos1[3]):toScreen(), Vector(Pos1[1], Pos1[2], Pos2[3]):toScreen()
+        render.drawLine(start_p["x"],start_p["y"],end_p["x"],end_p["y"])
+        
+        start_p, end_p = Vector(Pos1[1], Pos1[2], Pos2[3]):toScreen(), Vector(Pos1[1], Pos2[2], Pos2[3]):toScreen()
+        render.drawLine(start_p["x"],start_p["y"],end_p["x"],end_p["y"])
+        
+        start_p, end_p = Vector(Pos1[1], Pos1[2], Pos2[3]):toScreen(), Vector(Pos2[1], Pos1[2], Pos2[3]):toScreen()
+        render.drawLine(start_p["x"],start_p["y"],end_p["x"],end_p["y"])
+        
+        start_p, end_p = Vector(Pos2[1], Pos2[2], Pos2[3]):toScreen(), Vector(Pos2[1], Pos2[2], Pos1[3]):toScreen()
+        render.drawLine(start_p["x"],start_p["y"],end_p["x"],end_p["y"])
+        
+        start_p, end_p = Vector(Pos1[1], Pos2[2], Pos2[3]):toScreen(), Vector(Pos2[1], Pos2[2], Pos2[3]):toScreen()
+        render.drawLine(start_p["x"],start_p["y"],end_p["x"],end_p["y"])
+        
+        start_p, end_p = Vector(Pos1[1], Pos2[2], Pos1[3]):toScreen(), Vector(Pos2[1], Pos2[2], Pos1[3]):toScreen()
+        render.drawLine(start_p["x"],start_p["y"],end_p["x"],end_p["y"])
+        
+        start_p, end_p = Vector(Pos1[1], Pos1[2], Pos1[3]):toScreen(), Vector(Pos2[1], Pos1[2], Pos1[3]):toScreen()
+        render.drawLine(start_p["x"],start_p["y"],end_p["x"],end_p["y"])
+        
+        start_p, end_p = Vector(Pos2[1], Pos1[2], Pos1[3]):toScreen(), Vector(Pos2[1], Pos1[2], Pos2[3]):toScreen()
+        render.drawLine(start_p["x"],start_p["y"],end_p["x"],end_p["y"])
+        
+        start_p, end_p = Vector(Pos1[1], Pos1[2], Pos1[3]):toScreen(), Vector(Pos1[1], Pos2[2], Pos1[3]):toScreen()
+        render.drawLine(start_p["x"],start_p["y"],end_p["x"],end_p["y"])
+        
+        start_p, end_p = Vector(Pos1[1], Pos2[2], Pos2[3]):toScreen(), Vector(Pos1[1], Pos2[2], Pos1[3]):toScreen()
+        render.drawLine(start_p["x"],start_p["y"],end_p["x"],end_p["y"])
+        
+        start_p, end_p = Vector(Pos2[1], Pos2[2], Pos1[3]):toScreen(), Vector(Pos2[1], Pos1[2], Pos1[3]):toScreen()
+        render.drawLine(start_p["x"],start_p["y"],end_p["x"],end_p["y"])
+        
+        start_p, end_p = Vector(Pos2[1], Pos2[2], Pos2[3]):toScreen(), Vector(Pos2[1], Pos1[2], Pos2[3]):toScreen()
+        render.drawLine(start_p["x"],start_p["y"],end_p["x"],end_p["y"])
+        
+        render.setFont(fonts["title"])
+        local mid = ((Pos1+Pos2)/2):toScreen()
+        render.drawText(mid["x"], mid["y"], area_data.name, TEXT_ALIGN.CENTER)
+    end
+end)

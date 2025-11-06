@@ -1,0 +1,28 @@
+--@name GameTests/Souls Game Base/_Shared
+--@author Nakkitsunami
+--@client
+
+function in_area(pos,area)
+    if pos[1] <= area.pos1[1] then return false end
+    if pos[2] <= area.pos1[2] then return false end
+    if pos[3] <= area.pos1[3] then return false end
+
+    if pos[1] >= area.pos2[1] then return false end
+    if pos[2] >= area.pos2[2] then return false end
+    if pos[3] >= area.pos2[3] then return false end
+
+    return true, area.name
+end
+
+function scale_3d(pos)
+    local POSTOSCREEN = (pos+Vector(0,0,100):getRotated(owner():getEyeAngles())):toScreen()
+    local POSTOSCREEN2 = pos:toScreen()
+    return Vector(POSTOSCREEN["x"],POSTOSCREEN["y"],0):getDistance(Vector(POSTOSCREEN2["x"],POSTOSCREEN2["y"],0))/100
+end
+
+fonts = {}
+fonts["title"] = render.createFont("Times New Roman", 50, 400, true, false, true, false, 0, false, false)
+
+_w, _h = render.getGameResolution()
+
+_reso = {_w,_h}
