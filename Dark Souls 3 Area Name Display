@@ -64,7 +64,7 @@ function inrange( vec,  min,  max)
     return true
 end
 
-hook.add("RenderScene", "", function(origin, angles, fov)
+hook.add("renderscene", "_create_name_display", function(origin, angles, fov)
     render.selectRenderTarget(rtName)
     render.clear(Color(0,0,0,0))
     
