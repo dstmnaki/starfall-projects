@@ -1,0 +1,253 @@
+--@name Dragon Radar
+--@author Nakkitsunami
+--@include nakilibs/pac_to_holo_loader.txt
+--@client
+--@owneronly
+if player() ~= owner() then return end
+enableHud(owner(), true)
+
+print("Mouse1 - Focus on screen")
+print("R - (While Holding Mouse1) Cycle zoom levels")
+
+
+local q = {}
+function func()
+    local f = find.allPlayers(function(a) return a != owner() end)
+    for k, v in pairs(f) do
+        if not table.hasValue(q, v) then
+            table.insert(q, v)
+        end
+    end
+end
+
+local rtName = "display"
+render.createRenderTarget(rtName)
+
+local tex = material.create("VertexLitGeneric")
+tex:setTextureRenderTarget("$basetexture", rtName)
+
+local original = material.load("particle/Particle_Glow_04")
+local glow = material.create("UnlitGeneric")
+glow:setTexture("$basetexture", original:getTexture("$basetexture"))
+glow:setFloat("$alpha",1)
+
+original = material.load("sprites/bomb_dropped_ring")
+local circle_outline = material.create("UnlitGeneric")
+circle_outline:setTexture("$basetexture", original:getTexture("$basetexture"))
+circle_outline:setFloat("$alpha",1)
+
+original = material.load("sprites/player_hostage_small")
+local circle = material.create("UnlitGeneric")
+circle:setTexture("$basetexture", original:getTexture("$basetexture"))
+circle:setFloat("$alpha",1)
+
+original = material.load("sprites/player_hostage_offscreen")
+local arrow = material.create("UnlitGeneric")
+arrow:setTexture("$basetexture", original:getTexture("$basetexture"))
+arrow:setFloat("$alpha",1)
+
+local map_size = 1000
+local line_count = 10
+local ct = 0
+
+hook.add("renderscene", "", function(origin, angles, fov)
+    render.selectRenderTarget(rtName)
+    render.clear(Color(0,0,0,0))
+    
+    render.setColor(Color(0,90,40))
+    render.drawRect(0, 0, 1024, 1024)
+    
+    
+    render.setColor(Color(135,175,135))
+    
+    for i = 1, line_count do
+        render.drawRect(0, 1024/line_count*(i-0.5), 1024, 2)
+    end
+    
+    for i = 1, line_count do
+        render.drawRect(1024/line_count*(i-0.5), 0, 2, 1024)
+    end
+    
+    local _p = owner():getPos()
+    local yaw = owner():getEyeAngles().yaw
+    local zoom = 1/(0.8+(map_size/5000)*0.2)
+    
+    for k, v in pairs(q) do
+        if isValid(v) then
+            local _p2 = v:getPos()
+            local _rotated = ((_p2-_p)*Vector(1,1,0)):rotateAroundAxis(Vector(0,0,1),-yaw)
+            if _rotated:getLength()<(map_size/2.1) then
+                local _x = _rotated.x/map_size*1024
+                local _y = _rotated.y/map_size*1024
+                render.setMaterial(circle_outline)
+                render.setColor(Color(200,125,125,255))
+                render.drawTexturedRectRotated(_y+512, _x+512, 45*zoom, 45*zoom, 0)
+                
+                render.setMaterial(circle)
+                render.setColor(Color(255,255,255,255))
+                render.drawTexturedRectRotated(_y+512, _x+512, 50*zoom, 50*zoom, 0)
+                
+                render.setMaterial(glow)
+                render.setColor(Color(255,215,175,255))
+                render.drawTexturedRectRotated(_y+512, _x+512, 65*zoom, 65*zoom, 0)
+            else
+                local _rotated_normalized = _rotated:getNormalized()
+                local _x = _rotated_normalized.x*512*0.9
+                local _y = _rotated_normalized.y*512*0.9
+                render.setMaterial(arrow)
+                render.setColor(Color(255,255,255,255))
+                render.drawTexturedRectRotated(_y+512, _x+512, 65*zoom, 65*zoom, -_rotated_normalized:getAngle().yaw+180)
+            end
+        else
+            table.remove(q,k)
+        end
+    end
+    
+    render.setMaterial(arrow)
+    render.setColor(Color(255,125,125,255))
+    render.drawTexturedRectRotated(512+512*0.85, 512, 65*zoom, 65*zoom, 90)
+    
+    render.setMaterial(arrow)
+    render.setColor(Color(255,125,125,255))
+    render.drawTexturedRectRotated(512-512*0.85, 512, 65*zoom, 65*zoom, -90)
+    
+    render.setMaterial(arrow)
+    render.setColor(Color(255,125,125,255))
+    render.drawTexturedRectRotated(512, 512+512*0.85, 65*zoom, 65*zoom, 180)
+    
+    render.setMaterial(arrow)
+    render.setColor(Color(255,125,125,255))
+    render.drawTexturedRectRotated(512, 512-512*0.85, 65*zoom, 65*zoom, 0)
+    
+    render.selectRenderTarget()
+end)
+
+require("nakilibs/pac_to_holo_loader.txt")
+local ht, hc = {}, 0
+
+local size = 1
+
+local parent = chip()
+local real_parent = chip()
+
+hc=hc+1 ht[hc]={"root",parent,real_parent,Vector(0,0,0),Angle(0,0,0),"models/pac/default.mdl","",Color(255,255,255,255),Vector(0,0,0),{}}
+
+local parent = "root"
+local real_parent = "root"
+hc=hc+1 ht[hc]={"anim_root",parent,real_parent,Vector(0,0,0),Angle(0,0,0),"models/weapons/c_slam.mdl","",Color(255,255,255,0),Vector(1,1,1),{}}
+hc=hc+1 ht[hc]={"player_hand","anim_root","anim_root",Vector(0,0,0),Angle(0,0,0),owner():getModel(),"",Color(255,255,255,255),Vector(1,1,1),{}}
+
+hc=hc+1 ht[hc]={"dragon_radar_root",parent,real_parent,Vector(22.986,-4.994,-7.859),Angle(-65.54,-3.64,-20.97),"models/pac/default.mdl","",Color(255,255,255,255),Vector(0,0,0),{}}
+
+local parent = "dragon_radar_root"
+local real_parent = "root"
+hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,0,0),Angle(0,0,0),"models/sprops/geometry/sphere_144.mdl","models/debug/debugwhite",Color(255,255,255,255),Vector(0.03,0.03,0.0225),{{1,Vector(0,0,-0.3),Vector(0,0,1)},{2,Vector(0,0,0.3),Vector(0,0,-1)}}}
+hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(1.924,0,-0.1),Angle(90,0,0),"models/sprops/misc/fittings/cred_12_9_tall.mdl","models/debug/debugwhite",Color(255,255,255,255),Vector(0.075,0.075,0.06),{{1,Vector(0,0,-0.1),Vector(0.559,0,0.829)}}}
+hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,0,0.01),Angle(0,0,0),"models/sprops/geometry/sphere_144.mdl","models/debug/debugwhite",Color(255,255,255,255),Vector(0.0319,0.0319,0.0113),{{1,Vector(0,0,-0.3),Vector(0,0,-1)}}}
+hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,0,0.23),Angle(0,0,90),"models/sprops/geometry/fring_84.mdl","models/debug/debugwhite",Color(255,255,255,255),Vector(0.0505,0.0505,0.0505),{}}
+hc=hc+1 ht[hc]={"screen",parent,real_parent,Vector(0,0,-0.4),Angle(0,0,0),"models/cheeze/beta/white_button.mdl","",Color(255,255,255,255),Vector(0.7,0.7,0.56),{{1,Vector(0,0,0.5),Vector(0,0,1)}}}
+
+
+hc=hc+1 ht[hc]={"button",parent,real_parent,Vector(2.7,0,-0.1),Angle(90,0,0),"models/sprops/geometry/sphere_30.mdl","models/debug/debugwhite",Color(180,180,180,255),Vector(0.0225,0.0225,0.003),{}}
+hc=hc+1 ht[hc]={hc,parent,"button",Vector(2.6,0,-0.1),Angle(90,0,0),"models/sprops/cylinders/size_4/cylinder_9x3.mdl","models/debug/debugwhite",Color(150,150,150,255),Vector(0.075,0.075,0.06),{}}
+hc=hc+1 ht[hc]={hc,parent,"button",Vector(2.6,0,-0.1),Angle(0,90,0),"models/sprops/misc/tubes/size_3/tube_36x6.mdl","models/debug/debugwhite",Color(180,180,180,255),Vector(0.02,0.034,0.02),{}}
+hc=hc+1 ht[hc]={hc,parent,"button",Vector(2.424,0,-0.1),Angle(90,0,0),"models/sprops/cylinders/size_3/cylinder_6x6.mdl","models/debug/debugwhite",Color(255,255,255,255),Vector(0.06,0.06,0.05),{}}
+
+
+pthl.createHolos(hc,ht,false,size)
+
+local zoom_level = 1
+
+hook.add("Think","_finish_model",function()
+    if pthl.ready then
+        pthl.holos["anim_root"]:setLOD(0)
+        pthl.holos["player_hand"]:setLOD(0)
+        local bone = pthl.holos["player_hand"]:lookupBone("ValveBiped.Bip01_Pelvis")
+        if bone then
+            pthl.holos["player_hand"]:manipulateBonePosition(bone,Vector(0,0,-500))
+        end
+        pthl.holos["player_hand"]:setClip(1, true, Vector(0,-14,0), Angle(0,-90+25,0):getForward(), pthl.holos["root"])
+        
+        pthl.holos["player_hand"]:addEffects(EF.BONEMERGE)
+        
+        pthl.holos["anim_root"]:setAnimation("throw_idle_ND", 0, 0)
+        local finger_bone = pthl.holos["anim_root"]:lookupBone("ValveBiped.Bip01_R_Finger0")
+        
+        pthl.holos["screen"]:setMaterial("!"..tex:getName())
+        pthl.holos["screen"]:suppressEngineLighting(true)
+        
+        local check_anim_val = 0
+        local button_press_anim_val = 0
+        local down_state = 0
+        local radar_out = true
+        local radar_out_ct = 0
+        
+        hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
+            if isValid(owner()) and owner():getHealth() > 0 and owner():getActiveWeapon() and owner():getActiveWeapon():getClass() == "none" then
+                if radar_out != true then
+                    radar_out = true
+                    for k, v in pairs(pthl.holos) do
+                        v:setNoDraw(false)
+                    end
+                    radar_out_ct = timer.curtime()
+                end
+                if timer.curtime() - ct > 1 then
+                    func()
+                    ct = timer.curtime()
+                end
+                local _frametime = timer.frametime()*60
+                check_anim_val = math.lerp(0.1*_frametime, check_anim_val, owner():keyDown(IN_KEY.ATTACK) and 1 or 0)
+                
+                if owner():keyDown(IN_KEY.RELOAD) then
+                    if owner():keyDown(IN_KEY.ATTACK) then
+                        if zoom_state_down != true then
+                            zoom_state_down = true
+                            zoom_level = zoom_level + 1
+                            if zoom_level >= 4 then
+                                zoom_level = 1
+                            end
+                            map_size = select(zoom_level,5000,15000,30000)
+                            down_state = 1
+                            pthl.holos["button"]:emitSound("buttons/lightswitch2.wav", 100, 115, 1, CHANNEL_AUTO, 1, true)
+                        end
+                    end
+                else
+                    zoom_state_down = false
+                end
+                button_press_anim_val = math.lerp((0.2+0.3*button_press_anim_val)*_frametime, button_press_anim_val, down_state)
+                
+                if down_state == 1 and button_press_anim_val >= 0.95 then
+                    down_state = 0
+                end
+                
+                local button_press_anim_val2 = math.clamp(button_press_anim_val*1.5,0,1)
+                
+                local deploy_anim_val = 1-math.easeOutSine(math.clamp((timer.curtime()-radar_out_ct),0,1))
+                
+                local _ang = ang + Angle(10-20*check_anim_val+75*deploy_anim_val-math.sin(math.rad(deploy_anim_val*180))*25,0,0)
+                local _ang = _ang:rotateAroundAxis(_ang:getUp(),-5+15*check_anim_val-10*deploy_anim_val)
+                local _pos = pos - _ang:getForward() * (5+10*check_anim_val-1*math.sin(math.rad(deploy_anim_val*180))) + _ang:getRight() * (2-2*check_anim_val+deploy_anim_val*4) + _ang:getUp() * (2+1*check_anim_val+1*math.sin(math.rad(deploy_anim_val*180)))
+                pthl.holos["anim_root"]:setPos(_pos)
+                pthl.holos["anim_root"]:setAngles(_ang)
+                pthl.holos["player_hand"]:setPos(_pos)
+                pthl.holos["player_hand"]:setAngles(_ang)
+                pthl.holos["root"]:setPos(_pos)
+                pthl.holos["root"]:setAngles(_ang)
+                
+                pthl.holos["button"]:setPos(pthl.holos["dragon_radar_root"]:localToWorld(Vector(2.7-0.1*button_press_anim_val2,0,-0.1)))
+                
+                if finger_bone then
+                    pthl.holos["anim_root"]:manipulateBoneAngles(finger_bone, Angle(24-1*button_press_anim_val2,-13+1.5*button_press_anim_val2,0))
+                end
+            else
+                if radar_out != false then
+                    radar_out = false
+                    for k, v in pairs(pthl.holos) do
+                        v:setNoDraw(true)
+                    end
+                end
+            end
+        end)
+        hook.remove("Think","_finish_model")
+    end
+end)
