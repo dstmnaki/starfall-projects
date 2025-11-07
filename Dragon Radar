@@ -183,7 +183,7 @@ hook.add("Think","_finish_model",function()
         local radar_out_ct = 0
         
         hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
-            if isValid(owner()) and owner():getHealth() > 0 and owner():getActiveWeapon() and owner():getActiveWeapon():getClass() == "none" then
+            if owner() and isValid(owner()) and owner():getHealth() > 0 and owner():getActiveWeapon() and owner():getActiveWeapon():getClass() == "none" then
                 if radar_out != true then
                     radar_out = true
                     for k, v in pairs(pthl.holos) do
