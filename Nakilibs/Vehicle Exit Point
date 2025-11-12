@@ -1,0 +1,102 @@
+--@name Vehicle Exit Point
+--@author Nakkitsunami
+--@server
+
+local _Wirelink = chip():getWirelink()
+
+local _Vehicle = nil
+local _Position = nil
+local _Angle = nil
+
+-- Add inputs
+wire.adjustInputs({"Vehicle","Position","Angle"}, {"Entity","Vector","Angle"}, {"Seat","Exit position","Exit angle"})
+
+function isWired(name)
+    return isValid(_Wirelink:getWiredTo(name))
+end
+
+-- Read inputs
+hook.add("Input", "_inputs", function(name, value)
+    if name == "Vehicle" then
+        if isWired(name) and isValid(value) then
+            _Vehicle = value
+        end
+    end
+    if name == "Position" then
+        if isWired(name) and value != nil then
+            _Position = value
+        end
+    end
+    if name == "Angle" then
+        if isWired(name) and value != nil then
+            _Angle = value
+        end
+    end
+end)
+
+-- If using dupe
+-- Update values when dupe finishes spawning
+function check_values()
+    if isWired("Vehicle") then
+        if _Vehicle == nil then
+            local getValue = wire.readInput(chip(), "Vehicle")
+            if isValid(getValue) then
+                _Vehicle = getValue
+            end
+        end
+    else
+        _Vehicle = nil
+    end
+    
+    if isWired("Position") then
+        if _Position == nil then
+            local getValue = wire.readInput(chip(), "Position")
+            if getValue != nil then
+                _Position = getValue
+            end
+        end
+    else
+        _Position = nil
+    end
+    
+    if isWired("Angle") then
+        if _Angle == nil then
+            local getValue = wire.readInput(chip(), "Angle")
+            if getValue != nil then
+                _Angle = getValue
+            end
+        end
+    else
+        _Angle = nil
+    end
+end
+
+-- Permission checks
+local _CanSetPos = hasPermission("entities.setPos", owner())
+local _CanSetAng = hasPermission("entities.setEyeAngles", owner())
+
+if not _CanSetPos then
+    printConsole("Permission to use 'entities.setPos' returned false!")
+end
+
+if not _CanSetAng then
+    printConsole("Permission to use 'entities.setEyeAngles' returned false!")
+end
+
+if not (_CanSetPos and _CanSetAng) then printConsole("Code blocked from running...") return end
+
+-- Main code
+hook.add("PlayerLeaveVehicle", "_main", function(ply, vehicle)
+    if not isValid(_Vehicle) then return end
+    if _Vehicle != vehicle then return end
+    
+    -- Just in case values are changed before you exit the vehicle, for example if the value gets unwired (target removed)
+    check_values()
+    
+    if _Position != nil and hasPermission("entities.setPos", ply) then
+        ply:setPos(_Position)
+    end
+    if _Angle != nil and hasPermission("entities.setEyeAngles", ply) then
+        ply:setEyeAngles(_Angle)
+    end
+end)
