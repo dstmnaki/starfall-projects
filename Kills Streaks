@@ -1,0 +1,114 @@
+--@name Kills Streaks
+--@author Nakkitsunami
+--@shared
+
+if SERVER then
+    
+    hook.add("PlayerDeath", "", function(ply, inflictor, attacker)
+        if isValid(attacker) and attacker:isPlayer() and attacker != ply then
+            net.start("transfer_kill")
+            net.writeEntity(attacker)
+            net.send(find.allPlayers(),false)
+        end
+    end)
+    
+    hook.add("OnNPCKilled", "", function(npc, attacker, inflictor)
+        if isValid(attacker) and attacker:isPlayer() then
+            net.start("transfer_kill")
+            net.writeEntity(attacker)
+            net.send(find.allPlayers(),false)
+        end
+    end)
+    
+else
+    
+    local list = {}
+    
+    function add_players()
+        for k, v in pairs(find.allPlayers()) do
+            local block = false
+            local name = v:getName()
+            for k2, v2 in pairs(list) do
+                if v2.name == name then
+                    block = true
+                end
+            end
+            if block == false then
+                local t = {}
+                t.id = k
+                t.ent = v
+                t.name = name
+                t.count = 0
+                table.insert(list,t)
+            end
+        end
+    end
+    
+    hook.add("PlayerInitialSpawn", "", function(ply, transition)
+        add_players()
+    end)
+    hook.add("PlayerDisconnect", "", function(ply, transition)
+        for k, v in pairs(list) do
+            if not isValid(v.ent) then
+                table.remove(list,k)
+            end
+        end
+    end)
+    
+    table.sort(list, function(a, b)
+        if a.count == 0 and b.count == 0 then
+            return a.id > b.id
+        else
+            return a.count > b.count
+        end
+    end)
+    add_players()
+    
+    hook.add("Net", "", function(name, len, ply)
+        if name == "transfer_kill" then
+            local attacker = net.readEntity()
+            if not isValid(attacker) then return end
+            for k, v in pairs(list) do
+                if v.ent == attacker then
+                    v.count = v.count + 1
+                    table.sort(list, function(a, b)
+                        if a.count == 0 and b.count == 0 then
+                            return a.id > b.id
+                        else
+                            return a.count > b.count
+                        end
+                    end)
+                end
+            end
+        end
+    end)
+    
+    local w, h = render.getGameResolution()
+    
+    hook.add("DrawHUD","",function()
+        if not render.isHUDActive() then return end
+        local m = Matrix()
+        m:setScale(Vector(2))
+        render.pushMatrix(m)
+            for k, v in pairs(list) do
+                if k < 5 then
+                    render.setColor(select(
+                        math.clamp(k, 1, 4),
+                        Color(255,200,0,255),
+                        Color(255,150,0,255),
+                        Color(225,225,255,255),
+                        Color(200,200,200,255)
+                    ))
+                    render.drawText(5, h * 0.025 * (k - 1), k .. "|" .. v.name .. " " .. v.count, TEXT_ALIGN.LEFT)
+                end
+                if player() == v.ent then
+                    render.setColor(Color(200, 200, 200, 255))
+                    render.drawText(5, h * 0.025 * (5 - 1), k .. "|" .. v.name .. " " .. v.count, TEXT_ALIGN.LEFT)
+                end
+            end
+            
+        render.popMatrix()
+        render.drawLine(10,h * 0.05 * 3.8,350,h * 0.05 * 3.8)
+        render.drawLine(10,h * 0.05 * 3.85,350,h * 0.05 * 3.85)
+    end)
+end
