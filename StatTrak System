@@ -52,6 +52,7 @@ local inspect_anim_bones = {
 local inspect_button = KEY.G
 local inspect_block_delay = 1
 
+local use_hud_display = true
 
 if SERVER then
     hook.add("OnNPCKilled", "", function(npc, attacker, inflictor)
@@ -318,6 +319,8 @@ else
     local inspect_anim_end = false
     local inspect_anim_last_ct = 0
     
+    local w, h = render.getGameResolution()
+    
     hook.add("PreDrawViewModels","",function()
         if isValid(owner()) and isValid(owner():getActiveWeapon()) then
             local wpn = owner():getActiveWeapon()
@@ -407,6 +410,7 @@ else
                                     end
                                     if timer.curtime() - inspect_anim_wait_ct >= inspect_anim_bones["hold_length"] then
                                         inspect_anim_ct = timer.curtime()
+                                        inspect_anim_frame = 0
                                         inspect_wait = false
                                         inspect_anim_end = true
                                     end
@@ -463,4 +467,24 @@ else
             clear_data()
         end
     end)
+    
+    if use_hud_display then
+        local edge_thickness = 6
+        
+        hook.add("DrawHUD","",function()
+            if pthl.ready and inspect then
+                local fade = math.clamp((inspect_anim_end and (1-inspect_anim_frame) or inspect_anim_frame)*5,0,1)
+                local toscreen_pos_original = pthl.holos["screen"]:getPos():toScreen()
+                local toscreen_pos = Vector(toscreen_pos_original["x"],toscreen_pos_original["y"],0)
+                local pos = (Vector(w/2+250, h/2+50, 0)+toscreen_pos)/2
+                
+                render.setColor(Color(25,25,25,175*fade))
+                render.drawRoundedBox(5, pos.x+95-edge_thickness, pos.y-30-edge_thickness, 102+edge_thickness*2, 32+edge_thickness*2)
+                
+                render.setFont("DermaLarge")
+                render.setColor(Color(255,175,100,255*fade))
+                render.drawText(pos.x+100,pos.y-30,table.concat(table.reverse(kill_count_exploded), ""),TEXT_ALIGN.LEFT)
+            end
+        end)
+    end
 end
