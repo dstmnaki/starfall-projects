@@ -181,6 +181,7 @@ else
     
     
     local last = {}
+    local last_exploded = {}
     
     function number_display(slot,number)
         for index, on in pairs(number_table[number]) do
@@ -215,7 +216,10 @@ else
             render.selectRenderTarget(rtName)
             
             for k, v in pairs(kill_count_exploded) do
-                number_display(k,v)
+                if last_exploded[k] != v then
+                    last_exploded[k] = v
+                    number_display(k,v)
+                end
             end
             
             render.selectRenderTarget()
