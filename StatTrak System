@@ -1,0 +1,428 @@
+--@name StatTrak System
+--@author Nakkitsunami
+--@include nakilibs/pac_to_holo_loader.txt
+--@shared
+
+local weapon_name = "weapon_pistol"
+local parent_bone = "ValveBiped.Bip01_R_Hand"
+local offset_pos = Vector(8.5, -1.9, -2)
+local offset_ang = Angle(0, 0, 180)
+
+local inspect_anim_bones = {
+    ["hold_length"] = 3,
+    ["bones"] = {
+        ["ValveBiped.Bip01_R_Hand"] = Angle(33, -30, 28)
+    }
+}
+
+local inspect_button = KEY.G
+local inspect_block_delay = 1
+
+
+if SERVER then
+    hook.add("OnNPCKilled", "", function(npc, attacker, inflictor)
+        if attacker == owner() then
+            if isValid(inflictor) and inflictor:getClass() == weapon_name then
+                net.start("register_kill")
+                net.send(owner(),false)
+            end
+        end
+    end)
+    hook.add("PlayerDeath", "", function(ply, inflictor, attacker)
+        if attacker == owner() then
+            if isValid(inflictor) and inflictor:getClass() == weapon_name then
+                net.start("register_kill")
+                net.send(owner(),false)
+            end
+        end
+    end)
+else
+    if player() ~= owner() then return end
+    enableHud(owner(),true)
+    
+    require("nakilibs/pac_to_holo_loader.txt")
+    
+    local ht, hc = {}, 0
+    
+    -- \/ \/ \/ INSERT CODE INSIDE HERE \/ \/ \/
+    
+    local size = 1
+    local parent = chip()
+    local real_parent = chip()
+    
+    hc=hc+1 ht[hc]={"root",parent,real_parent,Vector(0,0,0),Angle(0,0,0)}
+    
+    parent = "root"
+    real_parent = "root"
+    
+    hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,0.14,-0.16),Angle(0,0,-40),"models/hunter/blocks/cube025x025x025.mdl","phoenix_storms/mrtire",Color(255,255,255,255),Vector(0.1417,0.009,0.0112),{}}
+    hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0.81,0,0.165),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","phoenix_storms/mrtire",Color(255,255,255,255),Vector(0.0045,0.0382,0.036),{}}
+    hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,-0.02,-0.19),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","phoenix_storms/mrtire",Color(255,255,255,255),Vector(0.1417,0.027,0.009),{}}
+    hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0.34,0.11,-0.15),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","phoenix_storms/mrtire",Color(255,255,255,255),Vector(0.0742,0.0225,0.0135),{}}
+    hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-0.52,0,-0.32),Angle(0,0,0),"models/props_junk/PopCan01a.mdl","phoenix_storms/mrtire",Color(255,255,255,255),Vector(0.06,0.06,0.03),{}}
+    hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,0,0.39),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","phoenix_storms/mrtire",Color(255,255,255,255),Vector(0.1417,0.0382,0.0045),{}}
+    hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,0,-0.09),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","phoenix_storms/mrtire",Color(255,255,255,255),Vector(0.1417,0.0382,0.009),{}}
+    hc=hc+1 ht[hc]={"screen",parent,real_parent,Vector(0,0.1,0.165),Angle(0,0,0),"models/hunter/blocks/cube1x1x1.mdl","screen",Color(255,255,255,255),Vector(0.0341,0.0044,0.0341),{{1,Vector(0,0,-0.22),Vector(0,0,1)},{2,Vector(0,0,0.22),Vector(0,0,-1)}}}
+    hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(-0.81,0,0.165),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","phoenix_storms/mrtire",Color(255,255,255,255),Vector(0.0045,0.0382,0.036),{}}
+    hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0.52,0,-0.32),Angle(0,0,0),"models/props_junk/PopCan01a.mdl","phoenix_storms/mrtire",Color(255,255,255,255),Vector(0.06,0.06,0.03),{}}
+    hc=hc+1 ht[hc]={hc,parent,real_parent,Vector(0,-0.14,0.165),Angle(0,0,0),"models/hunter/blocks/cube025x025x025.mdl","phoenix_storms/mrtire",Color(255,255,255,255),Vector(0.1395,0.0135,0.036),{}}
+    
+    
+    -- /\ /\ /\ INSERT CODE INSIDE HERE /\ /\ /\
+    
+    local rtName = "_screen"
+    render.createRenderTarget(rtName)
+    
+    local screen_mat = material.create("VertexLitGeneric")
+    screen_mat:setTextureRenderTarget("$basetexture", rtName)
+    
+    local number_table = {}
+    number_table[0] = {
+    0,1,1,1,0,
+    1,0,0,0,1,
+    1,0,0,1,1,
+    1,0,1,0,1,
+    1,1,0,0,1,
+    1,0,0,0,1,
+    0,1,1,1,0
+    }
+    number_table[1] = {
+    0,0,0,0,1,
+    0,0,0,1,1,
+    0,0,1,0,1,
+    0,0,0,0,1,
+    0,0,0,0,1,
+    0,0,0,0,1,
+    0,0,0,0,1
+    }
+    number_table[2] = {
+    0,1,1,1,0,
+    1,0,0,0,1,
+    1,0,0,0,1,
+    0,0,0,1,0,
+    0,0,1,0,0,
+    0,1,0,0,0,
+    1,1,1,1,1
+    }
+    number_table[3] = {
+    0,1,1,1,0,
+    1,0,0,0,1,
+    0,0,0,0,1,
+    0,0,1,1,0,
+    0,0,0,0,1,
+    1,0,0,0,1,
+    0,1,1,1,0
+    }
+    number_table[4] = {
+    0,0,0,1,0,
+    0,0,1,1,0,
+    0,1,0,1,0,
+    1,0,0,1,0,
+    1,1,1,1,1,
+    0,0,0,1,0,
+    0,0,0,1,0
+    }
+    number_table[5] = {
+    1,1,1,1,1,
+    1,0,0,0,0,
+    1,1,1,1,0,
+    0,0,0,0,1,
+    0,0,0,0,1,
+    1,0,0,0,1,
+    0,1,1,1,0
+    }
+    number_table[6] = {
+    0,1,1,1,0,
+    1,0,0,0,1,
+    1,0,0,0,0,
+    1,1,1,1,0,
+    1,0,0,0,1,
+    1,0,0,0,1,
+    0,1,1,1,0
+    }
+    number_table[7] = {
+    1,1,1,1,1,
+    0,0,0,0,1,
+    0,0,0,1,0,
+    0,0,1,0,0,
+    0,0,1,0,0,
+    0,0,1,0,0,
+    0,0,1,0,0
+    }
+    number_table[8] = {
+    0,1,1,1,0,
+    1,0,0,0,1,
+    1,0,0,0,1,
+    0,1,1,1,0,
+    1,0,0,0,1,
+    1,0,0,0,1,
+    0,1,1,1,0
+    }
+    number_table[9] = {
+    0,1,1,1,0,
+    1,0,0,0,1,
+    1,0,0,0,1,
+    0,1,1,1,1,
+    0,0,0,0,1,
+    1,0,0,0,1,
+    0,1,1,1,0
+    }
+    
+    local kill_count = 0
+    
+    local kill_count_exploded = {}
+    
+    kill_count_exploded[1] = 0
+    kill_count_exploded[2] = 0
+    kill_count_exploded[3] = 0
+    kill_count_exploded[4] = 0
+    kill_count_exploded[5] = 0
+    kill_count_exploded[6] = 0
+    
+    
+    local last = {}
+    
+    function number_display(slot,number)
+        for index, on in pairs(number_table[number]) do
+            if last[slot] == nil then last[slot] = {} end
+            if last[slot][index] == nil then last[slot][index] = -1 end
+            if last[slot][index] != on then
+                last[slot][index] = on
+                
+                local i = index-1
+                local y = math.floor(i/5,0)
+                local x = i-5*y + 5.9 * (6 - slot)
+                render.setColor(on == 1 and Color(255,125,75,255) or Color(40,40,40,255))
+                render.drawRectRotated(24+(24+5)*x,512-(24+5)*3+(24+5)*y,24,24,0)
+            end
+        end
+    end
+    
+    
+    
+    
+    local get_kill_count = file.read("stattrak_system/"..weapon_name..".txt")
+    
+    function update_kill_count()
+        local ex = string.explode("", tostring(kill_count))
+        ex = table.reverse(ex)
+        local len = #ex
+        for i = 1, len do
+            kill_count_exploded[i] = tonumber(ex[i])
+        end
+        
+        hook.add("RenderScene", "_draw_texture", function(origin, angles, fov)
+            render.selectRenderTarget(rtName)
+            
+            for k, v in pairs(kill_count_exploded) do
+                number_display(k,v)
+            end
+            
+            render.selectRenderTarget()
+            hook.remove("RenderScene", "_draw_texture")
+        end)
+    end
+    
+    if get_kill_count != nil and get_kill_count != "" then
+        get_kill_count = tonumber(get_kill_count)
+        if get_kill_count > 0 then
+            kill_count = get_kill_count
+        end
+    end
+    
+    hook.add("net","",function(name,len,ply)
+        if name == "register_kill" then
+            kill_count = kill_count + 1
+            update_kill_count()
+        end
+    end)
+    
+    update_kill_count()
+    
+    hook.add("Removed", "", function()
+        local vm = owner():getViewModel()
+        for _, data in pairs(inspect_anim_bones["bones"]) do
+            local bone = data[1]
+            local ang = data[2]
+            if ang != nil then
+                vm:manipulateBoneAngles(bone, Angle())
+            end
+        end
+        if kill_count > 0 then
+            file.createDir("stattrak_system/")
+            file.write("stattrak_system/"..weapon_name..".txt", tostring(kill_count))
+        end
+    end)
+    
+    function clear_data()
+        if cleared != true then
+            cleared = true
+            hook.add("think","_clear_data",function()
+                pthl.ready = false
+                pthl.create_once = false
+                hologram.removeAll()
+                for i, holo in pairs(pthl.holos) do
+                    if holo and holo != nil and holo:isValid() then
+                        holo:remove()
+                    end
+                end
+                pthl.holos = {}
+                
+                pthl.initialize = false
+                hook.remove("think","_clear_data")
+            end)
+        end
+    end
+    local inspect_anim_frame = 0
+    local inspect_anim_ct = 0
+    local inspect_anim_wait_ct = 0
+    local inspect_wait = false
+    local inspect_anim_end = false
+    local inspect_anim_last_ct = 0
+    
+    hook.add("PreDrawViewModels","",function()
+        if isValid(owner()) and isValid(owner():getActiveWeapon()) then
+            local wpn = owner():getActiveWeapon()
+            if owner():getWeapon(weapon_name) != nil then
+                if wpn:getClass() == weapon_name then
+                    if pthl.ready then
+                        local vm = owner():getViewModel()
+                        if input.isKeyDown(inspect_button) then
+                            if timer.curtime() - inspect_anim_last_ct >= inspect_block_delay and inspect != true then
+                                inspect = true
+                                
+                                inspect_anim_frame = 0
+                                inspect_anim_ct = timer.curtime()
+                                inspect_anim_wait_ct = 0
+                                inspect_wait = false
+                                inspect_anim_end = false
+                            end
+                        end
+                        if pthl.initialize != true then
+                            pthl.initialize = true
+                            cleared = false
+                            pthl.holos["root"]:setParent(nil)
+                            for k, v in pairs(pthl.holos) do
+                                v:setRenderGroup(RENDERGROUP.VIEWMODEL)
+                            end
+                            for k, v in pairs(inspect_anim_bones["bones"]) do
+                                local bone_id = vm:lookupBone(k)
+                                if bone_id != nil then
+                                    inspect_anim_bones["bones"][k] = {bone_id,v}
+                                end
+                            end
+
+                        end
+                        if pthl.hide != false then
+                            pthl.hide = false
+                            for i, holo in pairs(pthl.holos) do
+                                if holo and holo != nil and holo:isValid() then
+                                    holo:setNoDraw(false)
+                                end
+                            end
+                            local bone_attach = vm:lookupBone(parent_bone)
+                            if bone_attach then
+                                local _pos, _ang = vm:getBonePosition(bone_attach)
+                                local _new_pos, _new_ang = localToWorld(offset_pos,offset_ang,_pos,_ang)
+                                pthl.holos["root"]:setPos(_new_pos)
+                                pthl.holos["root"]:setAngles(_new_ang)
+                                pthl.holos["root"]:setParent(vm, nil, parent_bone)
+                                pthl.holos["screen"]:setMaterial("!"..screen_mat:getName())
+                            end
+                        end
+                        if inspect then
+                            if owner():keyDown(IN_KEY.RELOAD) or owner():keyDown(IN_KEY.ATTACK) or owner():keyDown(IN_KEY.ATTACK2) then
+                                inspect_anim_last_ct = timer.curtime()
+                                inspect = false
+                                for bone_name, data in pairs(inspect_anim_bones["bones"]) do
+                                    local bone = data[1]
+                                    local ang = data[2]
+                                    if bone >= 0 and ang != nil then
+                                        vm:manipulateBoneAngles(bone, Angle())
+                                    end
+                                end
+                                return
+                            end
+                            inspect_anim_frame = math.easeInOutSine(math.clamp((timer.curtime() - inspect_anim_ct)/(1*0.4),0,1))
+                            if inspect_anim_frame >= 1 then
+                                if inspect_anim_end then
+                                    inspect_anim_last_ct = timer.curtime()
+                                    inspect = false
+                                    for bone_name, data in pairs(inspect_anim_bones["bones"]) do
+                                        local bone = data[1]
+                                        local ang = data[2]
+                                        if bone >= 0 and ang != nil then
+                                            vm:manipulateBoneAngles(bone, Angle())
+                                        end
+                                    end
+                                else
+                                    if inspect_wait != true then
+                                        inspect_wait = true
+                                        inspect_anim_wait_ct = timer.curtime()
+                                        for bone_name, data in pairs(inspect_anim_bones["bones"]) do
+                                            local bone = data[1]
+                                            local ang = data[2]
+                                            if bone >= 0 and ang != nil then
+                                                vm:manipulateBoneAngles(bone, ang)
+                                            end
+                                        end
+                                    end
+                                    if timer.curtime() - inspect_anim_wait_ct >= inspect_anim_bones["hold_length"] then
+                                        inspect_anim_ct = timer.curtime()
+                                        inspect_wait = false
+                                        inspect_anim_end = true
+                                    end
+                                end
+                            else
+                                if inspect_anim_end then
+                                    for bone_name, data in pairs(inspect_anim_bones["bones"]) do
+                                        local bone = data[1]
+                                        local ang = data[2]
+                                        if bone >= 0 and ang != nil then
+                                            vm:manipulateBoneAngles(bone, ang*(1-inspect_anim_frame))
+                                        end
+                                    end
+                                else
+                                    for bone_name, data in pairs(inspect_anim_bones["bones"]) do
+                                        local bone = data[1]
+                                        local ang = data[2]
+                                        if bone >= 0 and ang != nil then
+                                            vm:manipulateBoneAngles(bone, ang*inspect_anim_frame)
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    else
+                        if pthl.create_once != true then
+                            pthl.create_once = true
+                            pthl.createHolos(hc,ht,false,size)
+                        end
+                    end
+                else
+                    if pthl.hide != true then
+                        pthl.hide = true
+                        for i, holo in pairs(pthl.holos) do
+                            if holo and holo != nil and holo:isValid() then
+                                holo:setNoDraw(true)
+                            end
+                        end
+                        local vm = owner():getViewModel()
+                        inspect = false
+                        for bone_name, data in pairs(inspect_anim_bones["bones"]) do
+                            local bone = data[1]
+                            local ang = data[2]
+                            if bone >= 0 and ang != nil then
+                                vm:manipulateBoneAngles(bone, Angle())
+                            end
+                        end
+                    end
+                end
+            else
+                clear_data()
+            end
+        else
+            clear_data()
+        end
+    end)
+end
