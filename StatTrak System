@@ -22,7 +22,7 @@ local inspect_anim_bones = {
     }
 }
 --]]
---[[
+----[[
 local weapon_name = "weapon_pistol"
 local parent_bone = "ValveBiped.Bip01_R_Hand"
 local offset_pos = Vector(8.5, -1.9, -2)
