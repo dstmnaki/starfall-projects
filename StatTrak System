@@ -55,6 +55,7 @@ local inspect_block_delay = 1
 local use_hud_display = true
 
 if SERVER then
+    
     hook.add("OnNPCKilled", "", function(npc, attacker, inflictor)
         if attacker == owner() then
             if isValid(inflictor) and inflictor:getClass() == weapon_name then
@@ -72,6 +73,8 @@ if SERVER then
         end
     end)
 else
+    setName("StatTrak System ["..weapon_name.."]")
+    
     if player() ~= owner() then return end
     enableHud(owner(),true)
     
