@@ -1,0 +1,125 @@
+--@name Advanced Wire Manager
+--@author Nakkitsunami
+--@server
+
+-- CONFIG
+
+
+local _DEBUG = true
+
+// Add inputs here in format of
+// Inputs["Name of input"] = {"Type of input", "Input description, shows up with wire tool"}
+local Inputs = {}
+Inputs["Entity"] = {"Entity","Example Entity"}
+
+
+-- CODE
+
+// This table will list the inputs, do not edit it, use it as follows
+// LocalizedInputs["Name of input"], this will return the value it's wired to (entity, number, etc etc)
+local LocalizedInputs = {}
+
+// Initialize temp variables
+local _Temp = {}
+_Temp["InputNames"] = {}
+_Temp["InputTypes"] = {}
+_Temp["InputDescriptions"] = {}
+_Temp["Index"] = 1
+
+// Reformat tables etc
+for k, v in pairs(Inputs) do
+    LocalizedInputs[k] = nil
+    
+    _Temp["InputNames"][_Temp["Index"]] = k
+    _Temp["InputTypes"][_Temp["Index"]] = v[1]
+    _Temp["InputDescriptions"][_Temp["Index"]] = v[2]
+    
+    _Temp["Index"] = _Temp["Index"] + 1
+    
+    if _DEBUG then
+        print("input registered: "..k)
+    end
+end
+
+// Register inputs
+wire.adjustInputs(_Temp["InputNames"], _Temp["InputTypes"], _Temp["InputDescriptions"])
+
+_Temp = nil -- This just removes the _Temp table, not really neccessary but it does clean up space
+
+
+// Validation function to check if the wire is valid, kinda, not sure if there is a better way to do this
+local function isWired(name)
+    return isValid(chip():getWirelink():getWiredTo(name))
+end
+
+// Input hook to validate input variables
+hook.add("Input", "_inputs", function(name, value)
+    if isWired(name) and value != nil then
+        LocalizedInputs[name] = value
+        
+        if _DEBUG then
+            print(name.." initialized, value set to "..tostring(value))
+        end
+    else
+        if _DEBUG then
+            print(name.." failed to initialized")
+        end
+    end
+end)
+
+// Checks an individual wire using given name
+local function check_value(name)
+    if isWired(name) then
+        if LocalizedInputs[name] == nil then
+            local getValue = wire.readInput(chip(), name)
+            if getValue != nil then
+                LocalizedInputs[name] = getValue
+                
+                if _DEBUG then
+                    print(name.." was missing... setting it to "..tostring(getValue))
+                end
+            end
+        end
+    else
+        if LocalizedInputs[name] != nil then
+            LocalizedInputs[name] = nil
+            
+            if _DEBUG then
+                print(name.." is no longer wired, clearing variable...")
+            end
+        end
+    end
+    return LocalizedInputs[name] != nil
+end
+
+// Checks all wire connections
+local function check_all_values()
+    for k, v in pairs(LocalizedInputs) do
+        check_value(k)
+    end
+end
+
+-- Simple loop to check all wired values at once
+hook.add("Think", "_check", function()
+    check_all_values()
+end)
+
+
+-- Single wire check
+local valid = check_value("Entity")
+print("Wired entity 'Entity' is "..(valid and "valid" or "invalid"))
+
+
+
+
+-- Experimental functions
+
+
+// Attempt to revalidate invalid wire connections
+local function check_all_invalid_values()
+    for k, v in pairs(LocalizedInputs) do
+        if v == nil then
+            check_value(k)
+        end
+    end
+end
