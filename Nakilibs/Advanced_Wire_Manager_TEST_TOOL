@@ -1,0 +1,27 @@
+--@name Nakilibs/Advanced_Wire_Manager_TEST_TOOL
+--@author Nakkitsunami
+--@server
+--@include Nakilibs/Advanced_Wire_Manager.txt
+require("Nakilibs/Advanced_Wire_Manager.txt")
+
+
+AdvWire.AddInput("Prop","Entity","Entity type input")
+
+AdvWire.RegisterInputs()
+
+
+local RecievedValues = {}
+
+hook.add("Think","",function()
+    local name = "Prop"
+    if AdvWire.check_value(name) then
+        if RecievedValues[name] == nil then
+            local value = AdvWire.GetInputs[name]
+            RecievedValues[name] = value
+            print("input received "..tostring(value))
+        end
+    else
+        RecievedValues[name] = nil
+    end
+end)
+
