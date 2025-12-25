@@ -5,14 +5,13 @@
 AdvWire = {}
 AdvWire.GetInputs = {}
 
-local _DEBUG = true
-
+local _DEBUG = false
 
 
 local Inputs = {}
 function AdvWire.AddInput(name,type,description)
     if name:find(" ") then print("Input names cannot have spaces \" \" use underscores instead \"_\"") return end
-    if Inputs[name] != nil then print(name.." is registered already!") return end
+    if Inputs[name] != nil then print("Input \""..name.."\" is registered already! skipping...") return end
     Inputs[name] = {type,description}
     if _DEBUG then
         print("input registered: "..name)
