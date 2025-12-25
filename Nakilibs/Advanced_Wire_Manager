@@ -1,0 +1,101 @@
+--@name Nakilibs/Advanced_Wire_Manager
+--@author Nakkitsunami
+--@server
+
+AdvWire = {}
+AdvWire.GetInputs = {}
+
+local _DEBUG = true
+
+
+
+local Inputs = {}
+function AdvWire.AddInput(name,type,description)
+    if name:find(" ") then print("Input names cannot have spaces \" \" use underscores instead \"_\"") return end
+    if Inputs[name] != nil then print(name.." is registered already!") return end
+    Inputs[name] = {type,description}
+    if _DEBUG then
+        print("input registered: "..name)
+    end
+end
+
+function AdvWire.RegisterInputs()
+    local _Temp = {}
+    _Temp["InputNames"] = {}
+    _Temp["InputTypes"] = {}
+    _Temp["InputDescriptions"] = {}
+    _Temp["Index"] = 1
+    for k, v in pairs(Inputs) do
+        AdvWire.GetInputs[k] = nil
+        
+        _Temp["InputNames"][_Temp["Index"]] = k
+        _Temp["InputTypes"][_Temp["Index"]] = v[1]
+        _Temp["InputDescriptions"][_Temp["Index"]] = v[2]
+        
+        _Temp["Index"] = _Temp["Index"] + 1
+    end
+    
+    wire.adjustInputs(_Temp["InputNames"], _Temp["InputTypes"], _Temp["InputDescriptions"])
+    
+    _Temp = nil
+    
+    if _DEBUG then
+        print("inputs added!")
+    end
+end
+
+local function isWired(name)
+    return isValid(chip():getWirelink():getWiredTo(name))
+end
+
+hook.add("Input", "_inputs", function(name, value)
+    if isWired(name) then
+        if value != nil then
+            AdvWire.GetInputs[name] = value
+            
+            if _DEBUG then
+                print(name.." initialized, value set to "..tostring(value))
+            end
+        else
+            if _DEBUG then
+                print(name.." failed to initialized")
+            end
+        end
+    else
+        if _DEBUG then
+            print(name.." is not yet wired")
+        end
+    end
+end)
+
+function AdvWire.check_value(name)
+    if isWired(name) then
+        if AdvWire.GetInputs[name] == nil then
+            local getValue = wire.readInput(chip(), name)
+            if getValue != nil then
+                AdvWire.GetInputs[name] = getValue
+                
+                if _DEBUG then
+                    print(name.." was missing... setting it to "..tostring(getValue))
+                end
+            end
+        end
+    else
+        if AdvWire.GetInputs[name] != nil then
+            AdvWire.GetInputs[name] = nil
+            
+            if _DEBUG then
+                print(name.." is no longer wired, clearing variable...")
+            end
+        end
+    end
+    return AdvWire.GetInputs[name] != nil
+end
+
+function AdvWire.check_all_values(invalid_only)
+    for k, v in pairs(AdvWire.GetInputs) do
+        if invalid_only != true or v == nil then
+            check_value(k)
+        end
+    end
+end
