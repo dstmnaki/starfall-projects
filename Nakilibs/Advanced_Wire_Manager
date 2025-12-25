@@ -94,7 +94,7 @@ end
 function AdvWire.check_all_values(invalid_only)
     for k, v in pairs(AdvWire.GetInputs) do
         if invalid_only != true or v == nil then
-            check_value(k)
+            AdvWire.check_value(k)
         end
     end
 end
