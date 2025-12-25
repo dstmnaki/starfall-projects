@@ -1,4 +1,4 @@
---@name Advanced Wire Manager
+--@name Advanced Wire Manager EXAMPLE
 --@author Nakkitsunami
 --@server
 
@@ -54,15 +54,21 @@ end
 
 // Input hook to validate input variables
 hook.add("Input", "_inputs", function(name, value)
-    if isWired(name) and value != nil then
-        LocalizedInputs[name] = value
-        
-        if _DEBUG then
-            print(name.." initialized, value set to "..tostring(value))
+    if isWired(name) then
+        if value != nil then
+            AdvWire.GetInputs[name] = value
+            
+            if _DEBUG then
+                print(name.." initialized, value set to "..tostring(value))
+            end
+        else
+            if _DEBUG then
+                print(name.." failed to initialized")
+            end
         end
     else
         if _DEBUG then
-            print(name.." failed to initialized")
+            print(name.." is not yet wired")
         end
     end
 end)
