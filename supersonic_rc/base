@@ -1,0 +1,366 @@
+--@name base
+--@author Naki
+--@shared
+--@includedir supersonic_rc/model/
+--@include Nakilibs/Advanced_Wire_Manager.txt
+
+
+local suspension_height = 4
+local suspension_strength = 5
+local suspension_damping = 0.25
+local _GRAVITY = 15
+
+local wheels = {}
+wheels["left_front"] = {}
+wheels["left_front"]["pos"] = Vector(11.75,-5.72631,-2.75)
+
+wheels["right_front"] = {}
+wheels["right_front"]["pos"] = Vector(11.75,5.72631,-2.75)
+
+
+wheels["left_back"] = {}
+wheels["left_back"]["pos"] = Vector(-6.5,-5.72631,-2.75)
+
+
+wheels["right_back"] = {}
+wheels["right_back"]["pos"] = Vector(-6.5,5.72631,-2.75)
+
+
+
+if SERVER then
+    require("Nakilibs/Advanced_Wire_Manager.txt")
+    
+    AdvWire.AddInput("Seat","Entity","Driver Seat")
+    
+    AdvWire.RegisterInputs()
+    
+    local collision_model_data = require("supersonic_rc/model/collision_model.txt")
+    
+    local objects = {}
+    local allConvexes = {}
+    
+    local lines = collision_model_data:split("\n")
+    local currentObject = nil
+    
+    for _, line in ipairs(lines) do
+        local parts = line:split(" ")
+        local prefix = parts[1]
+        
+        if prefix == "o" then
+            -- New object
+            currentObject = { 
+                name = parts[2] or "unnamed_object", -- Store object name
+                vertices = {} 
+            }
+            table.insert(objects, currentObject)
+        elseif prefix == "v" and currentObject then
+            -- Vertex
+            local x = tonumber(parts[2])
+            local y = tonumber(parts[3])
+            local z = tonumber(parts[4])
+            table.insert(currentObject.vertices, Vector(x, y, z))
+        end
+    end
+    
+    for _, obj in ipairs(objects) do
+        if #obj.vertices > 0 then
+            local convex = obj.vertices
+            table.insert(allConvexes, convex)
+        end
+    end
+    
+    local COLLISION_MODEL = prop.createCustom(
+        chip():localToWorld(Vector(0,0,25)),
+        chip():localToWorldAngles(Angle(0,0,0)),
+        allConvexes,
+        true
+    )
+    
+    COLLISION_MODEL:setMass(20)
+    COLLISION_MODEL:setColor(Color(0,0,0,0))
+    local is_ready = {}
+    local sent = {}
+    
+    hook.add("ClientInitialized", "", function(ply)
+        local key = tostring(ply:getSteamID())
+        is_ready[key] = true
+        sent[key] = false
+    end)
+    
+    local base = COLLISION_MODEL
+    local base_phys = base:getPhysicsObject()
+    base_phys:enableGravity(false)
+    
+    local hitcount = 0
+    
+    function simulate_physics(wheel_name, move_force)
+        local wheel_pos = base:localToWorld(wheels[wheel_name].pos)
+        local tr = trace.line(wheel_pos, wheel_pos - base:getUp() * suspension_height, base)
+        
+        if tr.Hit then
+            local hit_pos = tr.HitPos
+            local compression = suspension_height - hit_pos:getDistance(wheel_pos)
+            if compression > 0 then
+                local up = base:getUp()
+                local vel = base_phys:getVelocityAtPoint(hit_pos)
+                local vel_up = vel:dot(up)
+                
+                local spring = up * compression * suspension_strength
+                local damping = -up * vel_up * suspension_damping
+                
+                base_phys:applyForceOffset((spring + damping + move_force) * base:getMass(), wheel_pos)
+            end
+            hitcount = hitcount + 1
+        end
+    end
+    
+    local steering = 0
+    local throttle = 0
+    local Seat = nil
+    
+    hook.add("Think","_main_server",function()
+        if not isValid(base) then return end
+        
+        if AdvWire.check_value("Seat") then
+            if Seat == nil then
+                local value = AdvWire.GetInputs["Seat"]
+                Seat = value
+                print("input received "..tostring(value))
+            end
+        else
+            Seat = nil
+        end
+        
+        if not isValid(Seat) then return end
+        
+        for k, v in pairs(is_ready) do
+            if sent[k] != true and v == true then
+                sent[k] = true
+                net.start("network_base")
+                net.writeEntity(base)
+                net.send()
+            end
+        end
+        
+        local driver = Seat:getDriver()
+        
+        if isValid(driver) then
+            base:enableMotion(true)
+            local w = driver:keyDown(IN_KEY.FORWARD)
+            local s = driver:keyDown(IN_KEY.BACK)
+            
+            local a = driver:keyDown(IN_KEY.MOVELEFT)
+            local d = driver:keyDown(IN_KEY.MOVERIGHT)
+            
+            if a then
+                steering = -1
+            elseif d then
+                steering = 1
+            else
+                steering = 0
+            end
+            
+            if w then
+                throttle = 1
+            elseif s then
+                throttle = -0.5
+            else
+                throttle = 0
+            end
+        else
+            throttle = 0
+            steering = 0
+        end
+        
+        local vel = base:getVelocity()
+        local limit_speed = 1+vel:getLength()/53*0.75
+        local localvel = base:getLocalVelocity()
+        local drive_force = base:getForward()*60/limit_speed*throttle
+        
+        hitcount = 0
+        
+        simulate_physics("left_front",drive_force*0.8-base:getUp()*4*throttle+base:getRight()*steering*4*(localvel.x/53*0.1))
+        simulate_physics("right_front",drive_force*0.8-base:getUp()*4*throttle+base:getRight()*steering*4*(localvel.x/53*0.1))
+        simulate_physics("left_back",drive_force*0.2-vel*Vector(1,1,0)/53*0.5)
+        simulate_physics("right_back",drive_force*0.2-vel*Vector(1,1,0)/53*0.5)
+        
+        base_phys:applyForceCenter((-base:getVelocity()*Vector(0.2,0.2,0)/4*hitcount/limit_speed+Vector(0,0,-_GRAVITY)) * base:getMass())
+        base:applyAngForce(-base:getAngleVelocityAngle() * 0.25 * base:getMass())
+    end)
+else
+    
+    local base = nil
+    
+    local obj_builder = {}
+    obj_builder.current = 1
+    obj_builder.state = "idle"
+    
+    
+    local models_in = {}
+    local models_out = {}
+    
+    local holos = {}
+    
+    local car_texture_url = "https://raw.githubusercontent.com/dstmnaki/starfall-projects/refs/heads/main/supersonic_rc/textures/car_map.png"
+    
+    function request_obj_data(name)
+        local data = require("supersonic_rc/model/"..name..".txt")
+        if data == nil then print("File \""..name.."\" does not contain proper data, skipping...") return end
+        models_in[#models_in+1] = {name,data}
+        print("Model added to queue: "..name..".txt")
+    end
+    
+    function build_obj_from_data(key,data)
+        local m = mesh.createFromObj(data, false, false)
+        hook.add("Think","_obj_create_validate_check",function()
+            if m != nil then
+                models_out[key] = m
+                timer.simple(0.25*(1-cpuMax()),function()
+                    obj_builder.state = "next"
+                end)
+                hook.remove("Think","_obj_create_validate_check")
+            end
+        end)
+    end
+    
+    function create_models(callback)
+        hook.add("Think","_obj_create",function()
+            local entry = models_in[obj_builder.current]
+            if entry != nil then
+                local name = entry[1]
+                if obj_builder.state == "idle" then
+                    obj_builder.state = "building"
+                    print(name.." | BUILDING...")
+                    
+                    local data = models_in[obj_builder.current][2]
+                    build_obj_from_data(name,data)
+                elseif obj_builder.state == "next" then
+                    obj_builder.current = obj_builder.current + 1
+                    obj_builder.state = "idle"
+                    print(name.." | DONE")
+                end
+            else
+                obj_builder.state = "finish"
+                print("Finished building "..#models_in.." meshes")
+                hook.remove("Think","_obj_create")
+                callback()
+            end
+        end)
+    end
+    
+    request_obj_data("body")
+    request_obj_data("wheel")
+    request_obj_data("axle_left")
+    request_obj_data("axle_right")
+    
+    function main()
+        if not isValid(base) then return end
+        local car_texture = material.create("VertexLitGeneric")
+        car_texture:setTextureURL("$basetexture", car_texture_url, nil, function() print("Car texture loaded!") end)
+        
+        
+        holos["body"] = hologram.create(chip():getPos()+Vector(0,0,25), Angle(0,chip():getAngles().yaw,0), "models/hunter/blocks/cube025x025x025.mdl", Vector(1))
+        holos["body"]:setMesh(models_out["body"]["body"])
+        
+        holos["axle_left"] = hologram.create(holos["body"]:localToWorld(Vector(12,-0.5,-1.625)), holos["body"]:localToWorldAngles(Angle(0,0,0)), "models/hunter/blocks/cube025x025x025.mdl", Vector(1))
+        holos["axle_left"]:setMesh(models_out["axle_left"]["axle_left"])
+        holos["axle_left"]:setParent(holos["body"])
+        
+        holos["axle_right"] = hologram.create(holos["body"]:localToWorld(Vector(12,0.5,-1.625)), holos["body"]:localToWorldAngles(Angle(0,0,0)), "models/hunter/blocks/cube025x025x025.mdl", Vector(1))
+        holos["axle_right"]:setMesh(models_out["axle_right"]["axle_right"])
+        holos["axle_right"]:setParent(holos["body"])
+        
+        holos["wheel_left_front"] = hologram.create(holos["body"]:localToWorld(wheels["left_front"]["pos"]), holos["body"]:localToWorldAngles(Angle(0,180,0)), "models/hunter/blocks/cube025x025x025.mdl", Vector(1))
+        holos["wheel_left_front"]:setMesh(models_out["wheel"]["wheel"])
+        holos["wheel_left_front"]:setParent(holos["body"])
+        
+        holos["wheel_right_front"] = hologram.create(holos["body"]:localToWorld(wheels["right_front"]["pos"]), holos["body"]:localToWorldAngles(Angle(0,0,0)), "models/hunter/blocks/cube025x025x025.mdl", Vector(1))
+        holos["wheel_right_front"]:setMesh(models_out["wheel"]["wheel"])
+        holos["wheel_right_front"]:setParent(holos["body"])
+        
+        holos["wheel_left_back"] = hologram.create(holos["body"]:localToWorld(wheels["left_back"]["pos"]), holos["body"]:localToWorldAngles(Angle(0,180,0)), "models/hunter/blocks/cube025x025x025.mdl", Vector(1))
+        holos["wheel_left_back"]:setMesh(models_out["wheel"]["wheel"])
+        holos["wheel_left_back"]:setParent(holos["body"])
+        
+        holos["wheel_right_back"] = hologram.create(holos["body"]:localToWorld(wheels["right_back"]["pos"]), holos["body"]:localToWorldAngles(Angle(0,0,0)), "models/hunter/blocks/cube025x025x025.mdl", Vector(1))
+        holos["wheel_right_back"]:setMesh(models_out["wheel"]["wheel"])
+        holos["wheel_right_back"]:setParent(holos["body"])
+
+        for k, v in pairs(holos) do
+            v:setMaterial("!"..car_texture:getName())
+        end
+        
+        holos["body"]:setParent(base)
+        local lastpos = {}
+        local ct = 0
+        
+        local wheel_vel = {}
+        local wheel_rotation = {}
+        function simulate_physics(wheel_name,steering,flip,delta)
+            local wheel_pos = base:localToWorld(wheels[wheel_name].pos)
+            local tr = trace.line(wheel_pos, wheel_pos - base:getUp() * suspension_height, base)
+            
+            if wheel_vel[wheel_name] == nil then wheel_vel[wheel_name] = 0 end
+            if wheel_rotation[wheel_name] == nil then wheel_rotation[wheel_name] = 0 end
+            
+            if tr.Hit then
+                local hit_pos = tr.HitPos
+                
+                if lastpos[wheel_name] == nil then lastpos[wheel_name] = Vector() end
+                
+                local vel = (base:worldToLocal(lastpos[wheel_name])).x
+                lastpos[wheel_name] = base:getPos()
+                wheel_vel[wheel_name] = -vel/delta
+                
+                holos["wheel_"..wheel_name]:setPos(hit_pos+base:getUp()*3)
+            else
+                wheel_vel[wheel_name] = wheel_vel[wheel_name] * 0.9
+                holos["wheel_"..wheel_name]:setPos(wheel_pos-base:getUp()*(suspension_height-3))
+            end
+            wheel_rotation[wheel_name] = wheel_rotation[wheel_name] + wheel_vel[wheel_name]/16
+            holos["wheel_"..wheel_name]:setAngles(holos["body"]:localToWorldAngles(Angle(flip and -wheel_rotation[wheel_name] or wheel_rotation[wheel_name],0,0):rotateAroundAxis(base:getUp(),steering*45+(flip and 180 or 0))))
+        end
+        
+        local steering = 0
+        
+        hook.add("Think","_main_client",function()
+            if not isValid(base) then return end
+            
+            local delta2 = timer.curtime()-ct
+            
+            local a = owner():keyDown(IN_KEY.MOVELEFT)
+            local d = owner():keyDown(IN_KEY.MOVERIGHT)
+            
+            steering = steering + 0.01*(a and 1 or (d and -1 or 0))/delta2
+            steering = steering / 1.05
+            steering = math.clamp(steering,-45,45)
+            
+            simulate_physics("left_front",steering/45,true,delta2)
+            simulate_physics("right_front",steering/45,false,delta2)
+            simulate_physics("left_back",0,true,delta2)
+            simulate_physics("right_back",0,false,delta2)
+            
+            ct = timer.curtime()
+        end)
+    end
+    
+    
+    
+    hook.add("Net", "", function(name, len, ply)
+        if name == "network_base" then
+            base = net.readEntity()
+            if isValid(base) then
+                create_models(main)
+            end
+        end
+    end)
+    
+    hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
+        if not isValid(base) then return end
+        return {
+            origin = base:localToWorld(Vector(-2,0,10))-eyeVector()*35
+        }
+    end)
+    
+end
+
