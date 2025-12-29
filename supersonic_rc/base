@@ -4,6 +4,8 @@
 --@includedir supersonic_rc/model/
 --@include Nakilibs/Advanced_Wire_Manager.txt
 
+https://github.com/dstmnaki/starfall-projects/blob/main/Nakilibs/Advanced_Wire_Manager
+
 
 local suspension_height = 4
 local suspension_strength = 5
