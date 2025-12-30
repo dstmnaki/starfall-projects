@@ -275,6 +275,52 @@ else
     function main()
         if not isValid(base) then return end
         
+        if player() ~= owner() then
+            local rtName = "text_display"
+            render.createRenderTarget(rtName)
+            
+            local text_plate = material.create("VertexLitGeneric")
+            text_plate:setTextureRenderTarget("$basetexture", rtName)
+            text_plate:setFloat("$alpha",1)
+            
+            local text = hologram.create(chip():getPos()+Vector(-23.5,0,50), Angle(0,0,0), "models/hunter/blocks/cube1x1x1.mdl", Vector(1,1.6,1.6))
+            text:setClip(1, true, Vector(23.5,0,0), Vector(1,0,0), text)
+            text:suppressEngineLighting(true)
+            text:setMaterial("!"..text_plate:getName())
+            text:setColor(Color(255,255,255,254))
+            text:setRenderMode(RENDERMODE.WORLDGLOW)
+            
+            local font_blurred = render.createFont("Arial", 35, 400, true, false, false, true, 3, nil, nil)
+            local font = render.createFont("Arial", 35, 400, true, false, false, false, 0, nil, nil)
+            
+            
+            hook.add("renderscene", "_create_text_display", function(origin, angles, fov)
+                if not isValid(base) then return end
+                
+                render.selectRenderTarget(rtName)
+                render.clear(Color(0,0,0,0))
+                
+                render.setFont(font_blurred)
+                
+                render.setColor(Color(0,0,0,255))
+                render.drawText(512, 512-5, owner():getName(), TEXT_ALIGN.CENTER)
+                render.drawText(512, 512-5, owner():getName(), TEXT_ALIGN.CENTER)
+                render.drawText(512, 512-5, owner():getName(), TEXT_ALIGN.CENTER)
+                
+                render.setFont(font)
+                
+                render.setColor(Color(255,255,255,255))
+                render.drawText(512, 512-5, owner():getName(), TEXT_ALIGN.CENTER)
+                
+                render.selectRenderTarget()
+                
+                local _yaw = (origin-base:getPos()):getAngle().yaw
+                
+                text:setPos(base:getPos()+Vector(-23.5,0,10+0.3*math.sin(math.rad(timer.curtime()*360))):rotateAroundAxis(Vector(0,0,1),_yaw))
+                text:setAngles(Angle(0,_yaw,0))
+            end)
+        end
+        
         local car_texture = material.create("VertexLitGeneric")
         car_texture:setTextureURL("$basetexture", car_texture_url, nil, function() print("Car texture loaded!") end)
         
