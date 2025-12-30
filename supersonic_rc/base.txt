@@ -5,8 +5,46 @@
 --@include Nakilibs/Advanced_Wire_Manager.txt
 
 --[[
-https://github.com/dstmnaki/starfall-projects/blob/main/Nakilibs/Advanced_Wire_Manager
+    https://github.com/dstmnaki/starfall-projects/blob/main/Nakilibs/Advanced_Wire_Manager
+     ^ required for the wire stuff ^
+    
+    
+    -- Instructions
+    
+    Spawn a seat and starfall hud
+    
+    Link the hud to this chip and the seat
+    
+    Wire the seat to the chip
+    
+    Wait until the car has finished spawning
+    
+    Have fun, controls will print in chat
+    
+    
+    -- Customization
+    
+    Model files located in supersonic_rc/model/
+    
+    to convert it back into a regular obj file, remove the return [[ and "] ]" from the end
+    save as .obj, you should be able to open it now
+    
+    edit the model as you wish
+    
+    if you want to import a model back in, do the steps above but in reverse
+    
+    add return [[ to the start and ] ] without a space in between to the end, save it as the part name.txt, i.e body.txt
+    
+    the texture is linked below at line 280, local car_texture_url = "url here"
+    
+    you can copy the link to google or smth and it will download the png, edit it, or use another texture entirely
+    
+    toss it to a file sharing website that is whitelisted, imgur, dropbox, github, and some others will work just fine
+    
+    copy the link to that line
 --]]
+
+
 
 local suspension_height = 4
 local suspension_strength = 5
@@ -131,6 +169,8 @@ if SERVER then
     local throttle = 0
     local Seat = nil
     
+    local respawn = {}
+    
     hook.add("Think","_main_server",function()
         if not isValid(base) then return end
         
@@ -160,6 +200,23 @@ if SERVER then
         local vel = base:getVelocity()
         if isValid(driver) then
             base:enableMotion(true)
+            
+            if driver:keyDown(IN_KEY.RELOAD) then
+                if respawn["down"] != true then
+                    respawn["down"] = true
+                    respawn["ct"] = timer.curtime()
+                    base:setPos(base:getPos()+Vector(0,0,6))
+                    base:setAngles(Angle(0,base:getAngles().yaw,0))
+                end
+            else
+                if respawn["ct"] == nil then respawn["ct"] = 0 end
+                if timer.curtime() - respawn["ct"] > 1 then
+                    if respawn["down"] != false then
+                        respawn["down"] = false
+                    end
+                end
+            end
+            
             local w = driver:keyDown(IN_KEY.FORWARD)
             local s = driver:keyDown(IN_KEY.BACK)
             
@@ -274,6 +331,12 @@ else
     
     function main()
         if not isValid(base) then return end
+        
+        print("LEGO Supersonic RC")
+        print("W - Accelerate")
+        print("S - Reverse")
+        print("A & D - Steer")
+        print("R - Flip back up")
         
         if player() ~= owner() then
             local rtName = "text_display"
