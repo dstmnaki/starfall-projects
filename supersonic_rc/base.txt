@@ -447,7 +447,7 @@ else
                 holos["wheel_"..wheel_name]:setPos(wheel_pos-base:getUp()*(suspension_height-3))
             end
             wheel_rotation[wheel_name] = wheel_rotation[wheel_name] + wheel_vel[wheel_name]/4
-            holos["wheel_"..wheel_name]:setAngles(holos["body"]:localToWorldAngles(Angle(flip and -wheel_rotation[wheel_name] or wheel_rotation[wheel_name],0,0):rotateAroundAxis(base:getUp(),steering*45+(flip and 180 or 0))))
+            holos["wheel_"..wheel_name]:setAngles(holos["body"]:localToWorldAngles(Angle(wheel_rotation[wheel_name]*(flip and -1 or 1),0,0)):rotateAroundAxis(base:getUp()*(flip and -1 or 1),(flip and 180 - steering*45 or 0 + steering*45)))
         end
         
         local steering = 0
