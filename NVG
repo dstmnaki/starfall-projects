@@ -6,6 +6,7 @@
 enableHud(owner(), true)
 
 local button = KEY.N
+local slanted_view = false
 local button_down = false
 
 local down = false
@@ -29,7 +30,7 @@ hook.add("RenderScene", "", function(origin, angles, fov)
         render.renderView({
             origin = owner():getEyePos(),
             angles = owner():getEyeAngles(),
-            aspectratio = 1,
+            aspectratio = slanted_view and 1 or w/h,
             x = 0,
             y = 0,
             w = w,
