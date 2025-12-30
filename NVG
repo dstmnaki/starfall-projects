@@ -1,0 +1,91 @@
+--@name NVG
+--@author Nakkitsunami
+--@client
+--@owneronly
+
+enableHud(owner(), true)
+
+local button = KEY.N
+local button_down = false
+
+local down = false
+
+local w, h = render.getGameResolution()
+
+local rtName = "fullbright"
+render.createRenderTarget(rtName)
+local tex = material.create("gmodscreenspace")
+tex:setTextureRenderTarget("$basetexture", rtName)
+
+local circle = render.createMaterial("gmod/scope", nil, function() print("ready") end)
+
+hook.add("RenderScene", "", function(origin, angles, fov)
+    if (owner() and owner() != nil and owner():isValid() and owner():getHealth() > 0) then
+        render.selectRenderTarget(rtName)
+        
+        render.suppressEngineLighting(true)
+        render.setLightingMode(1)
+        
+        render.renderView({
+            origin = owner():getEyePos(),
+            angles = owner():getEyeAngles(),
+            aspectratio = 1,
+            x = 0,
+            y = 0,
+            w = w,
+            h = h,
+            drawviewmodel = true,
+            drawviewer = false,
+        })
+    end
+    render.selectRenderTarget()
+end)
+local change_ct = 0
+hook.add("DrawHUD", "", function()
+    if (owner() and owner() != nil and owner():isValid() and owner():getHealth() > 0) then
+        
+        local delta = math.clamp(timer.curtime() - change_ct,0,1)
+        local can_change = delta >= 1
+        
+        if input.isKeyDown(button) and not owner():isTyping() then
+            if button_down != true then
+                button_down = true
+                if can_change then
+                    down = not down
+                    change_ct = down and timer.curtime() or timer.curtime()
+                    delta = 0
+                    if down then
+                        owner():emitSound("physics/metal/weapon_footstep2.wav", 100, 125, 1, CHANNEL_AUTO)
+                    else
+                        owner():emitSound("physics/metal/weapon_footstep1.wav", 100, 125, 1, CHANNEL_AUTO)
+                    end
+                end
+            end
+        else
+            if button_down != false then
+                button_down = false
+            end
+        end
+        
+        local fade = math.clamp((-0.25+delta*5),0,1)
+        
+        if down then
+            render.setMaterial(tex)
+            render.drawTexturedRect(0,0,w,h)
+            
+            render.setColor(Color(255*(fade<=0 and 0 or 1 - fade),255*(fade<=0 and 0 or 1),255*(fade<=0 and 0 or 1 - fade),255-225*fade))
+            render.drawRectFast(0,0,w,h)
+            
+            render.setColor(Color(0,5,0))
+            render.drawRectFast(0,0,w/2-h/2,h)
+            render.drawRectFast(w/2+h/2,0,w/2-h/2,h)
+            render.setMaterial(circle)
+            render.drawTexturedRect(w/2-h/2, h/2-h/2, h, h)
+        else
+            render.setColor(Color(0,0,0,255*math.clamp((1-delta*4)*2,0,1)))
+            render.drawRectFast(0,0,w,h)
+        end
+    else
+        down = false
+    end
+end)
