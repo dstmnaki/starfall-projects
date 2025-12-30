@@ -6,7 +6,7 @@
 enableHud(owner(), true)
 
 local button = KEY.N
-local slanted_view = false
+local slanted_view = true
 local button_down = false
 
 local down = false
