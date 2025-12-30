@@ -8,7 +8,6 @@
 https://github.com/dstmnaki/starfall-projects/blob/main/Nakilibs/Advanced_Wire_Manager
 --]]
 
-
 local suspension_height = 4
 local suspension_strength = 5
 local suspension_damping = 0.25
@@ -80,8 +79,10 @@ if SERVER then
         true
     )
     
-    COLLISION_MODEL:setMass(20)
+    COLLISION_MODEL:setMass(5)
     COLLISION_MODEL:setColor(Color(0,0,0,0))
+    COLLISION_MODEL:setPhysMaterial("computer")
+    
     local is_ready = {}
     local sent = {}
     
@@ -96,6 +97,12 @@ if SERVER then
     local base = COLLISION_MODEL
     local base_phys = base:getPhysicsObject()
     base_phys:enableGravity(false)
+    
+    
+    --plats/tram_motor.wav
+    
+    local snd = sound.create(base, "plats/tram_motor.wav", false)
+    snd:play()
     
     local hitcount = 0
     
@@ -150,6 +157,7 @@ if SERVER then
         
         local driver = Seat:getDriver()
         
+        local vel = base:getVelocity()
         if isValid(driver) then
             base:enableMotion(true)
             local w = driver:keyDown(IN_KEY.FORWARD)
@@ -178,7 +186,6 @@ if SERVER then
             steering = 0
         end
         
-        local vel = base:getVelocity()
         local limit_speed = 1+vel:getLength()/53*0.75
         local localvel = base:getLocalVelocity()
         local drive_force = base:getForward()*60/limit_speed*throttle
@@ -192,7 +199,13 @@ if SERVER then
         
         base_phys:applyForceCenter((-base:getVelocity()*Vector(0.2,0.2,0)/4*hitcount/limit_speed+Vector(0,0,-_GRAVITY)) * base:getMass())
         base:applyAngForce(-base:getAngleVelocityAngle() * 0.25 * base:getMass())
+        
+        if snd != nil then
+            snd:setVolume(math.easeOutSine(math.clamp(vel:getLength()/100,0,1)))
+            snd:setPitch(90+60*vel:getLength()/100, nil)
+        end
     end)
+    
 else
     
     local base = nil
@@ -261,6 +274,7 @@ else
     
     function main()
         if not isValid(base) then return end
+        
         local car_texture = material.create("VertexLitGeneric")
         car_texture:setTextureURL("$basetexture", car_texture_url, nil, function() print("Car texture loaded!") end)
         
