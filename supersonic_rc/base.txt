@@ -1,4 +1,4 @@
---@name base
+--@name Base
 --@author Naki
 --@shared
 --@includedir supersonic_rc/model/
@@ -7,6 +7,7 @@
 --[[
 https://github.com/dstmnaki/starfall-projects/blob/main/Nakilibs/Advanced_Wire_Manager
 --]]
+
 
 local suspension_height = 4
 local suspension_strength = 5
@@ -86,7 +87,9 @@ if SERVER then
     
     hook.add("ClientInitialized", "", function(ply)
         local key = tostring(ply:getSteamID())
-        is_ready[key] = true
+        is_ready[key] = {}
+        is_ready[key].ply = ply
+        is_ready[key].ready = true
         sent[key] = false
     end)
     
@@ -137,11 +140,11 @@ if SERVER then
         if not isValid(Seat) then return end
         
         for k, v in pairs(is_ready) do
-            if sent[k] != true and v == true then
+            if sent[k] != true and v.ready == true then
                 sent[k] = true
                 net.start("network_base")
                 net.writeEntity(base)
-                net.send()
+                net.send(v.ply,false)
             end
         end
         
@@ -262,8 +265,9 @@ else
         car_texture:setTextureURL("$basetexture", car_texture_url, nil, function() print("Car texture loaded!") end)
         
         
-        holos["body"] = hologram.create(chip():getPos()+Vector(0,0,25), Angle(0,chip():getAngles().yaw,0), "models/hunter/blocks/cube025x025x025.mdl", Vector(1))
+        holos["body"] = hologram.create(base:getPos(), base:getAngles(), "models/hunter/blocks/cube025x025x025.mdl", Vector(1))
         holos["body"]:setMesh(models_out["body"]["body"])
+        holos["body"]:setParent(base)
         
         holos["axle_left"] = hologram.create(holos["body"]:localToWorld(Vector(12,-0.5,-1.625)), holos["body"]:localToWorldAngles(Angle(0,0,0)), "models/hunter/blocks/cube025x025x025.mdl", Vector(1))
         holos["axle_left"]:setMesh(models_out["axle_left"]["axle_left"])
@@ -293,7 +297,6 @@ else
             v:setMaterial("!"..car_texture:getName())
         end
         
-        holos["body"]:setParent(base)
         local lastpos = {}
         local ct = 0
         
@@ -313,14 +316,14 @@ else
                 
                 local vel = (base:worldToLocal(lastpos[wheel_name])).x
                 lastpos[wheel_name] = base:getPos()
-                wheel_vel[wheel_name] = -vel/delta
+                wheel_vel[wheel_name] = -vel*(1/delta)
                 
                 holos["wheel_"..wheel_name]:setPos(hit_pos+base:getUp()*3)
             else
                 wheel_vel[wheel_name] = wheel_vel[wheel_name] * 0.9
                 holos["wheel_"..wheel_name]:setPos(wheel_pos-base:getUp()*(suspension_height-3))
             end
-            wheel_rotation[wheel_name] = wheel_rotation[wheel_name] + wheel_vel[wheel_name]/16
+            wheel_rotation[wheel_name] = wheel_rotation[wheel_name] + wheel_vel[wheel_name]/4
             holos["wheel_"..wheel_name]:setAngles(holos["body"]:localToWorldAngles(Angle(flip and -wheel_rotation[wheel_name] or wheel_rotation[wheel_name],0,0):rotateAroundAxis(base:getUp(),steering*45+(flip and 180 or 0))))
         end
         
@@ -334,12 +337,10 @@ else
             local a = owner():keyDown(IN_KEY.MOVELEFT)
             local d = owner():keyDown(IN_KEY.MOVERIGHT)
             
-            steering = steering + 0.01*(a and 1 or (d and -1 or 0))/delta2
-            steering = steering / 1.05
-            steering = math.clamp(steering,-45,45)
+            steering = a and 1 or d and -1 or 0
             
-            simulate_physics("left_front",steering/45,true,delta2)
-            simulate_physics("right_front",steering/45,false,delta2)
+            simulate_physics("left_front",steering,true,delta2)
+            simulate_physics("right_front",steering,false,delta2)
             simulate_physics("left_back",0,true,delta2)
             simulate_physics("right_back",0,false,delta2)
             
