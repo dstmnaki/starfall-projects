@@ -460,7 +460,7 @@ else
             local a = owner():keyDown(IN_KEY.MOVELEFT)
             local d = owner():keyDown(IN_KEY.MOVERIGHT)
             
-            steering = a and 1 or d and -1 or 0
+            steering = math.lerp(0.1,steering,a and 1 or d and -1 or 0)
             
             simulate_physics("left_front",steering,true,delta2)
             simulate_physics("right_front",steering,false,delta2)
