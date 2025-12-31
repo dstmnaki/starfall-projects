@@ -58,7 +58,7 @@ hook.add("RenderScene", "", function(origin, angles, fov)
         
         render.renderView({
             origin = pthl.holos["screen"]:localToWorld(Vector(-4,0,0)),
-            angles = owner():getEyeAngles(),
+            angles = pthl.holos["screen"]:localToWorldAngles(Angle(0,180,0)),
             aspectratio = 4/3,
             x = 0,
             y = 0,
@@ -278,8 +278,13 @@ hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
             pthl.holos["screen"]:setMaterial("!"..tex:getName())
             pthl.holos["screen"]:suppressEngineLighting(true)
         end
-        if (owner() and owner() != nil and owner():isValid() and owner():getHealth() > 0) then
-            
+        if (owner() and owner() != nil and owner():isValid() and owner():getHealth() > 0) and isValid(owner():getActiveWeapon()) and owner():getActiveWeapon():getClass() == "none" then
+            if pthl.model_hidden != false then
+                pthl.model_hidden = false
+                for k, v in pairs(pthl.holos) do
+                    v:setNoDraw(false)
+                end
+            end
             delta = math.clamp((timer.curtime() - change_ct)*5,0,1)
             
             zoom = math.lerp(0.25/(1/timer.frametime()/60),zoom,zoom_target)
@@ -292,7 +297,7 @@ hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
                 snd:setPitch(80+40*math.clamp(math.abs(zoom_target-zoom)*4,0,1))
             end
             
-            if input.isMouseDown(MOUSE.MOUSE1) and not owner():isTyping() then
+            if input.isMouseDown(MOUSE.MOUSE1) and not owner():isTyping() and button_down["m2"] then
                 if button_down["toggle_nv"] != true then
                     button_down["toggle_nv"] = true
                     nightvision = not nightvision
@@ -322,20 +327,38 @@ hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
             pthl.holos["root"]:setPos(pos)
             pthl.holos["root"]:setAngles(ang)
             
-            look_closer_mult = math.lerp(0.2/(1/timer.frametime()/60),look_closer_mult,look_closer and 0 or 1)
+            look_closer_mult = math.lerp(0.15/(1/timer.frametime()/60),look_closer_mult,look_closer and 0 or 1)
             
-            pthl.holos["camera"]:setPos(pthl.holos["root"]:localToWorld(Vector(4.8+2*look_closer_mult,-4.7*look_closer_mult,-1.9*look_closer_mult)))
+            local vel = owner():getLocalVelocity()
+            
+            local sway = Vector()
+            sway.x = math.sin(math.rad(timer.curtime()*90*2))/(50-20*look_closer_mult)
+            sway.y = math.cos(math.rad(timer.curtime()*97*2))/(50-20*look_closer_mult)
+            sway.z = math.sin(math.rad(timer.curtime()*123*2))/(50-20*look_closer_mult)
+            
+            pthl.holos["camera"]:setPos(pthl.holos["root"]:localToWorld(Vector(4.8+2*look_closer_mult,-4.7*look_closer_mult,-1.9*look_closer_mult)+Vector(sway.x-math.clamp(vel.x/1000,-1,1)*0.15,sway.y+math.clamp(vel.y/1000,-1,1)*0.5)))
+            pthl.holos["camera"]:setAngles(pthl.holos["root"]:localToWorldAngles(Angle(sway.x*5,sway.y*5,sway.z*5-math.clamp(vel.y/1000,-1,1)*5)))
             
             return {
                 fov = 75+25*look_closer_mult
             }
         else
+            if pthl.model_hidden != true then
+                pthl.model_hidden = true
+                for k, v in pairs(pthl.holos) do
+                    v:setNoDraw(true)
+                end
+            end
             hide_hud_elements["CHudWeaponSelection"] = false
             look_closer_mult = 1
+            nightvision = false
+            delta = 0
         end
     else
         hide_hud_elements["CHudWeaponSelection"] = false
         look_closer_mult = 1
+        nightvision = false
+        delta = 0
     end
 end)
 
