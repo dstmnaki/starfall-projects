@@ -1,0 +1,348 @@
+--@name Outlast Camera
+--@author Nakkitsunami
+--@client
+--@include nakilibs/pac_to_holo_loader.txt
+--@owneronly
+
+enableHud(owner(), true)
+
+
+require("nakilibs/pac_to_holo_loader.txt")
+local ht, hc = {}, 0
+
+-- \/ \/ \/ INSERT CODE INSIDE HERE \/ \/ \/
+
+local size = 1
+
+local parent = chip()
+local real_parent = chip()
+
+hc=hc+1 ht[hc]={"root",parent,real_parent,Vector(0,0,0),Angle(0,0,0)}
+local real_parent = "root"
+hc=hc+1 ht[hc]={"camera",real_parent,real_parent,Vector(6.8,-4.7,-1.9),Angle(0,0,0)}
+local real_parent = "camera"
+hc=hc+1 ht[hc]={"screen",real_parent,real_parent,Vector(0,0,0),Angle(0,180,0),"models/props_c17/tv_monitor01_screen.mdl","hunter/myplastic",Color(255,255,255,255),Vector(0.14,0.2,0.2),{}}
+hc=hc+1 ht[hc]={hc,real_parent,real_parent,Vector(0,0,0),Angle(0,180,0),"models/props_c17/tv_monitor01.mdl","",Color(255,255,255,255),Vector(0.14,0.2,0.2),{}}
+hc=hc+1 ht[hc]={hc,real_parent,real_parent,Vector(-0.7,42.357,-4.036),Angle(0,-180,-118.13),"models/player/breen.mdl","",Color(255,255,255,255),Vector(1,1,1),{{1,Vector(0,-10.453,38.05),Vector(0,-0.994,0.107)}}}
+
+
+-- /\ /\ /\ INSERT CODE INSIDE HERE /\ /\ /\
+
+pthl.createHolos(hc,ht,false,size)
+
+
+local button_down = {}
+
+local nightvision = false
+local zoom = 0
+
+local w, h = 1024*0.32, 1024*0.85+1024*0.15/2
+
+local rtName = "fullbright"
+render.createRenderTarget(rtName)
+local tex = material.create("VertexLitGeneric")
+tex:setTextureRenderTarget("$basetexture", rtName)
+
+local circle = render.createMaterial("vgui/white_additive_vignette", nil, nil)
+local circle2 = render.createMaterial("gmod/scope", nil, nil)
+local circle3 = material.load("sprites/glow04_noz_gmod")
+
+local delta = 0
+
+hook.add("RenderScene", "", function(origin, angles, fov)
+    if (owner() and owner() != nil and owner():isValid() and owner():getHealth() > 0) and pthl.ready then
+        render.selectRenderTarget(rtName)
+        
+        render.suppressEngineLighting(nightvision)
+        render.setLightingMode(nightvision and 1 or 0)
+        
+        render.renderView({
+            origin = pthl.holos["screen"]:localToWorld(Vector(-4,0,0)),
+            angles = owner():getEyeAngles(),
+            aspectratio = 4/3,
+            x = 0,
+            y = 0,
+            w = w,
+            h = h,
+            fov = 70-40*zoom+1-delta,
+            drawviewmodel = false,
+            drawviewer = false,
+        })
+        
+        render.suppressEngineLighting(false)
+        render.setLightingMode(0)
+        
+        render.setColor(Color(0,0,0,200))
+        render.setMaterial(circle)
+        
+        render.drawTexturedRectFast(0, 0, w, h)
+        render.drawTexturedRectFast(0, 0, w, h)
+        render.drawTexturedRectRotatedFast(w/2, (h)/2, h, w,90)
+        render.drawTexturedRectRotatedFast(w/2, (h)/2, h, w,90)
+        
+        if nightvision then
+            render.setColor(Color(255,255,255,150))
+            render.setMaterial(circle3)
+            render.drawTexturedRectFast(-w*0.5/2, -h*0.5/2, w*1.5, h*1.5)
+            
+            render.setColor(Color(0,0,0,200))
+            render.drawTexturedRectFast(0, 0, w, h)
+            render.drawTexturedRectFast(0, 0, w, h)
+            
+            render.drawTexturedRectRotatedFast(w/2, (h)/2, h, w,90)
+            render.drawTexturedRectRotatedFast(w/2, (h)/2, h, w,90)
+            
+            render.setMaterial(circle2)
+            render.drawTexturedRectRotatedFast(w/2, (h)/2, h+h*0.4, w,90)
+            render.drawTexturedRectRotatedFast(w/2, (h)/2, (h+h*0.4)*1.1, w*1.1,90)
+        end
+        
+        render.drawBlurEffect((1-delta)*2, (1-delta)*2, 1)
+        
+        render.setColor(Color(255,255,255,100))
+        -- left top
+        local from = Vector(w/2,h/2)+Vector(-w*0.1,-h*0.1)
+        local where = Vector(w/2,h/2)+Vector(-w*0.1+w*0.05,-h*0.1)
+        render.drawLine(from.x,from.y,where.x,where.y)
+        
+        from = Vector(w/2,h/2)+Vector(-w*0.1,-h*0.1)
+        where = Vector(w/2,h/2)+Vector(-w*0.1,-h*0.1+h*0.05)
+        render.drawLine(from.x,from.y,where.x,where.y)
+        
+        -- right top
+        from = Vector(w/2,h/2)+Vector(w*0.1,-h*0.1)
+        where = Vector(w/2,h/2)+Vector(w*0.1-w*0.05,-h*0.1)
+        render.drawLine(from.x,from.y,where.x,where.y)
+        
+        from = Vector(w/2,h/2)+Vector(w*0.1,-h*0.1)
+        where = Vector(w/2,h/2)+Vector(w*0.1,-h*0.1+h*0.05)
+        render.drawLine(from.x,from.y,where.x,where.y)
+        
+        
+        -- left bottom
+        from = Vector(w/2,h/2)+Vector(-w*0.1,h*0.1)
+        where = Vector(w/2,h/2)+Vector(-w*0.1+w*0.05,h*0.1)
+        render.drawLine(from.x,from.y,where.x,where.y)
+        
+        from = Vector(w/2,h/2)+Vector(-w*0.1,h*0.1)
+        where = Vector(w/2,h/2)+Vector(-w*0.1,h*0.1-h*0.05)
+        render.drawLine(from.x,from.y,where.x,where.y)
+        
+        -- right bottom
+        from = Vector(w/2,h/2)+Vector(w*0.1,h*0.1)
+        where = Vector(w/2,h/2)+Vector(w*0.1-w*0.05,h*0.1)
+        render.drawLine(from.x,from.y,where.x,where.y)
+        
+        from = Vector(w/2,h/2)+Vector(w*0.1,h*0.1)
+        where = Vector(w/2,h/2)+Vector(w*0.1,h*0.1-h*0.05)
+        render.drawLine(from.x,from.y,where.x,where.y)
+        
+        
+        render.setColor(Color(255,255,255,200))
+        
+        -- left top
+        from = Vector(w/2,h/2)+Vector(-w*0.1,-h*0.1)/0.25
+        where = Vector(w/2,h/2)+Vector(-w*0.1+w*0.05,-h*0.1)/0.25
+        render.drawLine(from.x,from.y,where.x,where.y)
+        
+        from = Vector(w/2,h/2)+Vector(-w*0.1,-h*0.1)/0.25
+        where = Vector(w/2,h/2)+Vector(-w*0.1,-h*0.1+h*0.05)/0.25
+        render.drawLine(from.x,from.y,where.x,where.y)
+        
+        -- right top
+        from = Vector(w/2,h/2)+Vector(w*0.1,-h*0.1)/0.25
+        where = Vector(w/2,h/2)+Vector(w*0.1-w*0.05,-h*0.1)/0.25
+        render.drawLine(from.x,from.y,where.x,where.y)
+        
+        from = Vector(w/2,h/2)+Vector(w*0.1,-h*0.1)/0.25
+        where = Vector(w/2,h/2)+Vector(w*0.1,-h*0.1+h*0.05)/0.25
+        render.drawLine(from.x,from.y,where.x,where.y)
+        
+        
+        -- left bottom
+        from = Vector(w/2,h/2)+Vector(-w*0.1,h*0.1)/0.25
+        where = Vector(w/2,h/2)+Vector(-w*0.1+w*0.05,h*0.1)/0.25
+        render.drawLine(from.x,from.y,where.x,where.y)
+        
+        from = Vector(w/2,h/2)+Vector(-w*0.1,h*0.1)/0.25
+        where = Vector(w/2,h/2)+Vector(-w*0.1,h*0.1-h*0.05)/0.25
+        render.drawLine(from.x,from.y,where.x,where.y)
+        
+        -- right bottom
+        from = Vector(w/2,h/2)+Vector(w*0.1,h*0.1)/0.25
+        where = Vector(w/2,h/2)+Vector(w*0.1-w*0.05,h*0.1)/0.25
+        render.drawLine(from.x,from.y,where.x,where.y)
+        
+        from = Vector(w/2,h/2)+Vector(w*0.1,h*0.1)/0.25
+        where = Vector(w/2,h/2)+Vector(w*0.1,h*0.1-h*0.05)/0.25
+        render.drawLine(from.x,from.y,where.x,where.y)
+        
+        local m = Matrix()
+        m:setScale(Vector(1,2)*2)
+        
+        local time = string.formattedTime(timer.curtime(), nil)
+        local hour = time["h"]
+        local min = time["m"]
+        local sec = time["s"]
+        local h_f = tostring(hour > 9 and hour or "0"..hour)
+        local m_f = tostring(min > 9 and min or "0"..min)
+        local s_f = tostring(sec > 9 and sec or "0"..sec)
+        
+        local zoom_to_string = tostring((1+zoom*0.69)*10)
+        local zoom_f = zoom_to_string:sub(1,1).."."..zoom_to_string:sub(2,2).."x"
+        render.pushMatrix(m)
+            pos = Vector(w-w*0.1-w*0.025,h*0.1/2)/2
+            render.drawText(pos.x,pos.y,zoom_f,TEXT_ALIGN.RIGHT)
+            
+            render.setMaterial()
+            pos = Vector(w*0.1+w*0.075,h*0.1/2)/2
+            render.drawText(pos.x,pos.y,"REC",TEXT_ALIGN.LEFT)
+            
+            if math.round(timer.curtime() % 1) >= 1 then
+                render.setColor(Color(255,0,0,255))
+                
+                render.drawFilledCircle(pos.x-5.5, pos.y+8.5, 3)
+            end
+            
+        render.popMatrix()
+        
+        m:setScale(Vector(1,2)*1.2)
+        
+        render.setColor(Color(255,255,255,200))
+        
+        render.pushMatrix(m)
+            local pos = Vector(w*0.105,h/2-h*0.1/2)/1.2
+            render.drawText(pos.x+2,pos.y-18,h_f..":"..m_f..":"..s_f,TEXT_ALIGN.LEFT)
+        render.popMatrix()
+    end
+    
+    render.selectRenderTarget()
+end)
+local change_ct = 0
+local look_closer = false
+local look_closer_mult = 1
+
+local hide_hud_elements = {}
+hide_hud_elements["CHudCrosshair"]                 = true 
+hide_hud_elements["CHudHealth"]                    = true
+hide_hud_elements["CHudBattery"]                   = true
+hide_hud_elements["CHudAmmo"]                      = true
+hide_hud_elements["CHudSecondaryAmmo"]             = true
+hide_hud_elements["CHudWeaponSelection"]           = false
+
+local last_wheeled = 0
+
+local zoom_target = 0
+local last_zoom = zoom
+
+hook.add("MouseWheeled", "", function(delta)
+    if not button_down["m2"] then return end
+    if timer.curtime() - last_wheeled > 0.025 then
+        last_wheeled = timer.curtime()
+        if delta > 0 then
+            zoom_target = zoom_target + 1/6
+        else
+            zoom_target = zoom_target - 1/6
+        end
+        zoom_target = math.clamp(zoom_target,0,1)
+        if last_zoom != zoom_target then
+            last_zoom = zoom_target
+            change_ct = timer.curtime()
+        end
+    end
+end)
+
+local w2, h2 = render.getGameResolution()
+
+hook.add("DrawHUD", "", function()
+    render.setColor(Color(0,0,0,255*(1-look_closer_mult)))
+    render.setMaterial(circle)
+    
+    render.drawTexturedRectFast(0, 0, w2, h2)
+    render.drawTexturedRectFast(0, 0, w2, h2)
+    render.drawTexturedRectRotatedFast(w2/2, h2/2, h2, w2,90)
+    render.drawTexturedRectRotatedFast(w2/2, h2/2, h2, w2,90)
+    
+    
+    render.setColor(Color(0,0,0,175*(1-look_closer_mult)))
+    render.setMaterial(circle2)
+    render.drawTexturedRectFast(0, 0, w2, h2)
+end)
+
+local snd = nil
+
+hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
+    if pthl.ready then
+        if pthl.first != true then
+            pthl.first = true
+            pthl.holos["screen"]:setMaterial("!"..tex:getName())
+            pthl.holos["screen"]:suppressEngineLighting(true)
+        end
+        if (owner() and owner() != nil and owner():isValid() and owner():getHealth() > 0) then
+            
+            delta = math.clamp((timer.curtime() - change_ct)*5,0,1)
+            
+            zoom = math.lerp(0.25/(1/timer.frametime()/60),zoom,zoom_target)
+            
+            if snd == nil then
+                snd = sound.create(pthl.holos["root"], "ambient/levels/citadel/stalk_GasEscape_loop.wav", false)
+                snd:play()
+            else
+                snd:setVolume(math.clamp(math.abs(zoom_target-zoom)*4,0,1))
+                snd:setPitch(80+40*math.clamp(math.abs(zoom_target-zoom)*4,0,1))
+            end
+            
+            if input.isMouseDown(MOUSE.MOUSE1) and not owner():isTyping() then
+                if button_down["toggle_nv"] != true then
+                    button_down["toggle_nv"] = true
+                    nightvision = not nightvision
+                    delta = 0
+                end
+            else
+                if button_down["toggle_nv"] != false then
+                    button_down["toggle_nv"] = false
+                end
+            end
+            
+            if input.isMouseDown(MOUSE.MOUSE2) and not owner():isTyping() then
+                if button_down["m2"] != true then
+                    button_down["m2"] = true
+                    look_closer = true
+                end
+            else
+                if button_down["m2"] != false then
+                    button_down["m2"] = false
+                    look_closer = false
+                    zoom_target = 0
+                end
+            end
+            
+            hide_hud_elements["CHudWeaponSelection"] = button_down["m2"]
+            
+            pthl.holos["root"]:setPos(pos)
+            pthl.holos["root"]:setAngles(ang)
+            
+            look_closer_mult = math.lerp(0.2/(1/timer.frametime()/60),look_closer_mult,look_closer and 0 or 1)
+            
+            pthl.holos["camera"]:setPos(pthl.holos["root"]:localToWorld(Vector(4.8+2*look_closer_mult,-4.7*look_closer_mult,-1.9*look_closer_mult)))
+            
+            return {
+                fov = 75+25*look_closer_mult
+            }
+        else
+            hide_hud_elements["CHudWeaponSelection"] = false
+            look_closer_mult = 1
+        end
+    else
+        hide_hud_elements["CHudWeaponSelection"] = false
+        look_closer_mult = 1
+    end
+end)
+
+hook.add("HUDShouldDraw", "", function(str)
+    for k, v in pairs(hide_hud_elements) do
+        if str == k then
+            return not v
+        end
+    end
+end)
