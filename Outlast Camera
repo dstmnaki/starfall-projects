@@ -2,10 +2,10 @@
 --@author Nakkitsunami
 --@client
 --@include nakilibs/pac_to_holo_loader.txt
---@owneronly
 
-enableHud(owner(), true)
-
+if player() == owner() then
+    enableHud(owner(), true)
+end
 
 require("nakilibs/pac_to_holo_loader.txt")
 local ht, hc = {}, 0
@@ -43,179 +43,190 @@ render.createRenderTarget(rtName)
 local tex = material.create("VertexLitGeneric")
 tex:setTextureRenderTarget("$basetexture", rtName)
 
+local ProjectedTexture = light.createProjected()
+ProjectedTexture:setTexture("effects/flashlight/soft")
+
+function toggle_light(bool)
+    ProjectedTexture:setHorizontalFOV(bool and 3*15 or 0)
+    ProjectedTexture:setVerticalFOV(bool and 4*15 or 0)
+    ProjectedTexture:setBrightness(bool and 4 or 0)
+    ProjectedTexture:setFarZ(bool and 4000 or 0)
+end
+ProjectedTexture:setEnableShadows(false)
+toggle_light(false)
+
 local circle = render.createMaterial("vgui/white_additive_vignette", nil, nil)
 local circle2 = render.createMaterial("gmod/scope", nil, nil)
 local circle3 = material.load("sprites/glow04_noz_gmod")
 
 local delta = 0
-
+local last_ct = 0
 hook.add("RenderScene", "", function(origin, angles, fov)
-    if (owner() and owner() != nil and owner():isValid() and owner():getHealth() > 0) and pthl.ready then
-        render.selectRenderTarget(rtName)
-        
-        render.suppressEngineLighting(nightvision)
-        render.setLightingMode(nightvision and 1 or 0)
-        
-        render.renderView({
-            origin = pthl.holos["screen"]:localToWorld(Vector(-4,0,0)),
-            angles = pthl.holos["screen"]:localToWorldAngles(Angle(0,180,0)),
-            aspectratio = 4/3,
-            x = 0,
-            y = 0,
-            w = w,
-            h = h,
-            fov = 70-40*zoom+1-delta,
-            drawviewmodel = false,
-            drawviewer = false,
-        })
-        
-        render.suppressEngineLighting(false)
-        render.setLightingMode(0)
-        
-        render.setColor(Color(0,0,0,200))
-        render.setMaterial(circle)
-        
-        render.drawTexturedRectFast(0, 0, w, h)
-        render.drawTexturedRectFast(0, 0, w, h)
-        render.drawTexturedRectRotatedFast(w/2, (h)/2, h, w,90)
-        render.drawTexturedRectRotatedFast(w/2, (h)/2, h, w,90)
-        
-        if nightvision then
-            render.setColor(Color(255,255,255,150))
-            render.setMaterial(circle3)
-            render.drawTexturedRectFast(-w*0.5/2, -h*0.5/2, w*1.5, h*1.5)
+    if (player() and player() != nil and player():isValid() and player():getHealth() > 0) and pthl.ready and render.isHUDActive() then
+        if timer.curtime() - last_ct > 0.01 and cpuAverage() < cpuMax()*0.5*0.8 then
+            last_ct = timer.curtime()
+            render.selectRenderTarget(rtName)
+            
+            render.renderView({
+                origin = pthl.holos["screen"]:localToWorld(Vector(-4,0,0)),
+                angles = pthl.holos["screen"]:localToWorldAngles(Angle(0,180,0)),
+                aspectratio = 4/3,
+                x = 0,
+                y = 0,
+                w = w,
+                h = h,
+                fov = 70-40*zoom+1-delta,
+                drawviewmodel = false,
+                drawviewer = false,
+            })
+            
+            render.suppressEngineLighting(false)
+            render.setLightingMode(0)
             
             render.setColor(Color(0,0,0,200))
-            render.drawTexturedRectFast(0, 0, w, h)
-            render.drawTexturedRectFast(0, 0, w, h)
+            render.setMaterial(circle)
             
+            render.drawTexturedRectFast(0, 0, w, h)
+            render.drawTexturedRectFast(0, 0, w, h)
             render.drawTexturedRectRotatedFast(w/2, (h)/2, h, w,90)
             render.drawTexturedRectRotatedFast(w/2, (h)/2, h, w,90)
             
-            render.setMaterial(circle2)
-            render.drawTexturedRectRotatedFast(w/2, (h)/2, h+h*0.4, w,90)
-            render.drawTexturedRectRotatedFast(w/2, (h)/2, (h+h*0.4)*1.1, w*1.1,90)
-        end
-        
-        render.drawBlurEffect((1-delta)*2, (1-delta)*2, 1)
-        
-        render.setColor(Color(255,255,255,100))
-        -- left top
-        local from = Vector(w/2,h/2)+Vector(-w*0.1,-h*0.1)
-        local where = Vector(w/2,h/2)+Vector(-w*0.1+w*0.05,-h*0.1)
-        render.drawLine(from.x,from.y,where.x,where.y)
-        
-        from = Vector(w/2,h/2)+Vector(-w*0.1,-h*0.1)
-        where = Vector(w/2,h/2)+Vector(-w*0.1,-h*0.1+h*0.05)
-        render.drawLine(from.x,from.y,where.x,where.y)
-        
-        -- right top
-        from = Vector(w/2,h/2)+Vector(w*0.1,-h*0.1)
-        where = Vector(w/2,h/2)+Vector(w*0.1-w*0.05,-h*0.1)
-        render.drawLine(from.x,from.y,where.x,where.y)
-        
-        from = Vector(w/2,h/2)+Vector(w*0.1,-h*0.1)
-        where = Vector(w/2,h/2)+Vector(w*0.1,-h*0.1+h*0.05)
-        render.drawLine(from.x,from.y,where.x,where.y)
-        
-        
-        -- left bottom
-        from = Vector(w/2,h/2)+Vector(-w*0.1,h*0.1)
-        where = Vector(w/2,h/2)+Vector(-w*0.1+w*0.05,h*0.1)
-        render.drawLine(from.x,from.y,where.x,where.y)
-        
-        from = Vector(w/2,h/2)+Vector(-w*0.1,h*0.1)
-        where = Vector(w/2,h/2)+Vector(-w*0.1,h*0.1-h*0.05)
-        render.drawLine(from.x,from.y,where.x,where.y)
-        
-        -- right bottom
-        from = Vector(w/2,h/2)+Vector(w*0.1,h*0.1)
-        where = Vector(w/2,h/2)+Vector(w*0.1-w*0.05,h*0.1)
-        render.drawLine(from.x,from.y,where.x,where.y)
-        
-        from = Vector(w/2,h/2)+Vector(w*0.1,h*0.1)
-        where = Vector(w/2,h/2)+Vector(w*0.1,h*0.1-h*0.05)
-        render.drawLine(from.x,from.y,where.x,where.y)
-        
-        
-        render.setColor(Color(255,255,255,200))
-        
-        -- left top
-        from = Vector(w/2,h/2)+Vector(-w*0.1,-h*0.1)/0.25
-        where = Vector(w/2,h/2)+Vector(-w*0.1+w*0.05,-h*0.1)/0.25
-        render.drawLine(from.x,from.y,where.x,where.y)
-        
-        from = Vector(w/2,h/2)+Vector(-w*0.1,-h*0.1)/0.25
-        where = Vector(w/2,h/2)+Vector(-w*0.1,-h*0.1+h*0.05)/0.25
-        render.drawLine(from.x,from.y,where.x,where.y)
-        
-        -- right top
-        from = Vector(w/2,h/2)+Vector(w*0.1,-h*0.1)/0.25
-        where = Vector(w/2,h/2)+Vector(w*0.1-w*0.05,-h*0.1)/0.25
-        render.drawLine(from.x,from.y,where.x,where.y)
-        
-        from = Vector(w/2,h/2)+Vector(w*0.1,-h*0.1)/0.25
-        where = Vector(w/2,h/2)+Vector(w*0.1,-h*0.1+h*0.05)/0.25
-        render.drawLine(from.x,from.y,where.x,where.y)
-        
-        
-        -- left bottom
-        from = Vector(w/2,h/2)+Vector(-w*0.1,h*0.1)/0.25
-        where = Vector(w/2,h/2)+Vector(-w*0.1+w*0.05,h*0.1)/0.25
-        render.drawLine(from.x,from.y,where.x,where.y)
-        
-        from = Vector(w/2,h/2)+Vector(-w*0.1,h*0.1)/0.25
-        where = Vector(w/2,h/2)+Vector(-w*0.1,h*0.1-h*0.05)/0.25
-        render.drawLine(from.x,from.y,where.x,where.y)
-        
-        -- right bottom
-        from = Vector(w/2,h/2)+Vector(w*0.1,h*0.1)/0.25
-        where = Vector(w/2,h/2)+Vector(w*0.1-w*0.05,h*0.1)/0.25
-        render.drawLine(from.x,from.y,where.x,where.y)
-        
-        from = Vector(w/2,h/2)+Vector(w*0.1,h*0.1)/0.25
-        where = Vector(w/2,h/2)+Vector(w*0.1,h*0.1-h*0.05)/0.25
-        render.drawLine(from.x,from.y,where.x,where.y)
-        
-        local m = Matrix()
-        m:setScale(Vector(1,2)*2)
-        
-        local time = string.formattedTime(timer.curtime(), nil)
-        local hour = time["h"]
-        local min = time["m"]
-        local sec = time["s"]
-        local h_f = tostring(hour > 9 and hour or "0"..hour)
-        local m_f = tostring(min > 9 and min or "0"..min)
-        local s_f = tostring(sec > 9 and sec or "0"..sec)
-        
-        local zoom_to_string = tostring((1+zoom*0.69)*10)
-        local zoom_f = zoom_to_string:sub(1,1).."."..zoom_to_string:sub(2,2).."x"
-        render.pushMatrix(m)
-            pos = Vector(w-w*0.1-w*0.025,h*0.1/2)/2
-            render.drawText(pos.x,pos.y,zoom_f,TEXT_ALIGN.RIGHT)
-            
-            render.setMaterial()
-            pos = Vector(w*0.1+w*0.075,h*0.1/2)/2
-            render.drawText(pos.x,pos.y,"REC",TEXT_ALIGN.LEFT)
-            
-            if math.round(timer.curtime() % 1) >= 1 then
-                render.setColor(Color(255,0,0,255))
+            if nightvision then
+                render.setColor(Color(255,255,255,150))
+                render.setMaterial(circle3)
+                render.drawTexturedRectFast(-w*0.5/2, -h*0.5/2, w*1.5, h*1.5)
                 
-                render.drawFilledCircle(pos.x-5.5, pos.y+8.5, 3)
+                render.setColor(Color(0,0,0,200))
+                render.drawTexturedRectFast(0, 0, w, h)
+                render.drawTexturedRectFast(0, 0, w, h)
+                
+                render.drawTexturedRectRotatedFast(w/2, (h)/2, h, w,90)
+                render.drawTexturedRectRotatedFast(w/2, (h)/2, h, w,90)
+                
+                render.setMaterial(circle2)
+                render.drawTexturedRectRotatedFast(w/2, (h)/2, h+h*0.4, w,90)
+                render.drawTexturedRectRotatedFast(w/2, (h)/2, (h+h*0.4)*1.1, w*1.1,90)
             end
             
-        render.popMatrix()
-        
-        m:setScale(Vector(1,2)*1.2)
-        
-        render.setColor(Color(255,255,255,200))
-        
-        render.pushMatrix(m)
-            local pos = Vector(w*0.105,h/2-h*0.1/2)/1.2
-            render.drawText(pos.x+2,pos.y-18,h_f..":"..m_f..":"..s_f,TEXT_ALIGN.LEFT)
-        render.popMatrix()
+            render.drawBlurEffect((1-delta)*2, (1-delta)*2, 1)
+            
+            render.setColor(Color(255,255,255,100))
+            -- left top
+            local from = Vector(w/2,h/2)+Vector(-w*0.1,-h*0.1)
+            local where = Vector(w/2,h/2)+Vector(-w*0.1+w*0.05,-h*0.1)
+            render.drawLine(from.x,from.y,where.x,where.y)
+            
+            from = Vector(w/2,h/2)+Vector(-w*0.1,-h*0.1)
+            where = Vector(w/2,h/2)+Vector(-w*0.1,-h*0.1+h*0.05)
+            render.drawLine(from.x,from.y,where.x,where.y)
+            
+            -- right top
+            from = Vector(w/2,h/2)+Vector(w*0.1,-h*0.1)
+            where = Vector(w/2,h/2)+Vector(w*0.1-w*0.05,-h*0.1)
+            render.drawLine(from.x,from.y,where.x,where.y)
+            
+            from = Vector(w/2,h/2)+Vector(w*0.1,-h*0.1)
+            where = Vector(w/2,h/2)+Vector(w*0.1,-h*0.1+h*0.05)
+            render.drawLine(from.x,from.y,where.x,where.y)
+            
+            
+            -- left bottom
+            from = Vector(w/2,h/2)+Vector(-w*0.1,h*0.1)
+            where = Vector(w/2,h/2)+Vector(-w*0.1+w*0.05,h*0.1)
+            render.drawLine(from.x,from.y,where.x,where.y)
+            
+            from = Vector(w/2,h/2)+Vector(-w*0.1,h*0.1)
+            where = Vector(w/2,h/2)+Vector(-w*0.1,h*0.1-h*0.05)
+            render.drawLine(from.x,from.y,where.x,where.y)
+            
+            -- right bottom
+            from = Vector(w/2,h/2)+Vector(w*0.1,h*0.1)
+            where = Vector(w/2,h/2)+Vector(w*0.1-w*0.05,h*0.1)
+            render.drawLine(from.x,from.y,where.x,where.y)
+            
+            from = Vector(w/2,h/2)+Vector(w*0.1,h*0.1)
+            where = Vector(w/2,h/2)+Vector(w*0.1,h*0.1-h*0.05)
+            render.drawLine(from.x,from.y,where.x,where.y)
+            
+            
+            render.setColor(Color(255,255,255,200))
+            
+            -- left top
+            from = Vector(w/2,h/2)+Vector(-w*0.1,-h*0.1)/0.25
+            where = Vector(w/2,h/2)+Vector(-w*0.1+w*0.05,-h*0.1)/0.25
+            render.drawLine(from.x,from.y,where.x,where.y)
+            
+            from = Vector(w/2,h/2)+Vector(-w*0.1,-h*0.1)/0.25
+            where = Vector(w/2,h/2)+Vector(-w*0.1,-h*0.1+h*0.05)/0.25
+            render.drawLine(from.x,from.y,where.x,where.y)
+            
+            -- right top
+            from = Vector(w/2,h/2)+Vector(w*0.1,-h*0.1)/0.25
+            where = Vector(w/2,h/2)+Vector(w*0.1-w*0.05,-h*0.1)/0.25
+            render.drawLine(from.x,from.y,where.x,where.y)
+            
+            from = Vector(w/2,h/2)+Vector(w*0.1,-h*0.1)/0.25
+            where = Vector(w/2,h/2)+Vector(w*0.1,-h*0.1+h*0.05)/0.25
+            render.drawLine(from.x,from.y,where.x,where.y)
+            
+            
+            -- left bottom
+            from = Vector(w/2,h/2)+Vector(-w*0.1,h*0.1)/0.25
+            where = Vector(w/2,h/2)+Vector(-w*0.1+w*0.05,h*0.1)/0.25
+            render.drawLine(from.x,from.y,where.x,where.y)
+            
+            from = Vector(w/2,h/2)+Vector(-w*0.1,h*0.1)/0.25
+            where = Vector(w/2,h/2)+Vector(-w*0.1,h*0.1-h*0.05)/0.25
+            render.drawLine(from.x,from.y,where.x,where.y)
+            
+            -- right bottom
+            from = Vector(w/2,h/2)+Vector(w*0.1,h*0.1)/0.25
+            where = Vector(w/2,h/2)+Vector(w*0.1-w*0.05,h*0.1)/0.25
+            render.drawLine(from.x,from.y,where.x,where.y)
+            
+            from = Vector(w/2,h/2)+Vector(w*0.1,h*0.1)/0.25
+            where = Vector(w/2,h/2)+Vector(w*0.1,h*0.1-h*0.05)/0.25
+            render.drawLine(from.x,from.y,where.x,where.y)
+            
+            local m = Matrix()
+            m:setScale(Vector(1,2)*2)
+            
+            local time = string.formattedTime(timer.curtime(), nil)
+            local hour = time["h"]
+            local min = time["m"]
+            local sec = time["s"]
+            local h_f = tostring(hour > 9 and hour or "0"..hour)
+            local m_f = tostring(min > 9 and min or "0"..min)
+            local s_f = tostring(sec > 9 and sec or "0"..sec)
+            
+            local zoom_to_string = tostring((1+zoom*0.69)*10)
+            local zoom_f = zoom_to_string:sub(1,1).."."..zoom_to_string:sub(2,2).."x"
+            render.pushMatrix(m)
+                pos = Vector(w-w*0.1-w*0.025,h*0.1/2)/2
+                render.drawText(pos.x,pos.y,zoom_f,TEXT_ALIGN.RIGHT)
+                
+                render.setMaterial()
+                pos = Vector(w*0.1+w*0.075,h*0.1/2)/2
+                render.drawText(pos.x,pos.y,"REC",TEXT_ALIGN.LEFT)
+                
+                if math.round(timer.curtime() % 1) >= 1 then
+                    render.setColor(Color(255,0,0,255))
+                    
+                    render.drawFilledCircle(pos.x-5.5, pos.y+8.5, 3)
+                end
+                
+            render.popMatrix()
+            
+            m:setScale(Vector(1,2)*1.2)
+            
+            render.setColor(Color(255,255,255,200))
+            
+            render.pushMatrix(m)
+                local pos = Vector(w*0.105,h/2-h*0.1/2)/1.2
+                render.drawText(pos.x+2,pos.y-18,h_f..":"..m_f..":"..s_f,TEXT_ALIGN.LEFT)
+            render.popMatrix()
+        end
     end
-    
     render.selectRenderTarget()
 end)
 local change_ct = 0
@@ -273,12 +284,16 @@ local snd = nil
 
 hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
     if pthl.ready then
+        ProjectedTexture:setPos(pthl.holos["screen"]:localToWorld(Vector(-6,0,0)))
+        ProjectedTexture:setAngles(pthl.holos["screen"]:localToWorldAngles(Angle(0,180,0)))
+        ProjectedTexture:update()
+        
         if pthl.first != true then
             pthl.first = true
             pthl.holos["screen"]:setMaterial("!"..tex:getName())
             pthl.holos["screen"]:suppressEngineLighting(true)
         end
-        if (owner() and owner() != nil and owner():isValid() and owner():getHealth() > 0) and isValid(owner():getActiveWeapon()) and owner():getActiveWeapon():getClass() == "none" then
+        if (player() and player() != nil and player():isValid() and player():getHealth() > 0) and isValid(player():getActiveWeapon()) and player():getActiveWeapon():getClass() == "none" then
             if pthl.model_hidden != false then
                 pthl.model_hidden = false
                 for k, v in pairs(pthl.holos) do
@@ -297,10 +312,11 @@ hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
                 snd:setPitch(80+40*math.clamp(math.abs(zoom_target-zoom)*4,0,1))
             end
             
-            if input.isMouseDown(MOUSE.MOUSE1) and not owner():isTyping() and button_down["m2"] then
+            if input.isMouseDown(MOUSE.MOUSE1) and not player():isTyping() and button_down["m2"] then
                 if button_down["toggle_nv"] != true then
                     button_down["toggle_nv"] = true
                     nightvision = not nightvision
+                    toggle_light(nightvision)
                     delta = 0
                 end
             else
@@ -309,7 +325,7 @@ hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
                 end
             end
             
-            if input.isMouseDown(MOUSE.MOUSE2) and not owner():isTyping() then
+            if input.isMouseDown(MOUSE.MOUSE2) and not player():isTyping() then
                 if button_down["m2"] != true then
                     button_down["m2"] = true
                     look_closer = true
@@ -317,6 +333,8 @@ hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
             else
                 if button_down["m2"] != false then
                     button_down["m2"] = false
+                    nightvision = false
+                    toggle_light(nightvision)
                     look_closer = false
                     zoom_target = 0
                 end
@@ -329,7 +347,7 @@ hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
             
             look_closer_mult = math.lerp(0.15/(1/timer.frametime()/60),look_closer_mult,look_closer and 0 or 1)
             
-            local vel = owner():getLocalVelocity()
+            local vel = player():getLocalVelocity()
             
             local sway = Vector()
             sway.x = math.sin(math.rad(timer.curtime()*90*2))/(50-20*look_closer_mult)
