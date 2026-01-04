@@ -1,4 +1,4 @@
---@name NVG
+--@name NVG Projected Texture Version
 --@author Nakkitsunami
 --@client
 --@owneronly
@@ -18,14 +18,24 @@ render.createRenderTarget(rtName)
 local tex = material.create("gmodscreenspace")
 tex:setTextureRenderTarget("$basetexture", rtName)
 
-local circle = render.createMaterial("gmod/scope", nil, function() print("ready") end)
+local circle = render.createMaterial("gmod/scope", nil, nil)
+local circle2 = material.load("sprites/light_ignorez")
 
+local ProjectedTexture = light.createProjected()
+ProjectedTexture:setTexture("effects/flashlight/soft")
+
+function toggle_light(bool)
+    ProjectedTexture:setHorizontalFOV(bool and 3*25 or 0)
+    ProjectedTexture:setVerticalFOV(bool and 4*25 or 0)
+    ProjectedTexture:setBrightness(bool and 4 or 0)
+    ProjectedTexture:setFarZ(bool and 4000 or 0)
+end
+toggle_light(false)
+
+ProjectedTexture:setEnableShadows(false)
 hook.add("RenderScene", "", function(origin, angles, fov)
     if (owner() and owner() != nil and owner():isValid() and owner():getHealth() > 0) then
         render.selectRenderTarget(rtName)
-        
-        render.suppressEngineLighting(true)
-        render.setLightingMode(1)
         
         render.renderView({
             origin = owner():getEyePos(),
@@ -41,6 +51,13 @@ hook.add("RenderScene", "", function(origin, angles, fov)
     end
     render.selectRenderTarget()
 end)
+
+hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
+    ProjectedTexture:setPos(pos)
+    ProjectedTexture:setAngles(ang)
+    ProjectedTexture:update()
+end)
+
 local change_ct = 0
 hook.add("DrawHUD", "", function()
     if (owner() and owner() != nil and owner():isValid() and owner():getHealth() > 0) then
@@ -55,6 +72,7 @@ hook.add("DrawHUD", "", function()
                     down = not down
                     change_ct = down and timer.curtime() or timer.curtime()
                     delta = 0
+                    toggle_light(down)
                     if down then
                         owner():emitSound("physics/metal/weapon_footstep2.wav", 100, 125, 1, CHANNEL_AUTO)
                     else
@@ -76,6 +94,10 @@ hook.add("DrawHUD", "", function()
             
             render.setColor(Color(255*(fade<=0 and 0 or 1 - fade),255*(fade<=0 and 0 or 1),255*(fade<=0 and 0 or 1 - fade),255-225*fade))
             render.drawRectFast(0,0,w,h)
+            
+            render.setColor(Color(200,225,200,100))
+            render.setMaterial(circle2)
+            render.drawTexturedRect(w/2-h/2*2, h/2-h/2*2, h*2, h*2)
             
             render.setColor(Color(0,5,0))
             render.drawRectFast(0,0,w/2-h/2,h)
