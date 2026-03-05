@@ -1,0 +1,122 @@
+--@name WAILA
+--@author Nakkitsunami
+--@client
+--@includedir waila/classes/
+--@include waila/functions.txt
+
+if player() == owner() then
+    enableHud(owner(), true)
+end
+
+local waila = require("waila/functions.txt")
+
+local classes = {}
+for k, v in pairs(requiredir("waila/classes/", nil)) do
+    if type(v) == "table" then
+        local data = v
+        local class = data["class"]
+        classes[class] = v
+        printConsole("WAILA | class '"..class:upper().."' registered")
+    end
+end
+
+local w, h = render.getGameResolution()
+
+local menu = {
+    ["x"] = w/2,
+    ["y"] = 5,
+    ["opacity"] = 225,
+    ["edgeRadius"] = 25,
+    ["outlineRadiusInside"] = 10,
+    ["outlineRadius"] = 4,
+    ["name_size"] = 1.25
+}
+
+menu["y"] = menu["y"] + menu["edgeRadius"]/2
+hook.add("DrawHUD", "", function()
+    local ent = player():getEyeTrace().Entity
+    if not isValid(ent) or ent == game.getWorld() then return end
+    
+    render.setFont("TargetID")
+    
+    render.setFilterMin(TEXFILTER.NONE)
+    render.setFilterMag(TEXFILTER.NONE)
+    
+    local class = classes[ent:isPlayer() and "player" or ent:isNPC() and "npc" or ent:getClass()]
+    if not class then 
+        for k, v in pairs(classes) do
+            if ent:getClass():find(k) then
+                class = classes[k]
+            end
+        end
+    end
+    if not class then class = classes["_unknown"] end
+    local functions = class["display"]
+    
+    render.setColor(Color(0, 0, 0, 0))
+    local width = 0
+    local height_count = 0
+    local height_store = {0}
+    
+    local m = Matrix()
+    m:setScale(Vector())
+    render.pushMatrix(m)
+    for k, v in pairs(functions) do
+        
+        local func = (type(v) == "string") and waila[v] or v
+        getwidth, get_text_height = func(ent)
+        
+        if getwidth != nil and getwidth != 0 and get_text_height != nil and get_text_height != 0 then
+            height_count = height_count + get_text_height * (k == 1 and menu["name_size"] or 1)
+            if width < getwidth then
+                width = getwidth * (k == 1 and menu["name_size"] or 1)
+            end
+        end
+        height_store[#height_store+1] = height_count
+    end
+    
+    local height = height_count+menu["edgeRadius"]
+    
+    render.popMatrix()
+    
+    render.setColor(Color(0,0,0,menu["opacity"]))
+    local m = Matrix()
+    m:translate(Vector(menu["x"]-width/2,menu["y"]))
+    
+    render.pushMatrix(m)
+        
+        render.drawRoundedBox(5, -menu["edgeRadius"]/2, -menu["edgeRadius"]/2, width+menu["edgeRadius"], height)
+        
+        waila.pushMask(function()
+            render.drawRectFast(-menu["edgeRadius"]/2+menu["outlineRadiusInside"]/2, -menu["edgeRadius"]/2+menu["outlineRadiusInside"]/2, width+menu["edgeRadius"]-menu["outlineRadiusInside"], height-menu["outlineRadiusInside"])
+        end, false)
+        
+        render.setColor(Color(40,40,175))
+        
+        render.drawRoundedBox(3, -menu["edgeRadius"]/2+menu["outlineRadius"]/2, -menu["edgeRadius"]/2+menu["outlineRadius"]/2, width+menu["edgeRadius"]-menu["outlineRadius"], height-menu["outlineRadius"])
+        
+        waila.popMask()
+        
+    render.popMatrix()
+    
+    render.setColor(Color(255, 255, 255, 255))
+    for k, v in pairs(functions) do
+        local m = Matrix()
+        m:translate(Vector(menu["x"]-width/2,menu["y"]+height_store[k]))
+        if k == 1 then m:setScale(Vector(menu["name_size"])) end
+        
+        render.pushMatrix(m)
+            
+            if k > 1 then
+                render.setColor(waila.color_light_gray)
+            end
+            if type(v) == "function" then
+                v(ent)
+            else
+                waila[v](ent)
+            end
+            
+        render.popMatrix()
+        render.setColor(Color(255, 255, 255, 255))
+    end
+end)

@@ -1,0 +1,12 @@
+--@name waila/classes/_npc
+--@author Nakkitsunami
+--@client
+
+return {
+    ["class"] = "npc",
+    ["display"] = {
+        "class",
+        "health",
+        "owner"
+    }
+}

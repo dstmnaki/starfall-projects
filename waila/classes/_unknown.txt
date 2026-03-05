@@ -1,0 +1,11 @@
+--@name waila/classes/_unknown
+--@author Nakkitsunami
+--@client
+
+return {
+    ["class"] = "_unknown",
+    ["display"] = {
+        "class",
+        "owner"
+    }
+}

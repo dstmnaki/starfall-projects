@@ -1,0 +1,11 @@
+--@name waila/classes/_player
+--@author Nakkitsunami
+--@client
+
+return {
+    ["class"] = "player",
+    ["display"] = {
+        "name",
+        "health"
+    }
+}
