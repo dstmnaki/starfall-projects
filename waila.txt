@@ -42,7 +42,7 @@ hook.add("DrawHUD", "", function()
     render.setFilterMin(TEXFILTER.NONE)
     render.setFilterMag(TEXFILTER.NONE)
     
-    local class = classes[ent:isPlayer() and "player" or ent:isNPC() and "npc" or ent:getClass()]
+    local class = classes[ent:isPlayer() and "waila_player" or ent:isNPC() and "waila_npc" or ent:getClass()]
     if not class then 
         for k, v in pairs(classes) do
             if ent:getClass():find(k) then
@@ -50,7 +50,7 @@ hook.add("DrawHUD", "", function()
             end
         end
     end
-    if not class then class = classes["_unknown"] end
+    if not class then class = classes["waila_unknown"] end
     local functions = class["display"]
     
     render.setColor(Color(0, 0, 0, 0))
