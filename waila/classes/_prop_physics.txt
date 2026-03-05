@@ -1,0 +1,13 @@
+--@name waila/classes/_prop_physics
+--@author Nakkitsunami
+--@client
+
+return {
+    ["class"] = "prop_physics",
+    ["display"] = {
+        "model",
+        "owner",
+        "material",
+        "color"
+    }
+}
