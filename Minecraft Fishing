@@ -1,0 +1,726 @@
+--@name Minecraft Fishing
+--@author Nakkitsunami
+--@shared
+--@include _katlibs2/universal/coroutineutils.txt
+--@include _katlibs2/universal/httpqueue.txt
+--@include _katlibs2/shared/assetloader.txt
+--@include nakilibs/stencil/stencil.txt
+--@model models/props_junk/plasticbucket001a.mdl
+
+if SERVER then
+    chip():setColor(Color(255,255,255,0))
+    
+    net.receive("loaded_for", function(len, ply)
+        if isValid(ply) then
+            print(Color(0, 150, 255), "[ Fishing ] ", Color(0, 150, 255), ply:getName(), Color(255, 255, 255), " finished loading models!")
+        end
+    end)
+    
+    net.receive("downloading_for", function(len, ply)
+        if isValid(ply) then
+            print(Color(0, 150, 255), "[ Fishing ] ", Color(0, 150, 255), ply:getName(), Color(255, 255, 255), " is downloading assets...")
+        end
+    end)
+    
+    net.receive("loaded_from_temp_for", function(len, ply)
+        if isValid(ply) then
+            print(Color(0, 150, 255), "[ Fishing ] ", Color(0, 150, 255), ply:getName(), Color(255, 255, 255), " loading from temp...")
+        end
+    end)
+    
+    net.receive("failed_to_load_for", function(len, ply)
+        if isValid(ply) and ply ~= owner() then
+            local getReasons = net.readTable()
+            local reasons = table.concat(getReasons,", ")
+            
+            print(Color(0, 150, 255), "[ Fishing ] ", Color(255, 0, 0), ply:getName(), Color(255, 255, 255), " failed to load models! Reasons: "..reasons)
+        end
+    end)
+    
+    net.receive("cast", function(len, ply)
+        local cast = net.readBool()
+        net.start("cast_to_clients")
+        net.writeBool(cast)
+        net.send(find.allPlayers(function(a) return a != owner() end),false)
+    end)
+    
+else
+    local canWriteTemp = hasPermission("file.writeTemp", owner())
+    local canCreateHolos = hasPermission("hologram.create", owner())
+    local permOK = canWriteTemp and canCreateHolos
+    if not permOK then
+        local reasons = {}
+        if not canWriteTemp then
+            reasons[#reasons+1] = "file.writeTemp"
+        end
+        if not canCreateHolos then
+            reasons[#reasons+1] = "hologram.create"
+        end
+        
+        net.start("failed_to_load_for")
+        net.writeTable(reasons)
+        net.send()
+    end
+    
+    require("_katlibs2/universal/coroutineutils.txt")
+    require("_katlibs2/universal/httpqueue.txt")
+    require("_katlibs2/shared/assetloader.txt")
+    
+    local stencil = require("nakilibs/stencil/stencil.txt")
+    
+    local DEBUG_PATHS = false
+    local force_update = false
+    
+    local assetsURL = "https://www.dropbox.com/scl/fi/uvuwgqyd9wzv45ley38qc/fishing.zip?rlkey=jhr2o4icaa4eddqsps51zbswa&dl=0"
+    local materials = {}
+    local models = {}
+    local sounds = {}
+    
+    local loader_quota = player() == owner() and 0.8 or 0.1
+    
+    local file_names = {
+        "fishing_rod.png",
+        "fishing_rod_cast.png",
+        "fishing_rod_bobber.png",
+        "bubble.png",
+        "fish.png",
+        "splash_0.png",
+        "splash_1.png",
+        "splash_2.png",
+        "splash_3.png",
+        "splash.mp3",
+        "cast.mp3",
+        "pickup.mp3",
+    }
+    
+    function main()
+        net.start("loaded_for")
+        net.send()
+        
+        local size = owner():obbSize().z/72
+        
+        if owner():isCrouching() then
+            print("NOTICE! Do not spawn me while crouching, height calculation will not work if you do so!")
+        end
+        
+        local fishing_rod = hologram.create(chip():getPos()+Vector(-48/2,0,32), Angle(), "models/hunter/blocks/cube1x1x1.mdl", Vector(48,32*size,32*size)/Vector(48))
+        fishing_rod:setClip(1, true, Vector(23.5,0,0), Vector(1,0,0), fishing_rod)
+        fishing_rod:setMaterial("!"..materials["fishing_rod"]:getName())
+        fishing_rod:suppressEngineLighting(true)
+        
+        local fishing_rod_bobber = hologram.create(chip():getPos()+Vector(-48/2,0,0), Angle(), "models/hunter/blocks/cube1x1x1.mdl", Vector(48,16*size,16*size)/Vector(48))
+        fishing_rod_bobber:setClip(1, true, Vector(23,0,0), Vector(1,0,0), fishing_rod_bobber)
+        fishing_rod_bobber:setClip(2, true, Vector(0,0,7)*size, Vector(0,0,-1), fishing_rod_bobber)
+        fishing_rod_bobber:setMaterial("!"..materials["fishing_rod_bobber"]:getName())
+        fishing_rod_bobber:suppressEngineLighting(true)
+        fishing_rod_bobber:setNoDraw(true)
+        
+        local fishing_rod_line = hologram.create(chip():getPos()+Vector(0,0,0), Angle(), "models/hunter/blocks/cube1x1x1.mdl", Vector(0,0.5,0.5)/Vector(48))
+        fishing_rod_line:setMaterial("models/debug/debugwhite")
+        fishing_rod_line:setColor(Color(0,0,0))
+        fishing_rod_line:suppressEngineLighting(true)
+        fishing_rod_line:setNoDraw(true)
+        
+        local fish_item = hologram.create(chip():getPos()+Vector(-48/2,0,32), Angle(), "models/hunter/blocks/cube1x1x1.mdl", Vector(48,16*size,16*size)/Vector(48))
+        fish_item:setClip(1, true, Vector(23.5,0,0), Vector(1,0,0), fish_item)
+        fish_item:setMaterial("!"..materials["fish"]:getName())
+        fish_item:suppressEngineLighting(true)
+        fish_item:setNoDraw(true)
+        
+        local shadow = hologram.create(chip():localToWorld(Vector(0,0,chip():obbMins().z)), Angle(), "models/hunter/tubes/circle2x2.mdl", Vector(10*size,10*size,4)/Vector(48)/2)
+        shadow:setMaterial("models/debug/debugwhite")
+        shadow:setColor(Color(0,0,0,150))
+        shadow:setRenderMode(RENDERMODE.WORLDGLOW)
+        shadow:suppressEngineLighting(true)
+        
+        local fish_icon = hologram.create(shadow:localToWorld(Vector(-48/2,0,12)), Angle(), "models/hunter/blocks/cube1x1x1.mdl", Vector(48,16*size,16*size)/Vector(48))
+        fish_icon:setClip(1, true, Vector(23.5,0,0), Vector(1,0,0), fish_icon)
+        fish_icon:setMaterial("!"..materials["fish"]:getName())
+        fish_icon:suppressEngineLighting(true)
+        fish_icon:setRenderMode(RENDERMODE.WORLDGLOW)
+        
+        function quotaOK()
+            local quota = chip():getQuotaAverage()
+            return quota < chip():getQuotaMax()*0.75
+        end
+        
+        function updateSprite(ent,pos,ang)
+            if not (quotaOK() and isValid(ent)) then return end
+            ent:setPos(pos+Vector(-48/2,0,0):getRotated(ang))
+            ent:setAngles(ang)
+        end
+        
+        local last_under_water = false
+        local trail = {}
+        local bubbles = {}
+        local fish = nil
+        local item = nil
+        local fish_last_trail_particle = 0
+        local pickup_window = 0
+        local bobber = {
+            ["cast"] = false,
+            ["pos"] = owner():getEyePos(),
+            ["vel"] = Vector()
+        }
+        local down = false
+        local last_spawn_fish = 0
+        local last_bubble = 0
+        local last_used = 0
+        
+        function isUnderWater(ent)
+            return ent:getWaterLevel()
+        end
+        
+        function bobIsUnderWater()
+            return isUnderWater(fishing_rod_bobber) >= 1
+        end
+        function spawnParticle(pos,vel,gravity)
+            local temp_holo = hologram.create(pos, render.getAngles(), "models/hunter/blocks/cube1x1x1.mdl", Vector(48,16*size,16*size)/Vector(48))
+            temp_holo:setClip(1, true, Vector(23.5,0,0), Vector(1,0,0), temp_holo)
+            temp_holo:setMaterial("!"..materials["splash_0"]:getName())
+            temp_holo:suppressEngineLighting(true)
+            temp_holo:setRenderMode(RENDERMODE.WORLDGLOW)
+            temp_holo:setColor(Color(255,255,255,254))
+            local t = {
+                temp_holo,
+                0,
+                timer.curtime(),
+                timer.curtime(),
+                vel or Vector(),
+                gravity or 1
+            }
+            trail[#trail+1] = t
+        end
+        
+        function spawnBubble(pos)
+            local temp_holo = hologram.create(pos, render.getAngles(), "models/hunter/blocks/cube1x1x1.mdl", Vector(48,16*size,16*size)/Vector(48))
+            temp_holo:setClip(1, true, Vector(23.5,0,0), Vector(1,0,0), temp_holo)
+            temp_holo:setMaterial("!"..materials["bubble"]:getName())
+            temp_holo:suppressEngineLighting(true)
+            temp_holo:setRenderMode(RENDERMODE.WORLDGLOW)
+            temp_holo:setColor(Color(255,255,255,254))
+            local t = {
+                temp_holo,
+                timer.curtime()
+            }
+            bubbles[#bubbles+1] = t
+        end
+        
+        function splash()
+            local snd = sounds["splash"]
+            if snd != nil then
+                snd:setPos(fishing_rod_bobber:getPos())
+                snd:setTime(0,true)
+                snd:play()
+            end
+        end
+        
+        function largeSplash(pos,count)
+            for i = 1, count do
+                spawnParticle(pos,Vector(math.rand(-5,5)/10,0,1):rotateAroundAxis(Vector(0,0,1),math.rand(-360,360)):getNormalized()*math.rand(10,20),1)
+            end
+        end
+        
+        function ExpDecay( a, b, decay, dt )
+            return b + ( a - b ) * math.exp( -decay * dt )
+        end
+        
+        function cast(cast)
+            local ct = timer.curtime()
+            
+            if player() == owner() then
+                last_used = bobber["cast"] and 0 or ct
+                
+                net.start("cast")
+                net.writeBool(cast)
+                net.send()
+            end
+            
+            if bobber["cast"] and bobIsUnderWater() then
+                local pos = fishing_rod_bobber:getPos()
+                if ct - pickup_window <= 0.75 then
+                    item = {}
+                    item["pos"] = pos
+                    item["yaw"] = math.rand(-360,360)
+                    item["ct"] = timer.curtime()
+                    fish_item:setNoDraw(false)
+                    largeSplash(pos,math.ceil(math.rand(3,5),0))
+                end
+                
+                largeSplash(pos,math.ceil(math.rand(1,2),0))
+            end
+            
+            bobber["cast"] = cast
+            bobber["pos"] = owner():getEyePos()
+            bobber["vel"] = bobber["cast"] and owner():getAimVector()*1250 or Vector()
+            fishing_rod:setMaterial("!"..materials[cast and "fishing_rod_cast" or "fishing_rod"]:getName())
+            
+            pickup_window = 0
+            
+            last_spawn_fish = ct + math.rand(10,25)
+            
+            fish = nil
+            last_under_water = false
+            fishing_rod_bobber:setPos(owner():getEyePos())
+            fishing_rod_bobber:setNoDraw(not cast)
+            
+            if player() != owner() then
+                fishing_rod_line:setNoDraw(not cast)
+            end
+            
+            if not cast then return end
+            local snd = sounds["cast"]
+            if snd != nil then
+                snd:setPos(owner():getEyePos())
+                snd:setTime(0,true)
+                snd:setVolume(5)
+                snd:play()
+            end
+        end
+        
+        net.receive("cast_to_clients", function(len, ply)
+            cast(net.readBool())
+        end)
+        
+        if player() == owner() then
+            enableHud(owner(), true)
+            
+            hook.add("HUDShouldDraw", "", function(str)
+                if not (isValid(owner()) and isValid(owner():getActiveWeapon()) and owner():getActiveWeapon():getClass() == "none") then return end
+                if str == "CHudCrosshair" then return false end
+            end)
+            
+            framebuffer = material.create( "UnlitGeneric" )
+            framebuffer:setTexture( "$basetexture", "_rt_FullFrameFB" )
+            
+            local w, h = render.getGameResolution()
+            
+            hook.add("DrawHUD", "", function()
+                if not (isValid(owner()) and isValid(owner():getActiveWeapon()) and owner():getActiveWeapon():getClass() == "none") then return end
+                stencil.pushMask(function()
+                    render.drawRectFast(w/2-15, h/2-2, 30, 4)
+                    render.drawRectFast(w/2-2, h/2-15, 4, 30)
+                end, true)
+                
+                render.setMaterialEffectColorModify(framebuffer, {
+                    brightness = -1,
+                    contrast = -1
+                })
+                render.drawTexturedRect(0,0,w,h)
+                
+                stencil.popMask()
+            end)
+            
+            hook.add("PostDrawOpaqueRenderables", "", function(depth, skybox, skybox3d)
+                if not (bobber["cast"] and isValid(owner()) and isValid(owner():getActiveWeapon()) and owner():getActiveWeapon():getClass() == "none") then return end
+                render.start3DBeam(10)
+                
+                local bobber_pos = fishing_rod_bobber:localToWorld(Vector(24,1*size,8*size))
+                local rod_pos = fishing_rod:localToWorld(Vector(24,14*size,14*size))
+                
+                for i = 0, 9 do
+                    local pos = math.lerpVector(i/9, rod_pos, bobber_pos) - Vector(0,0,math.sin(math.rad(i/10*180))*(rod_pos.z-bobber_pos.z)/10)
+                    render.add3DBeam(pos, 1, 0, Color(0,0,0))
+                end
+                render.end3DBeam()
+            end)
+            
+            hook.add("CalcView", "", function(pos, ang, fov, znear, zfar)
+                
+                local bob = math.easeOutSine(math.clamp((timer.curtime() - last_used)*4,0,1))
+                
+                local ang2 = ang:rotateAroundAxis(ang:getUp(),-90)
+                
+                fishing_rod:setAngles(ang2)
+                fishing_rod:setPos(pos+Vector(-23.5+23.5*size,25*size,(-8-10+10*bob)*size):getRotated(ang2))
+                
+                
+                local bobber_pos = fishing_rod_bobber:localToWorld(Vector(24,0,7*size))
+                local rod_pos = fishing_rod:localToWorld(Vector(24,14*size,14*size))
+                
+                fishing_rod_line:setAngles((bobber_pos-rod_pos):getAngle())
+                fishing_rod_line:setPos((bobber_pos+rod_pos)/2)
+                fishing_rod_line:setScale(Vector((bobber_pos-rod_pos):getLength(),0.5,0.5)/Vector(47.5))
+            end)
+        end
+        
+        local Text_Size = 3*size
+        
+        local rtName = "text_display"
+        render.createRenderTarget(rtName)
+        
+        local text_plate = material.create("VertexLitGeneric")
+        text_plate:setTextureRenderTarget("$basetexture", rtName)
+        text_plate:setFloat("$alpha",1)
+        
+        local text = hologram.create(chip():getPos()+Vector(23.5,0,0), Angle(0,0,0), "models/hunter/blocks/cube1x1x1.mdl", Vector(1,Text_Size,Text_Size))
+        text:setClip(1, true, Vector(-23.5,0,0), Vector(-1,0,0), text)
+        text:suppressEngineLighting(true)
+        text:setMaterial("!"..text_plate:getName())
+        text:setColor(Color(255,255,255,254))
+        text:setRenderMode(RENDERMODE.WORLDGLOW)
+        
+        local scale_expand = 0
+        
+        hook.add("renderscene", "_create_text_display", function(origin, angles, fov)
+            
+            local isAimingAtChip = player():getEyeTrace().Entity == chip()
+            
+            scale_expand = ExpDecay(scale_expand,isAimingAtChip and 1 or 0,4,timer.frametime())
+            
+            local scale_expand2 = math.easeInOutSine(math.clamp(-0.1+scale_expand*1.2,0,1))
+            local scale_expand3 = math.clamp(scale_expand2*1.2,0,1)
+            
+            render.selectRenderTarget(rtName)
+            render.clear(Color(0,0,0,0))
+            
+            if scale_expand2 > 0 then
+                render.setColor(Color(0,0,0,150))
+                render.drawRoundedBox(5, 512+280/2-280*scale_expand3, 512-80/2, 280*scale_expand3, 80)
+                
+                render.setColor(Color(255,255,255,255)*math.clamp(-3+scale_expand2*4,0,1))
+                
+                render.setMaterial(materials["fish"])
+                render.drawTexturedRectFast(512+280/2-10-32-32/2, 512-20+32/2, 32, 32)
+                render.drawTexturedRectFast(512+280/2-10-32*2-32/2, 512-20+32/2, 32, 32)
+                render.drawTexturedRectFast(512+280/2-10-32*3-32/2, 512-20+32/2, 32, 32)
+                
+                render.setFont("TargetID")
+                render.drawText(512-280/2+20, 512-25, "Starfall Chip: Minecraft Fishing", TEXT_ALIGN.LEFT)
+                render.drawText(512-280/2+20, 512+5, "By Nakkitsunami", TEXT_ALIGN.LEFT)
+            end
+            render.selectRenderTarget()
+        end)
+
+        hook.add("Think","",function()
+            
+            local ct = timer.curtime()
+            
+            local yaw = ct*58
+            
+            fish_icon:setPos(shadow:localToWorld(Vector(0,0,12+math.sin(math.rad(yaw*2)))*size)+Vector(-48/2,0,0):rotateAroundAxis(Vector(0,0,1),yaw))
+            fish_icon:setAngles(Angle(0,yaw,0))
+            
+            local ang = render.getAngles()
+            local pos = shadow:getPos()+Vector(0,0,12)*size+Vector(23.5,28*size,0):getRotated(ang)
+            
+            text:setPos(pos)
+            text:setAngles(ang)
+            
+            for k, v in pairs(trail) do
+                local tex = v[1]
+                if not isValid(tex) then
+                    trail[k] = nil
+                    continue
+                end
+                local frame = v[2]
+                local last = v[3]
+                local created = v[4]
+                local dir = v[5]
+                local gravity = v[6]
+                
+                local sin = math.sin(math.rad(math.clamp((ct-created)*2.5,0,1)*90+90))*gravity
+                
+                local force = dir*Vector(1,1,1*(1-gravity)+sin*gravity)-Vector(0,0,1-sin)*9.8*gravity
+                updateSprite(tex,tex:localToWorld(Vector(48/2,0,0)) + force * 15 * timer.frametime(),render.getAngles())
+                
+                if ct - last > 0.1 then
+                    v[3] = ct
+                    v[2] = frame + 1
+                    if v[2] >= 4 then
+                        if isValid(tex) then
+                            tex:remove()
+                            trail[k] = nil
+                        end
+                    else
+                        tex:setMaterial("!"..materials["splash_"..frame]:getName())
+                    end
+                end
+            end
+            for k, v in pairs(bubbles) do
+                local tex = v[1]
+                if not isValid(tex) then
+                    bubbles[k] = nil
+                    continue
+                end
+                
+                updateSprite(tex,tex:localToWorld(Vector(48/2,0,0)) + Vector(0,0,1) * 15 * timer.frametime(),render.getAngles())
+                
+                if ct - v[2] > 1 or isUnderWater(tex) <= 1 then
+                    if isValid(tex) then
+                        tex:remove()
+                        bubbles[k] = nil
+                    end
+                end
+            end
+            
+            if bobber["cast"] then
+                local delta = math.clamp((ct-pickup_window)/1.5,0,1)
+                
+                local pos = bobber["pos"]
+                local vel = bobber["vel"]
+                
+                local new_pos = pos + vel * timer.frametime()
+                
+                local tr = trace.hull(pos, new_pos-Vector(0,0,5), -Vector(10), Vector(10), {owner()})
+                
+                if tr.Hit or bobIsUnderWater() then
+                    if (not tr.Hit) and bobIsUnderWater() then
+                        local tr2 = trace.line(tr.HitPos + Vector(0,0,10), tr.HitPos - Vector(0,0,15), {owner()}, MASK.WATER)
+                        local distance_to_surface = math.clamp(1+(tr2.HitPos.z - pos.z),-10,10)/10
+                        bobber["vel"] = ExpDecay(bobber["vel"],bobber["vel"]/Vector(2,2,tr2.Hit and 2000 or 1200),12,timer.frametime()) + Vector(0,0,distance_to_surface*35)
+                        if last_under_water != true then
+                            last_under_water = true
+                            largeSplash(pos,math.ceil(math.rand(2,3),0))
+                            splash()
+                        end
+                        if distance_to_surface*10 > 1 then
+                            if ct - last_bubble >= 0 then
+                                last_bubble = ct + math.rand(1,3)/10
+                                spawnBubble(pos)
+                            end
+                        end
+                    else
+                        bobber["vel"] = Vector()
+                    end
+                else
+                    bobber["vel"] = ExpDecay(bobber["vel"],Vector(bobber["vel"].x/1.5,bobber["vel"].y/1.5,-600),1.5,timer.frametime())
+                end
+                
+                bobber["pos"] = tr.HitPos+Vector(0,0,5)
+                
+                local bounce = math.sin(math.rad(delta*500))*(1-delta) - math.easeInOutSine(1-math.clamp(math.abs(math.sin(math.rad((timer.curtime()*0.7+math.sin(math.rad(timer.curtime()*0.245*180))*0.2)*90)))*3,0,last_under_water and 1 or 0))*0.2
+                local bounce_offset = Vector(0,0,-math.easeInOutSine(math.clamp(delta*math.clamp(math.sin(math.rad(delta*180))*2,0,math.clamp(1-delta*1.5,0,1))+bounce,-0.5,1))*5)
+                
+                updateSprite(fishing_rod_bobber,pos + bounce_offset,render.getAngles())
+                
+                if quotaOK() and (player() != owner() or owner():shouldDrawLocalPlayer()) then
+                    local bobber_pos = fishing_rod_bobber:localToWorld(Vector(24,0,7*size))
+                    local rod_pos = fishing_rod:localToWorld(Vector(24,14*size,14*size))
+                    
+                    fishing_rod_line:setAngles((bobber_pos-rod_pos):getAngle())
+                    fishing_rod_line:setPos((bobber_pos+rod_pos)/2)
+                    fishing_rod_line:setScale(Vector((bobber_pos-rod_pos):getLength(),0.5,0.5)/Vector(47.5))
+                end
+            end
+            
+            if fish != nil then
+                local pos = fish[1]
+                local target = fish[2]
+                local created = fish[3]
+                local distance = fish[4]
+                
+                local delta = math.clamp(ct-created,0,distance)
+                
+                local ang = (target-pos):getAngle()
+                
+                local cur_pos = math.lerpVector(delta/distance, pos, target) + ang:getRight()*math.sin(math.rad((distance-delta)*245))*10
+                
+                if ct - fish_last_trail_particle >= 0.075 then
+                    fish_last_trail_particle = ct
+                    spawnParticle(cur_pos+Vector(0,0,8),Vector(0.5,0,4):rotateAroundAxis(Vector(0,0,1)*20,math.rand(-360,360))+ang:getRight()*2,0.4)
+                    spawnParticle(cur_pos+Vector(0,0,8),Vector(0.5,0,4):rotateAroundAxis(Vector(0,0,1)*20,math.rand(-360,360))-ang:getRight()*2,0.4)
+                end
+                
+                if delta >= distance then
+                    fish = nil
+                    pickup_window = ct
+                    splash()
+                end
+            end
+            
+            if item != nil then
+                local pos = item["pos"]
+                local target = owner():getPos()+Vector(0,0,owner():obbSize().z/2)
+                
+                local dist = (pos-target):getLength()
+                
+                local delta = math.clamp((ct - item["ct"])*1150,0,dist)/dist
+                
+                local up = (target-pos):getAngle():getUp()
+                local new_pos = math.bezierVector(delta, pos, (pos+target)/2+up*dist/4, target)
+                
+                local yaw = item["yaw"]+ct*58
+                
+                fish_item:setPos(new_pos+Vector(-23.5,0,0):rotateAroundAxis(Vector(0,0,1),yaw))
+                fish_item:setAngles(Angle(0,yaw,0))
+                
+                if delta >= 1 then
+                    fish_item:setNoDraw(true)
+                    item = nil
+                    local snd = sounds["pickup"]
+                    if snd != nil then
+                        snd:setPos(owner():getEyePos())
+                        snd:setTime(0,true)
+                        snd:play()
+                    end
+                end
+            end
+            
+            if ct - last_spawn_fish >= 0 and bobIsUnderWater() and bobber["cast"] then
+                last_spawn_fish = ct + math.rand(10,25)
+                
+                local target = fishing_rod_bobber:localToWorld(Vector(48/2,0,0))
+                local dir = Vector(1,0,0):rotateAroundAxis(Vector(0,0,1),math.rand(-360,360))
+                local distance = math.rand(15,20)/10
+                local pos = target+dir*distance*100
+                local tr = trace.hull(fishing_rod_bobber:getPos(), pos, -Vector(2,2,0), Vector(2,2,0))
+                if not tr.Hit then
+                    fish = {
+                        pos,
+                        target,
+                        ct,
+                        distance
+                    }
+                end
+            end
+            
+            if player() != owner() or owner():shouldDrawLocalPlayer() then
+                fishing_rod:setAngles(Angle(0,owner():getEyeAngles().yaw-90,-20))
+                fishing_rod:setPos(owner():getPos()+Vector(0,0,owner():obbSize().z/2)+Vector(15*size,23.75-10*size,5*size):rotateAroundAxis(Vector(0,0,1),owner():getEyeAngles().yaw))
+            end
+            
+            if not (isValid(owner()) and isValid(owner():getActiveWeapon()) and owner():getActiveWeapon():getClass() == "none") then
+                if isOut != false then
+                    isOut = false
+                    
+                    bobber["cast"] = false
+                    bobber["pos"] = owner():getEyePos()
+                    bobber["vel"] = Vector()
+                    fishing_rod:setMaterial("!"..materials["fishing_rod"]:getName())
+                    
+                    pickup_window = 0
+                    
+                    fish = nil
+                    last_under_water = false
+                    fishing_rod:setNoDraw(true)
+                    fishing_rod_bobber:setPos(owner():getEyePos())
+                    fishing_rod_bobber:setNoDraw(true)
+                    if player() != owner() then
+                        fishing_rod_line:setNoDraw(true)
+                    end
+                end
+            else
+                if isOut != true then
+                    isOut = true
+                    fishing_rod:setNoDraw(false)
+                end
+            end
+            
+            if player() != owner() or not (isValid(owner()) and isValid(owner():getActiveWeapon()) and owner():getActiveWeapon():getClass() == "none") then return end
+            
+            if owner():keyDown(IN_KEY.ATTACK2) then
+                if down != true then
+                    down = true
+                    if math.clamp((timer.curtime() - last_used)*4,0,1) >= 1 then
+                        cast(not bobber["cast"])
+                    end
+                end
+            else
+                down = false
+            end
+        end)
+    end
+    
+    function createTexture(path,name)
+        original = material.createFromImage(path, "noclamp nocull alphatest")
+        new = material.create("VertexLitGeneric")
+        new:setTexture("$basetexture", original:getName())
+        original:destroy()
+        
+        new:setFloat("$alpha",1)
+        new:setInt("$flags",bit.bor(original:getInt("$flags"),0x200000, 0x10, 0x20))
+        
+        materials[name] = new
+    end
+    
+    function createSound(path,name)
+        bass.loadFile(path, "3d noplay noblock", function(snd)
+            if snd then
+                snd:setFade(200, 3000, true)
+                sounds[name] = snd
+            end
+        end)
+    end
+    
+    function autoFilterDropboxLinks(url)
+        if url:sub(9,23) == "www.dropbox.com" then
+            urlNew=string.replace(url,"www.dropbox.com","dl.dropboxusercontent.com")
+            if urlNew:sub(-4,-1) == "dl=0" then
+                urlNew=string.replace(urlNew,"dl=0","dl=1")
+                --print("detected unchanged dropbox link, replacing dropbox with dropboxusercontent and dl=0 to dl=1")
+            else
+                --print("detected unchanged dropbox link, replacing dropbox with dropboxusercontent")
+            end
+        else
+            urlNew=url
+        end
+        return urlNew
+    end
+    
+    function sortAssets(assetPaths, rawData)
+        if DEBUG_PATHS then
+            coroutineUtils.quotaWrap(loader_quota,function(assetPaths,rawData)
+                if DEBUG_PATHS then
+                    for k, v in pairs(assetPaths) do
+                        local file_name = string.explode("/", v)
+                        print(file_name[#file_name])
+                    end
+                end
+            end,{assetPaths,rawData},function()end)
+        else
+            coroutineUtils.quotaWrap(loader_quota,function(assetPaths,rawData)
+                for _, name in ipairs(table.getKeys(assetPaths)) do
+                    local baseName = name:sub(1, -5)
+                    if name:sub(-3) == "png" and assetPaths[name] then
+                        createTexture(assetPaths[name],baseName)
+                    elseif name:sub(-3) == "mp3" and assetPaths[name] then
+                        createSound(assetPaths[name],baseName)
+                    end
+                end
+                return assetPaths,rawData
+            end,{assetPaths,rawData},function(assetPaths,rawData)
+                main()
+            end)
+        end
+    end
+    
+    local assetPaths = {}
+    local all_files_ok = not force_update
+    if not force_update then
+        for k, v in pairs(file_names) do
+            local exists = file.existsTemp(v)
+            assetPaths[v] = exists
+            if not exists then
+                all_files_ok = false
+                break
+            end
+        end
+    else
+        for k, v in pairs(file_names) do
+            local path = file.existsTemp(v)
+            if path then
+                file.deleteTemp(path)
+            end
+        end
+        print(Color(0, 255, 0), "[ MANUAL UPDATE ] ", Color(255, 255, 0), "Updating all files...")
+    end
+    
+    if all_files_ok then
+        net.start("loaded_from_temp_for")
+        net.send()
+        local rawData = {}
+        for k, v in pairs(file_names) do
+            rawData[v] = file.readTemp(v)
+        end
+        sortAssets(assetPaths, rawData)
+    else
+        net.start("downloading_for")
+        net.send()
+        httpQueue.get(autoFilterDropboxLinks(assetsURL),function(httpdata)
+            coroutineUtils.quotaWrap(player() == owner() and 0.8 or 0.1, assetloader.loadFromZip, {httpdata, true}, function(assetPaths, rawData)
+                sortAssets(assetPaths, rawData)
+            end)
+        end)
+    end
+end
