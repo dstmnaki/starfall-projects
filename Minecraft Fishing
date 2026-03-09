@@ -7,6 +7,13 @@
 --@include nakilibs/stencil/stencil.txt
 --@model models/props_junk/plasticbucket001a.mdl
 
+--[[
+
+!! Make sure to use my version of the _katlibs2/shared/_cl/assetloader.txt, otherwise the temp loader won't work !!
+https://github.com/charredember/_katlibs2
+
+--]]
+
 if SERVER then
     chip():setColor(Color(255,255,255,0))
     
