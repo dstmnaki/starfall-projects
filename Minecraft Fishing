@@ -47,8 +47,10 @@ if SERVER then
     
     net.receive("cast", function(len, ply)
         local cast = net.readBool()
+        local has_fish = net.readBool()
         net.start("cast_to_clients")
         net.writeBool(cast)
+        net.writeBool(has_fish)
         net.send(find.allPlayers(function(a) return a != owner() end),false)
     end)
     
@@ -233,29 +235,46 @@ else
             return b + ( a - b ) * math.exp( -decay * dt )
         end
         
-        function cast(cast)
+        function preSetItem(pos)
+            item = {}
+            item["pos"] = pos
+            item["yaw"] = math.rand(-360,360)
+            item["ct"] = timer.curtime()
+            fish_item:setNoDraw(false)
+            largeSplash(pos,math.ceil(math.rand(3,5),0))
+            return true
+        end
+        
+        function cast(cast,set_fish)
             local ct = timer.curtime()
+            
+            
+            local has_fish = false
+            local pos = fishing_rod_bobber:getPos()
+            
+            if bobber["cast"] and bobIsUnderWater() then
+                if player() == owner() then
+                    if ct - pickup_window <= 0.75 then
+                        has_fish = preSetItem(pos)
+                    end
+                end
+                
+                largeSplash(pos,math.ceil(math.rand(1,2),0))
+            end
+            
+            if set_fish != nil then
+                has_fish = set_fish
+            end
             
             if player() == owner() then
                 last_used = bobber["cast"] and 0 or ct
                 
                 net.start("cast")
                 net.writeBool(cast)
+                net.writeBool(has_fish)
                 net.send()
-            end
-            
-            if bobber["cast"] and bobIsUnderWater() then
-                local pos = fishing_rod_bobber:getPos()
-                if ct - pickup_window <= 0.75 then
-                    item = {}
-                    item["pos"] = pos
-                    item["yaw"] = math.rand(-360,360)
-                    item["ct"] = timer.curtime()
-                    fish_item:setNoDraw(false)
-                    largeSplash(pos,math.ceil(math.rand(3,5),0))
-                end
-                
-                largeSplash(pos,math.ceil(math.rand(1,2),0))
+            elseif has_fish then
+                preSetItem(pos)
             end
             
             bobber["cast"] = cast
@@ -287,7 +306,7 @@ else
         end
         
         net.receive("cast_to_clients", function(len, ply)
-            cast(net.readBool())
+            cast(net.readBool(),net.readBool())
         end)
         
         if player() == owner() then
@@ -512,7 +531,7 @@ else
                 end
             end
             
-            if fish != nil then
+            if fish != nil and player() == owner() then
                 local pos = fish[1]
                 local target = fish[2]
                 local created = fish[3]
@@ -558,14 +577,14 @@ else
                     item = nil
                     local snd = sounds["pickup"]
                     if snd != nil then
-                        snd:setPos(owner():getEyePos())
+                        snd:setPos(owner():getPos()+Vector(0,0,owner():obbSize().z/2))
                         snd:setTime(0,true)
                         snd:play()
                     end
                 end
             end
             
-            if ct - last_spawn_fish >= 0 and bobIsUnderWater() and bobber["cast"] then
+            if player() == owner() and ct - last_spawn_fish >= 0 and bobIsUnderWater() and bobber["cast"] then
                 last_spawn_fish = ct + math.rand(10,25)
                 
                 local target = fishing_rod_bobber:localToWorld(Vector(48/2,0,0))
@@ -645,7 +664,10 @@ else
     function createSound(path,name)
         bass.loadFile(path, "3d noplay noblock", function(snd)
             if snd then
-                snd:setFade(200, 3000, true)
+                snd:setFade(600, 3000, true)
+                if name == "pickup" then
+                    snd:setVolume(2)
+                end
                 sounds[name] = snd
             end
         end)
