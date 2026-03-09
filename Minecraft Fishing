@@ -16,6 +16,7 @@ https://github.com/charredember/_katlibs2
 
 if SERVER then
     chip():setColor(Color(255,255,255,0))
+    chip():setNocollideAll(true)
     
     net.receive("loaded_for", function(len, ply)
         if isValid(ply) then
@@ -327,7 +328,7 @@ else
                 
                 for i = 0, 9 do
                     local pos = math.lerpVector(i/9, rod_pos, bobber_pos) - Vector(0,0,math.sin(math.rad(i/10*180))*(rod_pos.z-bobber_pos.z)/10)
-                    render.add3DBeam(pos, 1, 0, Color(0,0,0))
+                    render.add3DBeam(pos, 1*size, 0, Color(0,0,0))
                 end
                 render.end3DBeam()
             end)
@@ -469,7 +470,7 @@ else
                 
                 local new_pos = pos + vel * timer.frametime()
                 
-                local tr = trace.hull(pos, new_pos-Vector(0,0,5), -Vector(10), Vector(10), {owner()})
+                local tr = trace.hull(pos, new_pos-Vector(0,0,5), -Vector(10)*size, Vector(10)*size, {owner()})
                 
                 if tr.Hit or bobIsUnderWater() then
                     if (not tr.Hit) and bobIsUnderWater() then
