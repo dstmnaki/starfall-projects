@@ -1,0 +1,192 @@
+--@name nakilibs/ModelLoader/_core.txt
+--@author Nakkitsunami
+--@client
+
+--@include nakilibs/ModelLoader/_katlibs2_OLD/universal/coroutineutils.txt
+--@include nakilibs/ModelLoader/_katlibs2_OLD/universal/httpqueue.txt
+--@include nakilibs/ModelLoader/_katlibs2_OLD/shared/assetloader.txt
+
+--@include nakilibs/ModelLoader/_shared/functions.txt
+
+if CLIENT then
+    
+    -- L O A D E R   C O N F I G
+    
+    
+    local CONFIG = {
+        ["DEBUG_PATHS"] = false,
+        
+        ["LOADER_QUOTA"] = 0.01,
+        ["LOADER_QUOTA_OWNER"] = 0.5,
+        
+        ["DOWNLOAD_QUOTA"] = 0.1,
+        ["DOWNLOAD_QUOTA_OWNER"] = 0.5,
+    }
+    
+    
+    -- C O D E
+    
+    require("nakilibs/ModelLoader/_katlibs2_OLD/universal/coroutineutils.txt")
+    require("nakilibs/ModelLoader/_katlibs2_OLD/universal/httpqueue.txt")
+    require("nakilibs/ModelLoader/_katlibs2_OLD/shared/assetloader.txt")
+    
+    local NL = require("nakilibs/ModelLoader/_shared/functions.txt")
+    NL.permsCheck({"file.writeTemp","hologram.create"})
+    
+    
+    ModelLoader = {}
+    
+    
+    local models = {}
+    local materials = {}
+    
+    local DEBUG_PATHS = CONFIG["DEBUG_PATHS"]
+    
+    local loader_quota = player() == owner() and CONFIG["LOADER_QUOTA_OWNER"] or CONFIG["LOADER_QUOTA"]
+    local download_quota = player() == owner() and CONFIG["DOWNLOAD_QUOTA_OWNER"] or CONFIG["DOWNLOAD_QUOTA"]
+    
+    local function createMeshes(rawData, assetPaths, assignedMaterials, callback)
+        local index = 0
+        local modelsCount = 0
+        
+        for _, modelName in ipairs(table.getKeys(assetPaths)) do
+            if modelName:sub(-8, -1):lower() != "_mdl.txt" then continue end
+            
+            modelsCount = modelsCount + 1
+        end
+        
+        for _, modelName in ipairs(table.getKeys(assetPaths)) do
+            if modelName:sub(-8, -1):lower() != "_mdl.txt" then continue end
+            
+            coroutineUtils.quotaWrap(0.6, mesh.createFromObj, {rawData[modelName], true, true}, function(modelTab)
+                local baseName = modelName:lower():sub(1, -5)
+                
+                local meshKey = nil
+                for k, _ in pairs(modelTab) do
+                    if k:lower() == baseName:lower() then
+                        meshKey = k
+                        break
+                    end
+                end
+                if not meshKey then
+                    meshKey = next(modelTab)
+                end
+                
+                local meshData = modelTab[meshKey]
+                
+                -- Create hologram base
+                models[baseName] = hologram.create(chip():localToWorld(Vector()), chip():localToWorldAngles(Angle()), "models/hunter/blocks/cube025x025x025.mdl", Vector(1))
+                
+                if meshData then
+                    models[baseName]:setMesh(meshData)
+                else
+                    print("["..chip():getChipName().."] Failed to assign mesh for", modelName, "Available keys:", table.getKeys(modelTab))
+                end
+                
+                index = index + 1
+                
+                
+                if index == modelsCount then
+                    if not table.isEmpty(assignedMaterials) then
+                        for k, v in pairs(assignedMaterials) do
+                            local mat = materials[v]
+                            models[k]:setMaterial("!"..mat:getName())
+                        end
+                    end
+                    
+                    if callback and type(callback) == "function" then callback(models,materials,modelTab) end
+                    
+                    net.start("NL:_ModelLoader_Finished")
+                    net.send()
+                    return
+                end
+            end)
+        end
+    end
+    
+    local function createTexture(path,isNormal)
+        if isNormal then
+            new = material.createFromImage(path, "nocull noclamp smooth")
+        else
+            original = material.createFromImage(path, "noclamp nocull smooth")
+            new = material.create("VertexLitGeneric")
+            new:setTexture("$basetexture", original:getName())
+            
+            new:setInt("$cloakpassenabled",1)
+            new:setFloat("$cloakfactor",0)
+            new:setFloat("$refractamount",0.25)
+            
+            original:destroy()
+        end
+        return new
+    end
+    
+    local function sortAssets(assetPaths, rawData, assignedMaterials)
+        if DEBUG_PATHS then
+            coroutineUtils.quotaWrap(loader_quota,function(assetPaths,rawData)
+                for k, v in pairs(assetPaths) do
+                    local file_name = string.explode("/", v)
+                    print("\""..file_name[#file_name].."\",")
+                end
+            end,{assetPaths,rawData},function()end)
+        else
+            coroutineUtils.quotaWrap(loader_quota,function(assetPaths,rawData)
+                for _, name in ipairs(table.getKeys(assetPaths)) do
+                    if not (name:sub(-3) == "png" and assetPaths[name]) then continue end
+                    
+                    local baseName = name:sub(1, -5)
+                    materials[baseName] = createTexture(assetPaths[name])
+                end
+                return assetPaths,rawData
+            end,{assetPaths,rawData},function(assetPaths,rawData)
+                createMeshes(rawData,assetPaths, assignedMaterials)
+            end)
+        end
+    end
+    
+    function ModelLoader.loadFromZip(url,fileNames,assignedMaterials,forceUpdate)
+        if url:sub(1,4):lower() != "http" then print("URL not valid!") return end
+        
+        local assetPaths = {}
+        local all_files_ok = not forceUpdate
+        
+        if not forceUpdate then
+            for k, v in pairs(fileNames) do
+                local exists = file.existsTemp(v)
+                assetPaths[v] = exists
+                if not exists then
+                    all_files_ok = false
+                    break
+                end
+            end
+        else
+            for k, v in pairs(fileNames) do
+                local path = file.existsTemp(v)
+                if path then
+                    file.deleteTemp(path)
+                end
+            end
+            print(Color(0, 255, 0), "[ MANUAL UPDATE ] ", Color(255, 255, 0), "Updating all files...")
+        end
+        
+        if all_files_ok then
+            net.start("NL:_ModelLoader_TempLoad")
+            net.send()
+            local rawData = {}
+            for k, v in pairs(fileNames) do
+                rawData[v] = file.readTemp(v)
+            end
+            sortAssets(assetPaths, rawData, assignedMaterials)
+        else
+            net.start("NL:_ModelLoader_Download")
+            net.send()
+            httpQueue.get(NL.autoFilterDropboxLinks(url),function(httpdata)
+                coroutineUtils.quotaWrap(download_quota, assetloader.loadFromZip, {httpdata, true}, function(assetPaths, rawData)
+                    sortAssets(assetPaths, rawData, assignedMaterials)
+                end)
+            end)
+        end
+    end
+    
+    return ModelLoader
+end
