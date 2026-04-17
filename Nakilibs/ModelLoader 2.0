@@ -1,0 +1,64 @@
+--@name Nakilibs/ModelLoader 2.0
+--@author Nakkitsunami
+--@shared
+
+--@include Nakilibs/ModelLoader/_core.txt
+
+if SERVER then -- networked debug info for owner
+    
+    local printInChat = false
+    
+    function c_print(...) -- fancy print function to switch between chat and console
+        if printInChat then
+            print(...)
+        else
+            printConsole(...)
+        end
+    end
+    
+    net.receive("NL:_ModelLoader_Finished", function(len, ply)
+        if not isValid(ply) then return end
+        
+        c_print(Color(0, 255, 0), "[ CORE ] ", Color(0, 150, 255), ply:getName(), Color(255, 255, 255), " has finished loading assets!")
+    end)
+    net.receive("NL:_ModelLoader_Download", function(len, ply)
+        if not isValid(ply) then return end
+        
+        c_print(Color(0, 255, 255), "[ CORE ] ", Color(0, 150, 255), ply:getName(), Color(255, 255, 255), " is downloading assets...")
+    end)
+    net.receive("NL:_ModelLoader_TempLoad", function(len, ply)
+        if not isValid(ply) then return end
+        
+        c_print(Color(255, 255, 0), "[ CORE ] ", Color(0, 150, 255), ply:getName(), Color(255, 255, 255), " is loading from temp...")
+    end)
+    net.receive("NL:permsCheckFail", function(len, ply)
+        if not (isValid(ply) and ply ~= owner()) then return end
+        
+        local reasons = table.concat(net.readTable(),", ")
+        c_print(Color(255, 0, 0), "[ ERROR-BOT ] ", Color(255, 0, 0), ply:getName(), Color(255, 255, 255), " failed to load assets! Reasons: "..reasons)
+    end)
+else
+    local ModelLoader = require("Nakilibs/ModelLoader/_core.txt") -- make sure to assign this to a variable, that gives you the functions
+    
+    ModelLoader.loadFromZip(
+    "URL HERE, dropbox links will be replaced with dl.dropboxusercontent with dl=1 at the end automatically for convinience!",
+    {
+        "fill this table with the file names + extensions from your zip",
+        "you can print it by setting *DEBUG_PATHS* to true in the _core.txt of the loader, copy paste it here"
+    },
+    {
+        "fill this section with materials that are designated for specified models, see below",
+        ["model_name"] = "material_name",
+        ["model_name2"] = "material_name", -- with this setup, you can use the same material on multiple models
+        ["model_name3"] = "material_name2"
+    },
+    false, -- force update files for all clients
+    function(models,materials,meshTable)
+        -- callback function, ran after materials are applied, when loader state is considered "done"
+        -- use models["model_name"] to get any of the models
+        -- materials["material_name"] to get a material for editing
+        -- in case you have a model that's used for assets, tree for example that you wish to reuse in multiple places
+        --  do your_hologram:setMesh(meshTable["model_name"])
+        --  and set your material with your_hologram:setMaterial("!"..materials["material_name"])
+    end)
+end
