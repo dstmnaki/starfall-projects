@@ -90,11 +90,12 @@ if CLIENT then
                     if not table.isEmpty(assignedMaterials) then
                         for k, v in pairs(assignedMaterials) do
                             local mat = materials[v:lower()]
+                            
                             models[k:lower()]:setMaterial("!"..mat:getName())
                         end
                     end
                     
-                    if callback and type(callback) == "function" then callback(models,materials,modelTab) end
+                    if callback then callback(models,materials,modelTab) end
                     
                     net.start("NL:_ModelLoader_Finished")
                     net.send()
@@ -103,7 +104,6 @@ if CLIENT then
             end)
         end
     end
-    
     local function createTexture(path,isNormal)
         if isNormal then
             new = material.createFromImage(path, "nocull noclamp smooth")
@@ -117,7 +117,7 @@ if CLIENT then
         return new
     end
     
-    local function sortAssets(assetPaths, rawData, assignedMaterials)
+    local function sortAssets(assetPaths, rawData, assignedMaterials, callback)
         if DEBUG_PATHS then
             coroutineUtils.quotaWrap(loader_quota,function(assetPaths,rawData)
                 for k, v in pairs(assetPaths) do
@@ -135,12 +135,12 @@ if CLIENT then
                 end
                 return assetPaths,rawData
             end,{assetPaths,rawData},function(assetPaths,rawData)
-                createMeshes(rawData,assetPaths, assignedMaterials)
+                createMeshes(rawData,assetPaths, assignedMaterials, callback)
             end)
         end
     end
     
-    function ModelLoader.loadFromZip(url,fileNames,assignedMaterials,forceUpdate)
+    function ModelLoader.loadFromZip(url,fileNames,assignedMaterials,forceUpdate,callback)
         if url:sub(1,4):lower() != "http" then print("URL not valid!") return end
         
         local assetPaths = {}
@@ -172,13 +172,13 @@ if CLIENT then
             for k, v in pairs(fileNames) do
                 rawData[v] = file.readTemp(v)
             end
-            sortAssets(assetPaths, rawData, assignedMaterials)
+            sortAssets(assetPaths, rawData, assignedMaterials, callback)
         else
             net.start("NL:_ModelLoader_Download")
             net.send()
             httpQueue.get(NL.autoFilterDropboxLinks(url),function(httpdata)
                 coroutineUtils.quotaWrap(download_quota, assetloader.loadFromZip, {httpdata, true}, function(assetPaths, rawData)
-                    sortAssets(assetPaths, rawData, assignedMaterials)
+                    sortAssets(assetPaths, rawData, assignedMaterials, callback)
                 end)
             end)
         end
