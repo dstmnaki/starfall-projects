@@ -89,8 +89,8 @@ if CLIENT then
                 if index == modelsCount then
                     if not table.isEmpty(assignedMaterials) then
                         for k, v in pairs(assignedMaterials) do
-                            local mat = materials[v]
-                            models[k]:setMaterial("!"..mat:getName())
+                            local mat = materials[v:lower()]
+                            models[k:lower()]:setMaterial("!"..mat:getName())
                         end
                     end
                     
