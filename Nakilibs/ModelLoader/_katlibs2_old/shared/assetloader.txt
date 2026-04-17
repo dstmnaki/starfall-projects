@@ -1,0 +1,24 @@
+--@name nakilibs/ModelLoader/_katlibs2_OLD/shared/assetloader.txt
+--@author katsu
+--@shared
+--@include nakilibs/ModelLoader/_katlibs2_OLD/shared/_oo/assetloader.txt
+--@include nakilibs/ModelLoader/_katlibs2_OLD/shared/_cl/assetloader.txt
+
+-- STORED FOR ARCHIVING AND COMPATIBILITY, ALL CREDITS BELONG TO EMBER/KATSU
+
+if CLIENT then
+    if not httpQueue then error("kl:assetloader requires httpQueue loaded before!") end
+
+    if permissionManager then permissionManager.setupPerms({"file.writeTemp"}) end
+    assetloader = {}
+    assetloader.assetPaths = {}
+    assetloader.THREADED_MAXQUOTA = function(ratio)
+        return function(finished,thread)
+            while chip():getQuotaAverage() < chip():getQuotaMax() * ratio do
+                if thread() then break end
+            end
+        end
+    end
+    require("nakilibs/ModelLoader/_katlibs2_OLD/shared/_cl/assetloader.txt")
+end
+if player() == owner() then require("nakilibs/ModelLoader/_katlibs2_OLD/shared/_oo/assetloader.txt") end

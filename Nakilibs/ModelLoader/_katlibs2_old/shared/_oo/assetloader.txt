@@ -1,0 +1,220 @@
+--@name nakilibs/ModelLoader/_katlibs2_OLD/shared/_oo/assetloader.txt
+--@author katsu
+--@shared
+--@owneronly
+
+-- STORED FOR ARCHIVING AND COMPATIBILITY, ALL CREDITS BELONG TO EMBER/KATSU
+
+local function relayFilePaths(key,filePaths)
+    net.start("kl:al_relayFiles")
+    net.writeString(key)
+    net.writeUInt(table.count(filePaths),10)
+    for fileName,filePath in pairs(filePaths) do
+        net.writeString(fileName)
+        if SERVER then
+            net.writeString(filePath)
+        elseif CLIENT then
+            local actualFileName = filePath:match(".+/(.*)$")
+            net.writeString(actualFileName)
+        end
+    end
+    net.send()
+end
+
+if SERVER then
+    local netqueue = {}
+
+    local function netqueue_think()
+        if table.isEmpty(netqueue) then
+            hook.remove("tick","kl:al_nq_think")
+            return
+        end
+
+        local currMsg = netqueue[1]
+        if currMsg.cost <= net.getBitsLeft() / 1.25 then
+            currMsg.func()
+            table.remove(netqueue,1)
+        end
+    end
+
+    local function netqueue_add(cost,func)
+        if cost >= 64000 then error("kl:al| filepath table too big! library netcode upgrade required for this implementation") end
+        table.insert(netqueue,{
+            cost = cost,
+            func = func,
+        })
+        hook.add("tick","kl:al_nq_think",netqueue_think)
+    end
+
+    local cachedFiles = {}
+    net.receive("kl:al_relayFiles",function()
+        local filePaths = {}
+        local netcost = 10
+
+        local key = net.readString()
+        netcost = netcost + #key * 8
+
+        local ct = net.readUInt(10)
+        for i = 1,ct do
+            local fileName = net.readString()
+            local filePath = net.readString()
+
+            filePaths[fileName] = filePath
+            netcost = netcost + #fileName * 8 + #filePath * 8
+        end
+        cachedFiles[key] = filePaths
+
+        netqueue_add(netcost,function()
+            relayFilePaths(key,filePaths)
+        end)
+    end)
+
+    hook.add("ClientInitialized","kl:al_relayFilesOnCLInit",function(p)
+        for key,filePaths in pairs(cachedFiles) do
+            local netcost = 10
+            netcost = netcost + #key * 8
+            for fileName,filePath in pairs(filePaths) do
+                netcost = netcost + #fileName * 8 + #filePath * 8
+            end
+
+            netqueue_add(netcost,function()
+                relayFilePaths(key,filePaths)
+            end)
+        end
+    end)
+
+    net.receive("kl:al_info",function()
+        local id = net.readUInt(8)
+        local cached = net.readBool()
+        local key = net.readString()
+        if not cached then
+            printConsole(Color(255,0,0),"kl:al| ",Color(255,255,255),string.format("player %s lacks file cache [%s], made http request",entity(id):getName(),key))
+        end
+    end)
+elseif CLIENT then
+    local function createTables()
+        sql.query([[
+            CREATE TABLE IF NOT EXISTS KL_AL_Keys (
+                urlCrc UNSIGNED TINYINT,
+                key TEXT,
+                UNIQUE(urlCrc,key)
+            );
+
+            CREATE TABLE IF NOT EXISTS KL_AL_SavedAssets (
+                urlCrc UNSIGNED TINYINT,
+                fileName TEXT,
+                filePath TEXT,
+                UNIQUE(urlCrc,fileName)
+            );
+        ]])
+    end
+    createTables()
+
+    local function getCachedFiles(key,url)
+        local filePaths = {}
+        local rawData = {}
+
+        local urlCrc = crc(url)
+
+        --check if url new
+        local cachedCRCQuery = sql.query(string.format("SELECT urlCrc FROM KL_AL_Keys WHERE key IS '%s';",key))
+        local cachedCrc = cachedCRCQuery and cachedCRCQuery[1].urlCrc
+
+        local newUrl = (urlCrc ~= cachedCrc)
+        if newUrl then
+            if cachedCrc then
+                sql.query(string.format([[
+                    DELETE FROM KL_AL_SavedAssets WHERE urlCrc IS %s;
+                    UPDATE KL_AL_Keys SET urlCrc = %s WHERE key IS '%s';
+                ]],cachedCrc,urlCrc,key))
+            else --completely new key
+                sql.query(string.format("INSERT INTO KL_AL_Keys (urlCrc,key) VALUES (%s, '%s');",urlCrc,key))
+            end
+
+            printConsole(Color(255,0,0),"kl:al| ",Color(255,255,255),string.format("url for assetloader key [%s] new, downloading updated files",key))
+            return false
+        end
+
+        --check cached files
+        local query = sql.query(string.format("SELECT fileName,filePath FROM KL_AL_SavedAssets WHERE urlCrc IS %s;",urlCrc))
+        if not query then
+            printConsole(Color(255,0,0),"kl:al| ",Color(255,255,255),string.format("files for assetloader key [%s] missing from db, acquiring",key))
+            return false
+        end
+
+        for i = 1,#query do
+            local result = query[i]
+            filePaths[result.fileName] = result.filePath
+
+            local actualFileName = result.filePath:match(".+/(.*)$")
+            if not file.existsTemp(actualFileName) then
+                printConsole(Color(255,0,0),"kl:al| ",Color(255,255,255),string.format("files for assetloader key [%s] in db but missing from cache, acquiring",key))
+                return false
+            end
+            rawData[result.fileName] = file.readTemp(actualFileName)
+        end
+
+        printConsole(Color(255,0,0),"kl:al| ",Color(255,255,255),string.format("files for assetloader key [%s] already cached, loading",key))
+        for fileName,_ in pairs(filePaths) do
+            printConsole(Color(255,0,0),"kl:al|",Color(255,255,255)," file loaded: " .. fileName)
+        end
+        return true, filePaths, rawData
+    end
+
+    local function updateDB(urlCrc,filePaths)
+        printConsole(Color(255,0,0),"kl:al| ",Color(255,255,255),"updating db")
+        for fileName,filePath in pairs(filePaths) do
+            sql.query(string.format("INSERT INTO KL_AL_SavedAssets (urlCrc,fileName,filePath) VALUES (%s, '%s', '%s') ON CONFLICT (urlCrc,fileName) DO NOTHING;",urlCrc,fileName,filePath))
+        end
+    end
+
+    local hookItr = 0
+    local function downloadFiles(key,url,finishedCB,threadCB)
+        httpQueue.get(url,function(httpdata)
+            if threadCB then
+                local finished,filePaths,rawData
+                local thread = coroutine.wrap(function()
+                    filePaths,rawData = assetloader.loadFromZip(httpdata,true)
+                    finished = true
+                    while true do coroutine.yield(true) end
+                end)
+
+                hookItr = hookItr + 1
+                local hookKey = "kl:al_httpZipLoad" .. tostring(hookItr)
+                hook.add("tick",hookKey,function()
+                    threadCB(finished,thread)
+                    if finished then
+                        updateDB(crc(url),filePaths)
+                        finishedCB(filePaths,rawData)
+                        hook.remove("tick",hookKey)
+                    end
+                end)
+            else
+                local filePaths,rawData = assetloader.loadFromZip(httpdata)
+                updateDB(crc(url),filePaths)
+                finishedCB(filePaths,rawData)
+            end
+        end)
+    end
+
+    function assetloader.loadFromHTTPZip(key,url,finishedCB,threadCB)
+        local filePaths = {}
+        local rawData = {}
+
+        local filesCached
+        filesCached,filePaths,rawData = getCachedFiles(key,url)
+
+        if filesCached then
+            relayFilePaths(key,filePaths)
+            finishedCB(filePaths,rawData)
+        else
+            downloadFiles(key,url,finishedCB,threadCB)
+        end
+    end
+
+    function assetloader.clearHTTPCache()
+        print(Color(255,0,0),"kl:al|",Color(255,255,255)," CLEARING HTTP CACHE")
+        sql.query("DROP TABLE IF EXISTS KL_AL_Keys; DROP TABLE IF EXISTS KL_AL_SavedAssets;")
+        createTables()
+    end
+end

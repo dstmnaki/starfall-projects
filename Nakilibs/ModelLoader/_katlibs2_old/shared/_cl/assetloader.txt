@@ -1,0 +1,187 @@
+--@name nakilibs/ModelLoader/_katlibs2_OLD/shared/_cl/assetloader.txt
+--@author katsu
+--@client
+--[[
+
+Credits to ember/katsu, borrowed and slightly modified lib from here
+https://github.com/charredember/_katlibs2
+
+mine uses the file name when saving to make it easier to catalogue things for temp loading
+
+
+NOW STORED FOR ARCHIVING AND COMPATIBILITY, ALL CREDITS BELONG TO EMBER/KATSU
+
+--]]
+
+local SIGNATURE_LOCALFILEHEADER = 0x04034B50
+local SIGNATURE_CENTRALDIRHEADER = 0x02014B50
+
+function assetloader.loadFromZip(zipdata,threaded)
+    local stream = bit.stringstream(zipdata)
+    local filePaths = {}
+    local rawData = {}
+
+    while true do
+        local signature = stream:readUInt32()
+        if signature ~= SIGNATURE_LOCALFILEHEADER then
+
+            if signature == SIGNATURE_CENTRALDIRHEADER then
+                table.add(assetloader.assetPaths,filePaths)
+                return filePaths,rawData -- end of zip
+            else
+                error("katlib:assetloader| zip is evil?!")
+            end
+        end
+
+        stream:skip(4) --skip PKZIP vernum(2) + purpose(2)
+
+        local compressionMethod = stream:readUInt16()
+        if compressionMethod ~= 0 then
+            error("katlib:assetloader| zip is compressed!")
+        end
+
+        stream:skip(4) --skip modify time(2) + modify date(2)
+
+        local CRC32_checksum = stream:readUInt32()
+
+        local compressedSize = stream:readUInt32()
+
+        stream:skip(4) --skip uncompressed size(4)
+
+        local fileName_len = stream:readUInt16()
+        local extraField_len = stream:readUInt16()
+
+        local fileName = stream:read(fileName_len)
+        stream:skip(extraField_len) --skip extrafield
+
+        local fileData = stream:read(compressedSize)
+        local extension = fileName:match("^.+(%..+)$")
+
+        if extension == ".txt" then
+            rawData[fileName] = fileData
+        end
+
+        printConsole(Color(255,0,0),"kl:al|",Color(255,255,255)," file loaded: " .. fileName)
+        
+        if file.existsTemp(fileName) then file.deleteTemp(fileName) end
+        
+        filePaths[fileName] = file.writeTemp(fileName,fileData)
+
+        if threaded == true then
+            coroutine.yield()
+        end
+    end
+end
+
+if player() == owner() then return end
+
+local cachedFiles = {}
+local activeRequests = {}
+
+net.receive("kl:al_relayFiles",function()
+    local filePaths = {}
+    local rawData = {}
+    local cacheExists = true
+
+    local key = net.readString()
+    local ct = net.readUInt(10)
+    for i = 1,ct do
+        local fileName,actualFileName = net.readString(),net.readString()
+
+        local filePath = file.existsTemp(actualFileName)
+        if not filePath then
+            cacheExists = false
+            filePaths = nil
+            rawData = nil
+            break
+        else
+            filePaths[fileName] = filePath
+            rawData[fileName] = file.readTemp(actualFileName)
+        end
+    end
+
+    cachedFiles[key] = {
+        cacheExists = cacheExists,
+        filePaths = filePaths,
+        rawData = rawData,
+    }
+
+    if activeRequests[key] then activeRequests[key]() end
+
+end)
+
+local function getCachedFiles(key,url)
+    local keyCache
+    repeat
+        keyCache = cachedFiles[key]
+        if not keyCache then coroutine.yield() end
+    until (keyCache)
+
+    if keyCache.cacheExists then
+        return true,keyCache.filePaths,keyCache.rawData
+    else
+        return false
+    end
+end
+
+local hookItr = 0
+local function downloadFiles(key,url,finishedCB,threadCB)
+    httpQueue.get(url,function(httpdata)
+        if threadCB then
+            local finished,filePaths,rawData
+            local thread = coroutine.wrap(function()
+                filePaths,rawData = assetloader.loadFromZip(httpdata,true)
+                finished = true
+                while true do coroutine.yield(true) end
+            end)
+
+            hookItr = hookItr + 1
+            local hookKey = "kl:al_httpZipLoad" .. tostring(hookItr)
+            hook.add("tick",hookKey,function()
+                threadCB(finished,thread)
+                if finished then
+                    cachedFiles[key] = {
+                        cacheExists = true,
+                        filePaths = filePaths,
+                        rawData = rawData,
+                    }
+                    finishedCB(filePaths,rawData)
+                    hook.remove("tick",hookKey)
+                end
+            end)
+        else
+            local filePaths,rawData = assetloader.loadFromZip(httpdata)
+            cachedFiles[key] = {
+                cacheExists = true,
+                filePaths = filePaths,
+                rawData = rawData,
+            }
+            finishedCB(filePaths,rawData)
+        end
+    end)
+end
+
+function assetloader.loadFromHTTPZip(key,url,finishedCB,threadCB)
+    local co = coroutine.wrap(function()
+        local filePaths = {}
+        local rawData = {}
+
+        local filesCached
+        filesCached,filePaths,rawData = getCachedFiles(key,url)
+        activeRequests[key] = nil
+
+        if filesCached then
+            finishedCB(filePaths,rawData)
+        else
+            downloadFiles(key,url,finishedCB,threadCB)
+        end
+
+        net.start("kl:al_info")
+        net.writeUInt(player():entIndex(),8)
+        net.writeBool(filesCached)
+        net.writeString(key)
+        net.send()
+    end)
+    activeRequests[key] = co
+    co()
+end

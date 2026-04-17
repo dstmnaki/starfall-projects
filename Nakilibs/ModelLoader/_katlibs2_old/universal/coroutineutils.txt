@@ -1,0 +1,40 @@
+--@name nakilibs/ModelLoader/_katlibs2_OLD/universal/coroutineutils.txt
+--@author katsu
+--@shared
+
+-- STORED FOR ARCHIVING AND COMPATIBILITY, ALL CREDITS BELONG TO EMBER/KATSU
+
+coroutineUtils = {}
+
+local i = 0
+
+local cotable = {}
+
+hook.add("think","kl:cu_quotaWrapQueue",function()
+    if cotable[1] ~= nil then
+        while chip():getQuotaAverage() < chip():getQuotaMax()*0.75 * cotable[1][2] do
+            local done = cotable[1][1]()
+            if done then
+                table.remove(cotable,1)
+                break
+            end
+        end
+    end
+end)
+
+function coroutineUtils.quotaWrap(quotaRatio,wrappedFunc,argTab,cbfunc)    
+    local funcReturn
+    local co = coroutine.wrap(function() 
+        cbfunc(wrappedFunc(unpack(argTab)))
+        return true
+    end)
+    
+    table.insert(cotable,{co,quotaRatio})
+end
+
+
+--[[
+Hook 'think' errored with: SF:katlibs/coroutineutils.txt:13: attempt to index a function value
+stack traceback:
+    SF:katlibs/coroutineutils.txt:13: in function <SF:katlibs/coroutineutils.txt:11>
+]]
