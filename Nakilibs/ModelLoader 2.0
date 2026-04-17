@@ -4,6 +4,10 @@
 
 --@include Nakilibs/ModelLoader/_core.txt
 
+--[[
+https://github.com/dstmnaki/starfall-projects/tree/main/Nakilibs/ModelLoader
+--]]
+
 if SERVER then -- networked debug info for owner
     
     local printInChat = false
