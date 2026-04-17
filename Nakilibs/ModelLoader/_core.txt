@@ -112,10 +112,6 @@ if CLIENT then
             new = material.create("VertexLitGeneric")
             new:setTexture("$basetexture", original:getName())
             
-            new:setInt("$cloakpassenabled",1)
-            new:setFloat("$cloakfactor",0)
-            new:setFloat("$refractamount",0.25)
-            
             original:destroy()
         end
         return new
