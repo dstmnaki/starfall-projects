@@ -1,0 +1,238 @@
+--@name Nakilibs/mech_gait_system
+--@author Nakkitsunami
+--@shared
+--[[
+    -.-----------------------------------------------------------------------------------------------------.-
+    
+    Thank you shadowscion for every example you've made
+    This is a modular version of your gait lib, but in starfall
+    
+    -.-----------------------------------------------------------------------------------------------------.-
+    
+    
+    Usage:
+    
+    *defineGait(Name,Table) - define gait
+        table format:
+        {
+            "Rate" = 0.0-1.0,
+            "Gaits" = {
+                { -- leg data for index 1 (LegID 1)
+                    "Start" = 0.0-1.0, - when the leg starts moving along the animation cycle
+                    "Length" = 0.0-1.0 - how long it takes for the animation to finish
+                },{ -- leg data for index 2 (LegID 2)
+                    "Start" = 0.0-1.0,
+                    "Length" = 0.0-1.0
+                } -- continue for as many legs as you need
+            }
+        }
+        
+    *removeGait(Name) - remove gait
+    
+    *gaitGetTime(LegID) - get the animation progress for defined leg as fraction (0.0-1.0)
+    
+    *gaitGetTransition() - get gait transition fraction (progress from last gait to next)
+    
+    *gaitGetLegMoving(LegID) - get defined leg's "is moving state" (0 if on ground, 1 if should animate)
+    
+    *gaitSetNext(Name) - set next gait
+    
+    *gaitMain() - update values (uses delta time, can be ran at any rate, should be ran consistantly!)
+    
+    
+    -.-----------------------------------------------------------------------------------------------------.-
+    
+    You can use the following to include this in any chip! (remove the space in betweem -- and @include!)
+    -- @include Nakilibs/mech_gait_system.txt
+    require("Nakilibs/mech_gait_system.txt")
+    
+    -.-----------------------------------------------------------------------------------------------------.-
+    
+    
+    
+        C O D E   B E L O W
+        
+--]]
+local NLGaitSys_Gaits = {}
+local NLGaitSys_Temp = {
+    ["Transition"] = 1,
+    ["GaitTime"] = 0
+}
+
+function defineGait(Name,Table)
+    NLGaitSys_Gaits[Name] = Table
+end
+
+function removeGait(Name)
+    if NLGaitSys_Temp[Name] == nil then return end
+    NLGaitSys_Gaits[Name] = nil
+end
+
+function gaitGetTime(LegID)
+    local Name = "Leg_"..LegID.."_Time"
+    if NLGaitSys_Temp[Name] == nil then return 0 end
+    return NLGaitSys_Temp[Name]
+end
+
+function gaitGetTransition()
+    local Name = "Transition"
+    if NLGaitSys_Temp[Name] == nil then return 0 end
+    return NLGaitSys_Temp[Name]
+end
+
+function gaitGetLegMoving(LegID)
+    local Name = "Leg_"..LegID.."_Moving"
+    if NLGaitSys_Temp[Name] == nil then return 0 end
+    return NLGaitSys_Temp[Name]
+end
+
+function gaitSetNext(Name)
+    if NLGaitSys_Temp["NextGait"] == nil then
+        NLGaitSys_Temp["PrevGait"] = NLGaitSys_Gaits[Name]
+        NLGaitSys_Temp["NextGait"] = NLGaitSys_Gaits[Name]
+        return
+    end
+    NLGaitSys_Temp["PrevGait"] = NLGaitSys_Temp["NextGait"]
+    NLGaitSys_Temp["NextGait"] = NLGaitSys_Gaits[Name]
+end
+
+function inrange(a, b, c)
+    if a <= b then return 0 end
+    if a >= c then return 0 end
+    return 1
+end
+
+function gseq(Start,Length,Time)
+    local Offset = Time - (Start % 1)
+    return inrange(Offset,-1,Length)*inrange(Offset % 1,0,Length)*(Offset % 1)/Length
+end
+
+function gaitMain()
+    local ct = timer.curtime()
+    if NLGaitSys_Temp["StoredCT"] == nil then
+        NLGaitSys_Temp["StoredCT"] = ct
+    end
+    local Delta = ct - NLGaitSys_Temp["StoredCT"]
+    NLGaitSys_Temp["StoredCT"] = ct
+    
+    if Delta > 1 then
+        return
+    end
+    
+    if NLGaitSys_Temp["NextGait"] == nil then return end
+    
+    local PrevGait = NLGaitSys_Temp["PrevGait"]
+    local NextGait = NLGaitSys_Temp["NextGait"]
+    
+    if (NLGaitSys_Temp["Transition"] < 1) then
+        NLGaitSys_Temp["Transition"] = math.min(NLGaitSys_Temp["Transition"] + Delta/2,1)
+        
+        NLGaitSys_Temp["GaitTime"] = NLGaitSys_Temp["GaitTime"] + ((1 - NLGaitSys_Temp["Transition"])*PrevGait["Rate"] + NLGaitSys_Temp["Transition"]*NextGait["Rate"])*Delta
+        
+        local GaitsPrev = PrevGait["Gaits"]
+        local GaitsNext = NextGait["Gaits"]
+        for LegID=1,#GaitsNext do
+            local GaitPrev = GaitsPrev[LegID]
+            local GaitNext = GaitsNext[LegID]
+            MoveTime = gseq(
+                (1 - NLGaitSys_Temp["Transition"])*GaitPrev["Start"] + NLGaitSys_Temp["Transition"]*GaitNext["Start"],
+                (1 - NLGaitSys_Temp["Transition"])*GaitPrev["Length"] + NLGaitSys_Temp["Transition"]*GaitNext["Length"],
+                NLGaitSys_Temp["GaitTime"]
+            )
+            
+            NLGaitSys_Temp["Leg_"..LegID.."_Moving"] = MoveTime > 0 and MoveTime < 1
+            NLGaitSys_Temp["Leg_"..LegID.."_Time"] = MoveTime
+        end
+    else
+        NLGaitSys_Temp["GaitTime"] = NLGaitSys_Temp["GaitTime"] + NextGait["Rate"]*Delta
+        
+        local Gaits = NextGait["Gaits"]
+        for LegID=1,#Gaits do
+            local Gait = Gaits[LegID]
+            MoveTime = gseq(
+                Gait["Start"],
+                Gait["Length"],
+                NLGaitSys_Temp["GaitTime"]
+            )
+            
+            NLGaitSys_Temp["Leg_"..LegID.."_Moving"] = MoveTime > 0 and MoveTime < 1
+            NLGaitSys_Temp["Leg_"..LegID.."_Time"] = MoveTime
+        end
+    end
+    if (NLGaitSys_Temp["GaitTime"] > 1) then
+        NLGaitSys_Temp["GaitTime"] = NLGaitSys_Temp["GaitTime"] - 1
+    end
+end
+
+--[[
+    #quick example (remove the space in betweem -- and all @ definitions!)
+    
+    -- @client
+    -- @owneronly
+    -- @include Nakilibs/mech_gait_system.txt
+    require("Nakilibs/mech_gait_system.txt")
+    
+    local R_Down = false
+    local OutputData = {}
+    
+    defineGait("Walk",{
+            ["Rate"] = 0.4,
+            ["Gaits"] = {
+                { -- leg data for index 1 (LegID 1)
+                    ["Start"] = 0,
+                    ["Length"] = 0.5
+                },{ -- leg data for index 2 (LegID 2)
+                    ["Start"] = 0.5,
+                    ["Length"] = 0.5
+                }
+            }
+        }
+    )
+    defineGait("Run",{
+            ["Rate"] = 0.7,
+            ["Gaits"] = {
+                { -- leg data for index 1 (LegID 1)
+                    ["Start"] = 0,
+                    ["Length"] = 0.8
+                },{ -- leg data for index 2 (LegID 2)
+                    ["Start"] = 0.5,
+                    ["Length"] = 0.8
+                }
+            }
+        }
+    )
+    
+    gaitSetNext("Walk")
+    
+    timer.create("Main",1/20,0,function()
+        gaitMain()
+        
+        OutputData["Gait1Time"] = gaitGetTime(1)
+        OutputData["Gait1IsMoving"] = gaitGetLegMoving(1)
+        
+        OutputData["Gait2Time"] = gaitGetTime(2)
+        OutputData["Gait2IsMoving"] = gaitGetLegMoving(2)
+        
+        --Hold R to switch to run gait, let go to go back to walk
+        if owner():keyDown(IN_KEY.RELOAD) then
+            if R_Down ~= true then
+                R_Down = true
+                gaitSetNext("Run")
+            end
+        else
+            if R_Down ~= false then
+                R_Down = false
+                gaitSetNext("Walk")
+            end
+        end
+    end)
+    
+    enableHud(owner(), true)
+    hook.add("DrawHUD", "", function()
+        local height = 0
+        for k, v in pairs(OutputData) do
+            render.drawText(32,32+height,k.." | "..tostring(v))
+            height = height + 16
+        end
+    end)
+--]]
