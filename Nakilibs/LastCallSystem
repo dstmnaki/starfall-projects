@@ -1,0 +1,184 @@
+--@name Nakilibs/LastCallSystem
+--@author Nakkitsunami
+--@server
+
+prop.setPropClean(false)
+local lastExists = false
+function runLast(serverCallback,clientCallback)
+    if lastExists == true then return end
+    lastExists = true
+    
+    local templates = {}
+    
+    
+    -- Start Chunk
+    
+    templates["start"] = "--"..[[@name LastCallSystem]].."\n"..
+"--"..[[@author Nakkitsunami
+--You aren't supposed to open me
+if SERVER then
+    chip():setNoDraw(true)
+    chip():setSolid(false)
+    chip():setColor(Color(255,255,255,0))
+    
+    local serverCallback = nil
+    
+    print("LastCallSystem: Active")
+    hook.add("Removed", "", function()
+        if serverCallback then serverCallback() end
+        print("LastCallSystem: Goodbye")
+    end)
+    
+    local parent = nil
+    hook.add("Remote", "", function(sender, _, ...)
+        if sender:getOwner() ~= owner() then return end
+        parent = ...
+    end)]]
+    
+    
+    
+    -- Client Networking
+    
+    templates["clientSetupNetworking"] = "\n\n"..[[
+    local returntable = {}
+    local playersSafeToNetwork = {}
+    local playersWhoISentToAlready = {}
+    hook.add("ClientInitialized", "safeNet:CL_Init", function(ply)
+        if isValid(ply) then
+            playersSafeToNetwork[ply] = true
+            playersWhoISentToAlready[ply] = false
+        end
+    end)
+    
+    hook.add("PlayerDisconnected", "safeNet:CL_Disconnect", function(ply)
+        playersSafeToNetwork[ply] = nil
+    end)
+    
+    timer.create("sendEnt",0.1,0,function()
+        if not isValid(parent) then return end
+        
+        local playersToSendTo = {}
+        for ply, _ in pairs(playersWhoISentToAlready) do
+            if not isValid(ply) then playersWhoISentToAlready[ply] = nil continue end
+            
+            if playersWhoISentToAlready[ply] then continue end
+            
+            table.insert(playersToSendTo, ply)
+            
+            playersWhoISentToAlready[ply] = true
+        end
+        
+        if table.isEmpty(playersToSendTo) then return end
+        
+        net.start("LCS:NET_toClient")
+        net.writeEntity(parent)
+        net.send(playersToSendTo,false)
+    end)]]
+    
+    
+    
+    -- Server Templates
+    
+    templates["serverFirstHalf"] = (clientCallback and "\n" or "").."\n"..[[
+    serverCallback = function()]].."\n        "
+    
+    templates["serverSecondHalf"] = "\n"..[[    end
+    
+    hook.add("StarfallError", "", function(ent,ply)
+        if not isValid(parent) then return end
+        if ent ~= parent then return end
+        if ply:isPlayer() then return end
+        printConsole("Server side chip error detected")
+        serverCallback()
+    end)]].."\n"
+    
+    
+    
+    -- Client Templates
+    
+    templates["clientFirstHalf"] = [[else
+    clientCallback = function()]].."\n        "
+    
+    templates["clientSecondHalf"] = "\n"..[[    end
+    
+    hook.add("Removed","LCS:Removed_Client",function()
+        clientCallback()
+    end)
+    
+    net.receive("LCS:NET_toClient", function(len, ply)
+        parent = net.readEntity()
+        hook.add("StarfallError", "", function(ent,ply)
+            if not isValid(parent) then return end
+            if ent ~= parent then return end
+            if not ply:isPlayer() then return end
+            if ply ~= player() then return end
+            printConsole("Client side chip error detected")
+            clientCallback()
+        end)
+    end)
+end]].."\n"
+    
+    
+    
+    -- Combined Chunks
+    
+    local code = templates["start"]..
+    (clientCallback and templates["clientSetupNetworking"] or "\n")..
+    (serverCallback and templates["serverFirstHalf"]..serverCallback()..templates["serverSecondHalf"] or "\n")..
+    (clientCallback and templates["clientFirstHalf"]..clientCallback()..templates["clientSecondHalf"] or "end")
+    
+    
+    local ent = prop.createSent(chip():getPos(), Angle(), "starfall_processor", true, {
+        Model = "models/hunter/blocks/cube025x025x025.mdl",
+        Code = code
+    })
+    
+    hook.add("Removed", "", function()
+        if isValid(ent) then
+            printConsole("Main chip was removed")
+            ent:remove()
+        else
+            printConsole("LCS chip was removed")
+        end
+    end)
+    
+    local sent = false
+    timer.create("checkForEnt", 1, 0, function()
+        if isValid(ent) then
+            local getName = ent:getChipName() -- can we please get chip():hasInitialized() function...
+            if getName == "LastCallSystem" then -- this checks that the name has been set to something
+                if sent ~= true then
+                    sent = true
+                    hook.runRemote(ent, chip())
+                end
+            end
+            return
+        end
+        chip():remove()
+    end)
+end
+--[[example
+
+runLast(function()
+        return "print(\"Server Error\")"
+    end
+)
+--]]
+--[[example 2
+
+runLast(nil,
+    function()
+        return "print(\"Client Error\")"
+    end
+)
+--]]
+--[[example 3
+
+runLast(function()
+        return "print(\"Server Error\")"
+    end,
+    function()
+        return "print(\"Client Error\")"
+    end
+)
+--]]
