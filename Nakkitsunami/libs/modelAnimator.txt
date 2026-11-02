@@ -74,13 +74,13 @@ modelAnimator.animateSetup = function(ent,customBones)
     
     if customBones ~= nil then
         for k, boneName in pairs(customBones) do
-            drivers[boneName] = animate:lookupBone(boneName)
+            drivers[boneName] = {animate:lookupBone(boneName),Matrix(),Angle(),Vector()}
         end
     else
         for i = 1, animate:getBoneCount() do
             local boneName = animate:getBoneName(i)
             if boneName == "__INVALIDBONE__" then continue end
-            drivers[boneName] = animate:lookupBone(boneName)
+            drivers[boneName] = {animate:lookupBone(boneName),Matrix(),Angle(),Vector()}
         end
     end
     printConsole("Animate registered successfully!")
@@ -234,20 +234,27 @@ hook.add("Think",boneAnimateHook,coroutine.wrap(function()
             local frameData = animData[frame_round]
             local orderID = 1
             -- very scuffed way of updating the bones correctly, i couldn't get the key in the for loop to work the way i wanted it to
-            for _, boneID in pairs(drivers) do
+            for _, driver in pairs(drivers) do
                 while chip():getQuotaAverage() > chip():getQuotaMax()*0.75 do coroutine.yield() end
                 local boneData = frameData[orderID]
                 
                 if boneData == nil then continue end
                 
-                local ang = animate:localToWorldAngles(Angle(boneData[1],boneData[2],boneData[3]))
-                local pos = animate:localToWorld(Vector(boneData[4],boneData[5],boneData[6]))
-                -- first 3 values define angle in pitch, yaw, roll
-                -- last 3 values define position in x, y, z
+                local boneID = driver[1]
+                local matrix = driver[2]
                 
-                local matrix = Matrix()
-                matrix:translate(pos)
-                matrix:setAngles(ang)
+                local a = driver[3]
+                a[1] = boneData[1]
+                a[2] = boneData[2]
+                a[3] = boneData[3]
+                
+                local v = driver[4]
+                v[1] = boneData[4]
+                v[2] = boneData[5]
+                v[3] = boneData[6]
+                
+                matrix:setTranslation(animate:localToWorld(v))
+                matrix:setAngles(animate:localToWorldAngles(a))
                 
                 animate:setBoneMatrix(boneID, matrix)
                 orderID = orderID + 1
