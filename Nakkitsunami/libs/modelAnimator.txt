@@ -240,8 +240,8 @@ hook.add("Think",boneAnimateHook,coroutine.wrap(function()
                 
                 if boneData == nil then continue end
                 
-                local ang = Angle(boneData[1],boneData[2],boneData[3])
-                local pos = chip():getPos()+Vector(boneData[4],boneData[5],boneData[6])
+                local ang = animate:localToWorldAngles(Angle(boneData[1],boneData[2],boneData[3]))
+                local pos = animate:localToWorld(Vector(boneData[4],boneData[5],boneData[6]))
                 -- first 3 values define angle in pitch, yaw, roll
                 -- last 3 values define position in x, y, z
                 
