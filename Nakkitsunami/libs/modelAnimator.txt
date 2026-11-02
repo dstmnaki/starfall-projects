@@ -1,0 +1,263 @@
+--@name Nakkitsunami/libs/modelAnimator.txt
+--@author Nakkitsunami
+--@client
+--[[
+    
+    Simple animation library by Nakkitsunami
+    
+    
+    Expects data to be in following format, relative to model's origin
+    
+    {-- entire animation file
+        {-- frame 1
+            {pitch, yaw, roll, x, y, z},-- bone 1 data
+            {pitch, yaw, roll, x, y, z},-- bone 2 data
+            {pitch, yaw, roll, x, y, z},-- bone 3 data
+            ...
+        },
+        {-- frame 2
+            ...
+        }
+    }
+    
+    
+    to use this, simply include and require this library on client
+    and call functions from the modelAnimator table
+    
+    
+    Functions listed below
+    
+--]]
+
+
+----------    V A R I A B L E S    ----------
+
+
+modelAnimator = {}
+
+local animationLibrary = {}
+
+local animate = nil
+local drivers = {}
+
+local isAnimationPlaying = false
+
+local currentAnimationName = nil
+local lastAnimationName = nil
+local looping = false
+local finishedCallback = nil
+local fps = nil
+local frameCount = nil
+local animData = nil
+
+local frame = 0
+local lastFrame = 0
+
+local clientTargetFPS = 60
+
+local lastCT = 0
+
+
+----------    F U N C T I O N S   B E L O W    ----------
+
+
+-- modelAnimator.animateSetup(entity ent, table customBones)
+-- defines animate entity and writes down it's bones
+-- if customBones table is defined, uses those instead
+modelAnimator.animateSetup = function(ent,customBones)
+    if isValid(animate) then printConsole("Only one entity can be animated for performance reasons! replacing previous entity...") end
+    if not isValid(ent) then return end
+    animate = ent
+    
+    drivers = {}
+    -- clears this just in case
+    
+    if customBones ~= nil then
+        for k, boneName in pairs(customBones) do
+            drivers[boneName] = animate:lookupBone(boneName)
+        end
+    else
+        for i = 1, animate:getBoneCount() do
+            local boneName = animate:getBoneName(i)
+            if boneName == "__INVALIDBONE__" then continue end
+            drivers[boneName] = animate:lookupBone(boneName)
+        end
+    end
+    printConsole("Animate registered successfully!")
+end
+
+
+-- modelAnimator.addAnimation(table animationData)
+-- adds animation using the following keys:
+--    name (string, name used in storing the animation)
+--    frames (table, animation frames per bone)
+--    fps (number, fps of the animation)
+modelAnimator.addAnimation = function(animationData)
+    local name = animationData.name
+    local getFrames = animationData.frames
+    local getFps = animationData.fps
+    animationLibrary[name] = {
+        animFrames = getFrames,
+        animFPS = getFps,
+        animFrameCount = #getFrames
+    }
+    printConsole("Animation registered: "..name)
+end
+
+
+-- modelAnimator.playAnimation(string name,boolean setLooping, function callback,number setFrame,number setFPS,number animationRate)
+-- plays animation
+-- all except name are optional
+-- setFPS and animationRate can't be used at the same time
+-- callback will be ran even if setLooping is on
+modelAnimator.playAnimation = function(name,setLooping,callback,setFrame,setFPS,animationRate)
+    local findAnim = animationLibrary[name]
+    if findAnim == nil then return end
+    
+    animData = findAnim.animFrames
+    
+    frameCount = findAnim.animFrameCount
+    
+    if setLooping == true then looping = true end
+    if callback ~= nil then finishedCallback = callback end
+    if setFrame ~= nil then frame = setFrame end
+    if setFPS ~= nil then
+        fps = setFPS
+    else
+        local getFPS = findAnim.animFPS
+        if animationRate ~= nil then
+            fps = getFPS * animationRate
+        else
+            fps = getFPS
+        end
+    end
+    
+    lastCT = timer.curtime()
+    isAnimationPlaying = true
+    printConsole("Now playing animation: "..name)
+end
+
+
+-- modelAnimator.playAnimation()
+-- returns table of animation names
+modelAnimator.animations = function()
+    return table.getKeys(animationLibrary)
+end
+
+
+-- modelAnimator.getAnimationData(string name)
+-- returns table with following data:
+--    frames
+--    fps
+--    length
+modelAnimator.getAnimationData = function(name)
+    local findAnim = animationLibrary[name]
+    if findAnim == nil then return end
+    local getFrames = #findAnim.animFrames
+    local getFPS = findAnim.animFPS
+    local length = math.round(getFrames/getFPS,1) -- seconds
+    return {
+        frames = getFrames,
+        fps = getFPS,
+        length = length
+    }
+end
+
+
+-- modelAnimator.setClientTargetFPS(number newClientTargetFPS)
+-- sets client target fps to specified number
+-- if client fps is lower than this -(clientTargetFPS/60) * 10) the fps of the animation will slow down
+modelAnimator.setClientTargetFPS = function(newClientTargetFPS)
+    clientTargetFPS = newClientTargetFPS
+end
+
+
+-- modelAnimator.currentAnimationName()
+-- returns the name of current animation
+modelAnimator.currentAnimationName = function()
+    return currentAnimationName
+end
+
+
+-- modelAnimator.lastAnimationName()
+-- returns the name of previous animation
+modelAnimator.lastAnimationName = function()
+    return lastAnimationName
+end
+
+
+----------    C O D E   B E L O W    ----------
+
+
+local boneAnimateHook = "modelAnimator:think"
+hook.add("Think",boneAnimateHook,coroutine.wrap(function()
+    while true do
+        while not (isAnimationPlaying == true and isValid(animate) and animData ~= nil) do
+            coroutine.yield()
+            -- return early if parameters not met
+        end
+        
+        local clientFPS = 1/timer.frametime()
+        if clientFPS < (clientTargetFPS - (clientTargetFPS/60) * 10) then
+            -- this is a bit inconsistent so i negate 10 fps at 60 fps target from the target fps
+            
+            local waitTime = math.easeInSine(math.clamp((clientTargetFPS-clientFPS),0.001,clientTargetFPS)/clientTargetFPS)
+            coroutine.wait(waitTime*0.05)
+        end
+        
+        local CT = timer.curtime()
+        local delta = CT - lastCT
+        lastCT = CT
+        
+        -- i'd use timer.frametime in the logic below but in this system, that seems to be controlled entirely by coroutine and it ignores actual client fps
+        -- this makes it dependant on time passed
+        
+        frame = frame + 1 * delta * fps
+        if frame > frameCount then
+            if finishedCallback ~= nil then
+                finishedCallback()
+            end-- animation finished callback
+            
+            if not looping then
+                isAnimationPlaying = false
+            end-- if animation isn't set to loop, stop
+            
+            lastAnimationName = currentAnimationName
+            frame = 1
+        end
+        
+        local frame_round = math.clamp(math.round(frame,0),1,frameCount)
+        -- round the frame, if it changes as a whole number, update animate entity pose
+        if frame_round ~= lastFrame then
+            lastFrame = frame_round
+            
+            local frameData = animData[frame_round]
+            local orderID = 1
+            -- very scuffed way of updating the bones correctly, i couldn't get the key in the for loop to work the way i wanted it to
+            for _, boneID in pairs(drivers) do
+                while chip():getQuotaAverage() > chip():getQuotaMax()*0.75 do coroutine.yield() end
+                local boneData = frameData[orderID]
+                
+                if boneData == nil then continue end
+                
+                local ang = Angle(boneData[1],boneData[2],boneData[3])
+                local pos = chip():getPos()+Vector(boneData[4],boneData[5],boneData[6])
+                -- first 3 values define angle in pitch, yaw, roll
+                -- last 3 values define position in x, y, z
+                
+                local matrix = Matrix()
+                matrix:translate(pos)
+                matrix:setAngles(ang)
+                
+                animate:setBoneMatrix(boneID, matrix)
+                orderID = orderID + 1
+            end
+        end
+        coroutine.yield()
+        -- when frame is done, return to start and wait for frame number to be updated
+    end
+    
+    -- just in case something goes wrong
+    printConsole("Coroutine escape prevented!")
+    hook.remove("Think", boneAnimateHook)
+end))
