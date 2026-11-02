@@ -1,0 +1,26 @@
+--@name Nakkitsunami/Stratagem_System
+--@author Nakkitsunami
+--@client
+--@include Nakkitsunami/Stratagem_System/Core.txt
+require("Nakkitsunami/Stratagem_System/Core.txt")
+
+local icons_create = {
+    ["refresh"] = "gui/html/refresh"
+}
+local icons = {}
+for k, v in pairs(icons_create) do
+    icons[k] = render.createMaterial(v, nil, nil)
+end
+
+validate_stratagem("sswd","Resupply",8,nil,180,
+    function()
+        
+    end,
+icons["refresh"])
+
+
+validate_stratagem("wasd","Example",8,3,10,
+    function()
+        
+    end,
+nil)
