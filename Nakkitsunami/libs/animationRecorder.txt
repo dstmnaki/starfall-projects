@@ -1,0 +1,236 @@
+--@name Nakkitsunami/libs/animationRecorder.txt
+--@author Nakkitsunami
+--@client
+--@owneronly
+
+animationRecorder = {}
+
+local path = "Nakkitsunami/animationRecorder"
+local fileCheck = path.."/".."testificate.txt"
+
+if not file.exists(fileCheck) then
+    file.createDir(path)
+    file.write(fileCheck, "")
+    print("File directory setup")
+end
+
+local animationLibrary = {}
+
+local writeAnimation = false
+
+local anim_name = "testificate"
+local anim_file_name = anim_name
+
+local targetFPS = 60
+local animationFPS = 24
+local frameCount = 100
+
+local decimals = 1
+
+local frames = {}
+local frame = -1
+local callback = nil
+local lastCT = 0
+
+local drivers = {}
+local animate = hologram.create(chip():getPos(), Angle(), "models/hunter/blocks/cube025x025x025.mdl", Vector(1))
+
+local visualModel = nil
+
+animationRecorder.isIdle = true
+
+animationRecorder.animateSetup = function(modelPath,visualModelPath,customBones)
+    animate:setModel(modelPath)
+    
+    visualModel = hologram.create(chip():getPos(), Angle(), visualModelPath ~= nil and visualModelPath or "models/player/breen.mdl", Vector(1))
+    visualModel:setParent(animate)
+    visualModel:addEffects(EF.BONEMERGE)
+    
+    drivers = {}
+    -- clears this just in case
+    
+    if customBones ~= nil then
+        for k, boneName in pairs(customBones) do
+            drivers[boneName] = animate:lookupBone(boneName)
+        end
+    else
+        for i = 1, animate:getBoneCount() do
+            local boneName = animate:getBoneName(i)
+            if boneName == "__INVALIDBONE__" then continue end
+            drivers[boneName] = animate:lookupBone(boneName)
+        end
+    end
+    
+    print("Model updated!")
+end
+
+animationRecorder.exportBoneList = function()
+    if table.isEmpty(drivers) then
+        print("Bones not defined yet!")
+        return
+    end
+    
+    print("local myTable = {")
+    for boneName, v in pairs(drivers) do
+        print("    \""..boneName.."\",")
+    end
+    print("}")
+end
+
+animationRecorder.addAnimation = function(name,realName,animationFrameCount,animationFPS,callback)
+    local anim = animationLibrary[name]
+    if anim ~= nil then
+        print("Animation is already registered! updating frameCount and fps...")
+    end
+    animationLibrary[name] = {realName = realName, animFrames = animationFrameCount, animFPS = animationFPS}
+    if callback then animationLibrary[name].callback = callback end
+    
+    print("Animation registered: "..name.." | FPS: "..animationFPS.." | Frames: "..animationFrameCount)
+end
+
+animationRecorder.getAnimationData = function(name)
+    local findAnim = animationLibrary[name]
+    if findAnim == nil then
+        print("Animation not found!")
+        return
+    end
+    local getFrames = findAnim.animFrames
+    local getFPS = findAnim.animFPS
+    local length = math.round(getFrames/getFPS,1) -- seconds
+    return {
+        frames = getFrames,
+        fps = getFPS,
+        length = length,
+        callback = findAnim.callback,
+        realName = findAnim.realName
+    }
+end
+
+animationRecorder.recordAnimation = function(name,target_fps,shouldWrite,setDecimals)
+    local findAnim = animationRecorder.getAnimationData(name)
+    anim_file_name = name
+    anim_name = findAnim.realName
+    
+    frameCount = findAnim.frames
+    animationFPS = findAnim.fps
+    
+    targetFPS = target_fps ~= nil and target_fps or animationFPS
+    
+    frames = {}
+    
+    frame = -1
+    animationRecorder.isIdle = false
+    
+    callback = findAnim.callback
+    
+    lastCT = timer.curtime()
+    
+    writeAnimation = shouldWrite == true
+    decimals = setDecimals ~= nil and setDecimals or 1
+    print("Playing "..name)
+end
+
+local function getAnimFileName()
+    return path.."/"..anim_file_name..".txt"
+end
+
+local function writeBone(t)
+    local ang = t.ang
+    local ret = math.round(ang[1],decimals)..", "..math.round(ang[2],decimals)..", "..math.round(ang[3],decimals)
+    
+    local pos = t.pos
+    
+    if not pos then
+        return ret
+    end
+    
+    ret = ret..", "..math.round(pos[1],decimals)..", "..math.round(pos[2],decimals)..", "..math.round(pos[3],decimals)
+    
+    return ret
+end
+
+local function writeFrame(t)
+    local frame = ""
+    for entry, frameData in pairs(t) do
+        local isLast = entry == #t
+        frame = frame.."        {"..writeBone(frameData)..(isLast and "}" or "},\n")
+    end
+    return frame
+end
+
+local function writeFile()
+    local animation = "--".."@client".."\n".."return {\n"..
+"--[[\n"
+local boneIndex = 1
+for boneName, _ in pairs(drivers) do
+    animation = animation..boneIndex.." "..boneName.."\n"
+    boneIndex = boneIndex + 1
+end
+animation = animation.."--]]\n"
+    
+    for frameID, frameData in pairs(frames) do
+        local isLast = frameID == #frames
+        animation = animation.."    {\n"..writeFrame(frameData).."\n    }"..(isLast and "\n}" or ",\n")
+    end
+    
+    file.write(getAnimFileName(), animation)
+end
+
+local hookName = "animationRecorder:think"
+hook.add("Think",hookName,coroutine.wrap(function()
+    while true do
+        while animationRecorder.isIdle do
+            coroutine.yield()
+        end
+        local CT = timer.curtime()
+        local delta = CT - lastCT
+        lastCT = CT
+        
+        -- i'd use timer.frametime in the logic below but in this system, that seems to be controlled entirely by coroutine and it ignores actual client fps
+        -- this makes it dependant on time passed
+        
+        frame = frame + 1 * delta * targetFPS
+        
+        local frameCountModified = frameCount * (targetFPS/animationFPS)
+        local fraction = frame/frameCountModified
+        if fraction >= 1 then
+            if animationRecorder.isIdle ~= true then
+                animationRecorder.isIdle = true
+                if callback then callback() end
+                print("Animation finished!")
+                print("Recorded "..frameCountModified.." frames")
+                if writeAnimation then
+                    writeFile()
+                    print("File saved as: "..getAnimFileName())
+                end
+            end
+            frame = 0
+        end
+        animate:setAnimation(anim_name, fraction, 0)
+        
+        local frame_round = math.clamp(math.round(frame,0),1,frameCountModified)
+        -- round the frame, if it changes as a whole number, update animate entity pose
+        if frame_round ~= lastFrame then
+            lastFrame = frame_round
+            local frameData = {}
+            for boneName, boneID in pairs(drivers) do
+                local pos, ang = visualModel:getBonePosition(boneID)
+                
+                local boneData = {ang = ang}
+                
+                boneData.pos = pos - chip():getPos()
+                
+                frameData[#frameData+1] = boneData
+            end
+            if not done then
+                frames[#frames+1] = frameData
+            end
+        end
+        coroutine.yield()
+    end
+    
+    -- just in case something goes wrong
+    print("Coroutine escape prevented!")
+    hook.remove("Think",hookName)
+end))
+
