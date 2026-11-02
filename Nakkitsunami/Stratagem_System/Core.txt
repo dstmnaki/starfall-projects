@@ -1,0 +1,333 @@
+--@name Nakkitsunami/Stratagem_System/Core
+--@author Nakkitsunami
+--@client
+
+if player() == owner() then
+    _DEBUG = false
+    
+    enableHud(owner(), true)
+end
+
+local down = {}
+local keys = {}
+local temp = {}
+local equipped = nil
+
+local sequence = ""
+
+local stratagem_list = {}
+
+local _NOICON = render.createMaterial("gui/noicon.png",nil,nil)
+
+function validate_stratagem(sequence,name,callin_time,uses,cooldown,func,icon)
+    stratagem_list[sequence] = {
+        ["name"] = name,
+        ["call-in time"] = callin_time,
+        ["uses"] = uses,
+        ["cooldown"] = cooldown,
+        ["function"] = func,
+        ["icon"] = icon == nil and _NOICON or icon
+    }
+end
+
+function printDebug(str)
+    if not _DEBUG then return end
+    print("DEBUG | "..str)
+end
+
+function is_empty(sequence)
+    return temp[sequence] and temp[sequence]["uses"] != nil and temp[sequence]["uses"] == 0
+end
+
+function use_stratagem(sequence)
+    equipped = nil
+    local stratagem = stratagem_list[sequence]
+    local name = stratagem["name"]
+    
+    if stratagem["uses"] != nil then
+        temp[sequence]["uses"] = temp[sequence]["uses"] - 1
+    end
+    
+    local empty = is_empty(sequence)
+    
+    local cooldown = stratagem["cooldown"]
+    temp[sequence]["on_cooldown"] = not empty
+    temp[sequence]["last_used"] = timer.curtime()
+    
+    stratagem["function"]()
+    
+    printDebug("Used "..name.."!")
+    
+    if not empty then
+        timer.simple(cooldown,function()
+            temp[sequence]["on_cooldown"] = nil
+            printDebug(name.." is ready!")
+        end)
+    end
+end
+
+function equip_stratagem(sequence)
+    local stratagem = stratagem_list[sequence]
+    local name = stratagem["name"]
+    
+    if not temp[sequence] then
+        temp[sequence] = {}
+        if stratagem["uses"] != nil then
+            temp[sequence]["uses"] = stratagem["uses"]
+        end
+    end
+    if temp[sequence]["on_cooldown"] == true then
+        printDebug(name.." is on cooldown!")
+        return
+    end
+    
+    if stratagem["uses"] != nil then
+        if temp[sequence]["uses"] <= 0 then
+            printDebug(name.." is out of uses!")
+            return
+        end
+    end
+    equipped = sequence
+    printDebug(name.." equipped!")
+end
+
+function ExpDecay( a, b, decay, dt )
+    return b + ( a - b ) * math.exp( -decay * dt )
+end
+function render.drawTriangleCustom(x,y,size,direction)
+    local x = x+25/2
+    local y = y+25/2
+    if direction == "w" then
+        pos1 = {x-size*0.5, y+size*0.5}
+        pos2 = {x, y-size*0.5}
+        pos3 = {x+size*0.5, y+size*0.5}
+    elseif direction == "a" then
+        pos1 = {x+size*0.5, y+size*0.5}
+        pos2 = {x-size*0.5, y}
+        pos3 = {x+size*0.5, y-size*0.5}
+    elseif direction == "s" then
+        pos1 = {x+size*0.5, y-size*0.5}
+        pos2 = {x, y+size*0.5}
+        pos3 = {x-size*0.5, y-size*0.5}
+    else
+        pos1 = {x-size*0.5, y-size*0.5}
+        pos2 = {x+size*0.5, y}
+        pos3 = {x-size*0.5, y+size*0.5}
+    end
+    render.drawTriangle(pos1[1], pos1[2], pos2[1], pos2[2], pos3[1], pos3[2])
+end
+function render.drawArrows(x,y,size,text,sequence)
+    local sequenceEx = string.explode("", sequence)
+    local ex = string.explode("", text)
+    
+    local len = 0
+    local sequenceLen = sequence:len()
+    local exLen = text:len()
+    
+    local correct = sequenceLen > 0 and (sequenceLen <= exLen and text:sub(1,sequenceLen) == sequence) or false
+    local correct_full = text == sequence
+    
+    
+    for index = 1, exLen do
+        local expected = ex[index]
+        local current = sequenceEx[index]
+        
+        local empty = is_empty(text)
+        
+        if not empty then
+            if correct_full then
+                render.setColor(Color(255,255,255,200))
+            elseif correct and index <= sequenceLen then
+                render.setColor(Color(200,200,200,200))
+            else
+                render.setColor(Color(100,100,100,200))
+            end
+        else
+            render.setColor(Color(100,100,100,200))
+        end
+        
+        render.drawTriangleCustom(x+len,y,size,expected:lower())
+        
+        len = len + size*1.8
+    end
+end
+
+local w, h = render.getGameResolution()
+local menu_slide = 0
+local lastsequence = ""
+hook.add("DrawHUD", "", function()
+    render.setFont("TargetID")
+    keys["menu"] = player():keyDown(IN_KEY.WALK)
+    keys["w"] = player():keyDown(IN_KEY.FORWARD)
+    keys["s"] = player():keyDown(IN_KEY.BACK)
+    keys["a"] = player():keyDown(IN_KEY.MOVELEFT)
+    keys["d"] = player():keyDown(IN_KEY.MOVERIGHT)
+    keys["e"] = player():keyDown(IN_KEY.USE)
+    
+    keys["attack"] = player():keyDown(IN_KEY.ATTACK)
+    
+    if equipped != nil then
+        local key = "attack"
+        if keys[key] then
+            if down[key] != true then
+                down[key] = true
+                use_stratagem(equipped)
+            end
+        else
+            down[key] = false
+        end
+    else
+        if keys["menu"] then
+            local key = "w"
+            if keys[key] then
+                if down[key] != true then
+                    down[key] = true
+                    sequence = sequence..key
+                end
+            else
+                down[key] = false
+            end
+            
+            local key = "s"
+            if keys[key] then
+                if down[key] != true then
+                    down[key] = true
+                    sequence = sequence..key
+                end
+            else
+                down[key] = false
+            end
+            
+            local key = "a"
+            if keys[key] then
+                if down[key] != true then
+                    down[key] = true
+                    sequence = sequence..key
+                end
+            else
+                down[key] = false
+            end
+            
+            local key = "d"
+            if keys[key] then
+                if down[key] != true then
+                    down[key] = true
+                    sequence = sequence..key
+                end
+            else
+                down[key] = false
+            end
+            
+            local key = "e"
+            if keys[key] then
+                if down[key] != true then
+                    down[key] = true
+                    if stratagem_list[sequence] then
+                        equip_stratagem(sequence)
+                    end
+                    sequence = ""
+                end
+            else
+                down[key] = false
+            end
+        else
+            sequence = ""
+        end
+    end
+    
+    if sequence ~= lastsequence and sequence != "" then
+        lastsequence = sequence
+        printDebug(sequence:sub(sequence:len()))
+    end
+    
+    render.setColor(Color(0,0,0,150))
+    render.drawRectFast(25,25,150,25)
+    
+    render.setColor(Color(150,150,150,100))
+    render.drawLine(25,25,25,50)
+    render.drawLine(25,25,35,25)
+    render.drawLine(25,50,35,50)
+    
+    local x = 22+25/2
+    local y = 25+25/2
+    
+    local width = 8
+    local height = 8
+    
+    render.drawTriangle(x-width*0.5, y-height*0.5, x+width*0.5, y, x-width*0.5, y+height*0.5)
+    
+    render.setColor(Color(255,255,255,255))
+    render.drawSimpleText(25+150-7, 25+25/2, "STRATAGEMS", TEXT_ALIGN.RIGHT, TEXT_ALIGN.CENTER)
+    
+    local menu_open = equipped == nil and keys["menu"]
+    menu_slide = ExpDecay(menu_slide,menu_open and 1 or 0, 10, timer.frametime())
+    menu_slide = math.round(menu_slide*1000,0)/1000
+    local menu_slide_mult = math.clamp(-0.5+menu_slide*2,0,1)
+    
+    if menu_slide_mult>0 then
+        for k, v in ipairs(table.getKeys(stratagem_list)) do
+            local code = v
+            local name = stratagem_list[code]["name"]
+            local x = 25-(50+250)*(1-menu_slide_mult)
+            local height = 40
+            local y = 25+50+10+(height+10)*(k-1)
+            
+            local usesGet = stratagem_list[code]["uses"]
+            
+            if temp[code] and temp[code]["uses"] != nil then
+                uses = temp[code]["uses"]
+            else
+                uses = usesGet
+            end
+            
+            render.setColor(Color(0,0,0,150))
+            render.drawRectFast(x,y,250,height)
+            
+            local empty = is_empty(code)
+            
+            if not empty then
+                if temp[code] and temp[code]["on_cooldown"] then
+                    local last_used = temp[code]["last_used"]
+                    local cooldown = stratagem_list[code]["cooldown"]
+                    local lerp = (timer.curtime()-last_used)/cooldown
+                    
+                    render.setColor(Color(100,100,100,125*(1-math.easeInExpo(lerp))))
+                    render.drawRectFast(x,y+1+height*(1-lerp),250,height*lerp)
+                    
+                    local cooldown_time = (last_used+cooldown)-timer.curtime()
+                    local time = string.formattedTime(math.clamp(cooldown_time,0,99999), nil)
+                    local min = time["m"]
+                    local sec = time["s"]
+                    local m_f = tostring(min > 9 and min or "0"..min)
+                    local s_f = tostring(sec > 9 and sec or "0"..sec)
+                    
+                    render.setColor(Color(255,255,255,255))
+                    render.drawSimpleText(x+50, y+15+25/2, "Cooldown T-"..m_f..":"..s_f, TEXT_ALIGN.LEFT, TEXT_ALIGN.CENTER)
+                
+                    render.setColor(Color(175,175,175,255))
+                else
+                    render.drawArrows(x+50,y+5+25/2,12,code,sequence)
+                    
+                    render.setColor(Color(255,255,255,255))
+                end
+            else
+                render.setColor(Color(175,175,175,255))
+            end
+            if stratagem_list[code]["icon"] then
+                render.setMaterial(stratagem_list[code]["icon"])
+                render.drawTexturedRectFast(x+height*0.1, y+height*0.1, height*0.8, height*0.8)
+            end
+            
+            render.drawSimpleText(x+50, y+25/2, name, TEXT_ALIGN.LEFT, TEXT_ALIGN.CENTER)
+            
+            if usesGet then
+                local box_size = {height*0.4*(tostring(uses):len()),height*0.4}
+                local box_pos = {x+height/2*0.8+height*0.5, y+height/2*0.8+height*0.5-box_size[2]/2}
+                render.drawRectFast(box_pos[1]-box_size[1]/2, box_pos[2]-box_size[2]/2, box_size[1], box_size[2])
+                
+                render.setColor(Color(0,0,0,255))
+                render.drawSimpleText(box_pos[1], box_pos[2], tostring(uses), TEXT_ALIGN.CENTER, TEXT_ALIGN.CENTER)
+            end
+        end
+    end
+end)
