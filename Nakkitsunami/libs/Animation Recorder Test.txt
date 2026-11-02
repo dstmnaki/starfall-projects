@@ -1,0 +1,127 @@
+--@name Nakkitsunami/Animation Recorder Test
+--@author Nakkitsunami
+--@client
+--@include Nakkitsunami/libs/animationRecorder.txt
+--@owneronly
+require("Nakkitsunami/libs/animationRecorder.txt")
+
+do return end
+-- this code was used for testing, tho you can check how i'm using this
+-- i'll write explanations to the functions in the library eventually
+
+
+local myTable = {
+    "ValveBiped.Bip01_Spine2",
+    "ValveBiped.Bip01_L_Finger31",
+    "ValveBiped.Bip01_Head1",
+    "ValveBiped.Bip01_R_Clavicle",
+    "ValveBiped.Bip01_L_Finger01",
+    "ValveBiped.Anim_Attachment_RH",
+    "ValveBiped.Bip01_Spine",
+    "ValveBiped.Anim_Attachment_LH",
+    "ValveBiped.Bip01_Pelvis",
+    "ValveBiped.Bip01_R_Foot",
+    "ValveBiped.Bip01_R_Finger02",
+    "ValveBiped.Bip01_L_Finger21",
+    "ValveBiped.Bip01_R_Finger01",
+    "ValveBiped.Bip01_R_Finger0",
+    "ValveBiped.Bip01_R_Finger12",
+    "ValveBiped.Bip01_R_Finger11",
+    "ValveBiped.Bip01_L_Forearm",
+    "ValveBiped.Bip01_R_Finger1",
+    "ValveBiped.Bip01_R_Finger22",
+    "ValveBiped.Bip01_Spine1",
+    "ValveBiped.Bip01_R_Finger21",
+    "ValveBiped.Bip01_R_Finger2",
+    "ValveBiped.Bip01_L_Finger12",
+    "ValveBiped.Bip01_R_Finger32",
+    "ValveBiped.Bip01_R_Finger31",
+    "ValveBiped.Bip01_R_Thigh",
+    "ValveBiped.Bip01_R_Finger3",
+    "ValveBiped.Bip01_Neck1",
+    "ValveBiped.Bip01_R_Finger42",
+    "ValveBiped.Bip01_R_Finger41",
+    "ValveBiped.Bip01_R_Finger4",
+    "ValveBiped.Bip01_L_Finger02",
+    "ValveBiped.Bip01_L_UpperArm",
+    "ValveBiped.Bip01_L_Clavicle",
+    "ValveBiped.Bip01_L_Finger42",
+    "ValveBiped.Bip01_L_Finger2",
+    "ValveBiped.Bip01_L_Finger11",
+    "ValveBiped.Bip01_R_UpperArm",
+    "ValveBiped.Bip01_L_Finger22",
+    "ValveBiped.Bip01_R_Hand",
+    "ValveBiped.Bip01_L_Finger41",
+    "ValveBiped.Bip01_L_Finger1",
+    "ValveBiped.Bip01_R_Toe0",
+    "ValveBiped.Bip01_R_Calf",
+    "ValveBiped.Bip01_Spine4",
+    "ValveBiped.Bip01_L_Foot",
+    "ValveBiped.Bip01_R_Forearm",
+    "ValveBiped.Bip01_L_Finger4",
+    "ValveBiped.Bip01_L_Thigh",
+    "ValveBiped.Bip01_L_Calf",
+    "ValveBiped.Bip01_L_Finger32",
+    "ValveBiped.Bip01_L_Toe0",
+    "ValveBiped.Bip01_L_Finger3",
+    "ValveBiped.Bip01_L_Hand",
+    "ValveBiped.Bip01_L_Finger0",
+}
+
+animationRecorder.animateSetup("models/vergil_anims2.mdl",nil,myTable)
+--animationRecorder.exportBoneList()
+
+local write = true
+local targetFPS = 45
+
+local animationList = {
+    --[[{
+        name = "yamato_idle",
+        realName = "wos_yamato_idle",
+        fps = 60,
+        frames = 60
+    },--]]{
+        name = "vergil_upperslash_1",
+        realName = "wos_ymt_upperslash_1",
+        fps = 45,
+        frames = 120
+    },
+}
+local animCount = #animationList
+
+local animationIndex = 1
+function writeAnimation()
+    if animationIndex > #animationList then
+        print("All done!")
+        return
+    end
+    
+    local animData = animationList[animationIndex]
+    
+    animationRecorder.recordAnimation(animData.name,targetFPS,write)
+    animationIndex = animationIndex + 1
+end
+finishedFunction = function()
+    timer.simple(0.1,function()
+        writeAnimation()
+    end)
+end
+
+function registerAnimations()
+    timer.create("addAnim", 1/20, animCount, function()
+        local reps = timer.repsleft("addAnim")
+        local index = animCount-reps
+        local animData = animationList[index]
+        
+        animationRecorder.addAnimation(animData.name,animData.realName,animData.frames,animData.fps,finishedFunction)
+        if reps == 0 then
+            print("Animations registered")
+            timer.simple(0.1,function()
+                print("Writing animations...")
+                writeAnimation()
+            end)
+        end
+    end)
+end
+
+registerAnimations()
