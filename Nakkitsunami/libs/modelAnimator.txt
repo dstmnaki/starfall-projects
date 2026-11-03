@@ -39,6 +39,7 @@ local animationLibrary = {}
 
 local animate = nil
 local drivers = {}
+local frameCallback = nil
 
 local isAnimationPlaying = false
 
@@ -132,9 +133,20 @@ modelAnimator.playAnimation = function(name,setLooping,callback,setFrame,setFPS,
         end
     end
     
+    currentAnimationName = name
+    
     lastCT = timer.curtime()
     isAnimationPlaying = true
     printConsole("Now playing animation: "..name)
+end
+
+
+local function boneIDFromName(boneName)
+    return drivers[boneName][1]
+end
+modelAnimator.addFrameCallback = function(callback)
+    frameCallback = callback
+    printConsole("Frame callback function registered")
 end
 
 
@@ -257,8 +269,10 @@ hook.add("Think",boneAnimateHook,coroutine.wrap(function()
                 matrix:setAngles(animate:localToWorldAngles(a))
                 
                 animate:setBoneMatrix(boneID, matrix)
+                
                 orderID = orderID + 1
             end
+            if frameCallback then frameCallback(drivers,lastFrame,frameCount,currentAnimationName) end
         end
         coroutine.yield()
         -- when frame is done, return to start and wait for frame number to be updated
