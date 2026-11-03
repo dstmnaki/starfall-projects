@@ -84,6 +84,7 @@ modelAnimator.animateSetup = function(ent,customBones)
             drivers[boneName] = {animate:lookupBone(boneName),Matrix(),Angle(),Vector()}
         end
     end
+    
     printConsole("Animate registered successfully!")
 end
 
@@ -119,9 +120,12 @@ modelAnimator.playAnimation = function(name,setLooping,callback,setFrame,setFPS,
     
     frameCount = findAnim.animFrameCount
     
+    frame = setFrame ~= nil and setFrame or 0
+    lastFrame = -1
+    
     if setLooping == true then looping = true end
     if callback ~= nil then finishedCallback = callback end
-    if setFrame ~= nil then frame = setFrame end
+    
     if setFPS ~= nil then
         fps = setFPS
     else
