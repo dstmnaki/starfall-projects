@@ -1,0 +1,103 @@
+--@name Nakkitsunami/libs/pac_to_holo_loader.txt
+--@author Nakkitsunami
+--@client
+
+pthl = pthl or {}
+
+pthl.holos = {}
+
+pthl.ready = false
+
+function pthl.createHolo(data,nomat,size,showbones)
+    if not data or data == nil or #data == 0 then return end
+    local i = data[1]
+    if data[2] == game.getWorld() then
+        
+    else
+        local type1_is_entity = (string.lower(type(data[2])) == "entity" or string.lower(type(data[2])) == "player")
+        if type1_is_entity then
+            relative = data[2] and data[2] or chip()
+        else
+            relative = pthl.holos[data[2]] and pthl.holos[data[2]] or chip()
+        end
+    end
+    if data[3] == game.getWorld() then
+        
+    else
+        local type2_is_entity = (string.lower(type(data[3])) == "entity" or string.lower(type(data[3])) == "player")
+        
+        if type2_is_entity then
+            parent = data[3] and data[3] or chip()
+        else
+            parent = pthl.holos[data[3]] and pthl.holos[data[3]] or chip()
+        end
+    end
+    if not relative then
+        pos = data[4]*size
+        ang = data[5]
+    else
+        pos = relative:localToWorld(data[4]*size)
+        ang = relative:localToWorldAngles(data[5])
+    end
+    if #data > 5 then // Advanced
+        local mdl = data[6] != "" and data[6] or "models/hunter/blocks/cube025x025x025.mdl"
+        local mat = nomat and "" or data[7]--sprops/sprops_grid_12x12
+        local col = nomat and Color(255,255,255,255) or data[8]
+        local scl = data[9]
+        local fullbright = mat == "FULLBRIGHT"
+        
+        holo = hologram.create(pos, ang, mdl, scl*size)
+        holo:setMaterial(fullbright and "models/debug/debugwhite" or mat)
+        holo:suppressEngineLighting(fullbright)
+        holo:setColor(col)
+        holo:setParent(parent)
+            
+        holo:setLOD(0)
+        
+        local clipsTable = data[10]
+        if #clipsTable > 0 then
+            for i2 = 1, #clipsTable do
+                local clipindex = clipsTable[i2][1]
+                local clippos = clipsTable[i2][2]
+                local clipdir = clipsTable[i2][3]
+                holo:setClip(clipindex, true, clippos*size, clipdir, holo)
+            end
+        end
+    else // Simple
+        holo = hologram.create(pos, ang, "models/sprops/cuboids/height06/size_1/cube_6x6x6.mdl", showbones and Vector(0.25) or Vector())
+        holo:setParent(parent)
+    end
+    
+    pthl.holos[i]=holo
+end
+
+function pthl.createHolos(holocount,holotable,nomat,size,showbones)
+    local state = "holos"
+    local holoLimit = hologram.hologramsLeft()
+    
+    if holocount > holoLimit then print("Hologram limit reached ("..holoLimit.."), run sf_holograms_max_cl with atleast "..holocount.." in console!") return end
+    
+    local burst = 25
+    
+    local i = 0
+    hook.add("Think","holo_creation",function()
+        local burstAdjusted = math.clamp(burst,0,holocount-i)
+        
+        if hologram.canSpawn() and holoLimit >= burstAdjusted and ramAverage()*0.01 < ramMax()  and cpuAverage()*0.01 < cpuMax() then
+            for i2 = 1, burstAdjusted do
+                i = i + 1
+                local t = holotable[i]
+                pthl.createHolo(holotable[i],nomat,size,showbones)
+                if i >= holocount then
+                    hook.remove("Think","holo_creation")
+                    printConsole("Finished creating "..holocount.." holograms!")
+                    i = 0
+                    t = nil
+                    pthl.ready = true
+                    return
+                end
+            end
+        end
+        
+    end)
+end
