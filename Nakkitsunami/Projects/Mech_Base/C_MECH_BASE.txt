@@ -477,14 +477,14 @@ function C_MECH_BASE:think()
     local left_arm_to_target = (aimpos - arm_left:getPos()):getAngle()
     
     self.arm_left_ang = math.approachAngle2(self.arm_left_ang, left_arm_to_target, Angle(self.arm_turn_rate * ft * 10))
-    local arm_left_local_ang = head:worldToLocalAngles(self.arm_left_ang)
-    arm_left:setAngles(head:localToWorldAngles(Angle(math.clamp(arm_left_local_ang[1],-45,45),math.clamp(arm_left_local_ang[2],-25,25),0)))
+    local arm_left_local_ang = head:worldToLocalAngles(self.arm_left_ang)*0.9
+    arm_left:setAngles(head:localToWorldAngles(Angle(math.clamp(arm_left_local_ang[1],-45,45),math.clamp(arm_left_local_ang[2],-20,20),0)))
     
     local right_arm_to_target = (aimpos - arm_right:getPos()):getAngle()
     
     self.arm_right_ang = math.approachAngle2(self.arm_right_ang, right_arm_to_target, Angle(self.arm_turn_rate * ft * 10))
-    local arm_right_local_ang = head:worldToLocalAngles(self.arm_right_ang)
-    arm_right:setAngles(head:localToWorldAngles(Angle(math.clamp(arm_right_local_ang[1],-45,45),math.clamp(arm_right_local_ang[2],-25,25),0)))
+    local arm_right_local_ang = head:worldToLocalAngles(self.arm_right_ang)*0.9
+    arm_right:setAngles(head:localToWorldAngles(Angle(math.clamp(arm_right_local_ang[1],-45,45),math.clamp(arm_right_local_ang[2],-20,20),0)))
     
     
     local leg_move_pos = base_vel*NOUP/3.5
