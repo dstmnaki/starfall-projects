@@ -1,0 +1,152 @@
+--@name Nakkitsunami/Projects/Mech_Base.txt
+--@author Nakkitsunami
+--@shared
+--@include Nakkitsunami/Projects/Mech_Base/C_MECH_BASE.txt
+--@include Nakkitsunami/libs/safenet.txt
+--@include Nakkitsunami/libs/pac_to_holo_loader.txt
+
+if SERVER then
+    chip():setSolid(false)
+    chip():setNoDraw(true)
+    chip():setColor(Color(255,255,255,0))
+    chip():doNotDuplicate(false)
+    
+    local safeNetSendLoop = require("Nakkitsunami/libs/safenet.txt")
+    local mech = require("Nakkitsunami/Projects/Mech_Base/C_MECH_BASE.txt")
+    
+    local ent = mech.create()
+    
+    --ent.base_ent:setColor(Color(255,255,255,100))
+    
+    timer.create("safeNet", 0.5, 0, function()
+        if ent == nil then return end
+        local send = {
+            ent.seat,
+            ent.base_ent,
+            
+            ent.torso,
+            ent.head,
+            
+            ent.arm_left,
+            ent.arm_right,
+            
+            ent.left_leg["Hip_B"],
+            ent.left_leg["Knee"],
+            ent.left_leg["Foot"],
+            
+            ent.right_leg["Hip_B"],
+            ent.right_leg["Knee"],
+            ent.right_leg["Foot"],
+        }
+        
+        for k, v in pairs(send) do
+            if not isValid(v) then
+                return
+            end
+        end
+        
+        safeNetSendLoop(send)
+    end)
+else
+    local camera = {
+        distance = 400,
+        pos = Vector(-50,0,120)
+    }
+    
+    
+    local safeNet_Entities = {}
+    
+    local seat = nil
+    local base = nil
+    
+    net.receive("safeNet:NET_toClient", function(len, ply)
+        safeNet_Entities = net.readTable()
+        seat = safeNet_Entities[1]
+        base = safeNet_Entities[2]
+        
+        print("Client side initialized")
+        
+        local thirdperson = false
+        
+        local down = {}
+        
+        
+        require("Nakkitsunami/libs/pac_to_holo_loader.txt")
+        
+        local bones, reftable, holos, ht, hc = {}, {}, {}, {}, 0
+        local parent = chip()
+        local real_parent = chip()
+        
+        local size = 1
+        local no_col_mat = false
+        local showBones = false
+        
+        --hc=hc+1 ht[hc]={hc,visual_parent,physical_parent,Vector(),Angle()}
+        -- this is bone format, use it if you need it
+        
+        
+        --[[
+            you can define parent by defining the entity it should parent to
+            i.e parent = hc
+            
+            this will store the index of the holo
+            
+            you can then replace visual_parent and or physical_parent with the variable
+        --]]
+        
+        
+        --get your model converted from pac to holo, to sf
+        
+        
+        -- \/ \/ \/ INSERT CODE INSIDE HERE \/ \/ \/
+        
+        
+        
+        
+        -- /\ /\ /\ INSERT CODE INSIDE HERE /\ /\ /\
+        
+        --pthl.createHolos(hc,ht,no_col_mat,size,showBones)
+        -- remove the -- from the line above this, if you got your model code pasted
+        
+        timer.create("callback_but_outside",0.1,0,function()
+            if not pthl.ready then return end
+            
+            --[[
+                you can call your holos with pthl.holos["index of holo"]
+                if you used a string for the holo index
+                
+                ht[hc] = -> ht["index of your holo"]
+                
+                or, do something like myHolo = hc under the holo defining line
+                
+                then call it from myHolo variable
+            --]]
+            
+            print("Model loaded")
+            timer.stop("callback_but_outside")
+        end)
+        
+        hook.add( "CalcView", "DriverCamera", function()
+            if not (isValid(base) and isValid(seat)) then return end
+            if player() == seat:getDriver() then
+                
+                if (not player():isTyping() or input.isGameUIVisible()) and input.isKeyDown(KEY.V) then
+                    if down["v"] ~= true then
+                        down["v"] = true
+                        thirdperson = not thirdperson
+                    end
+                else
+                    down["v"] = false
+                end
+                
+                local camang = base:worldToLocalAngles(eyeAngles())
+                
+                return {
+                    origin = thirdperson and (base:localToWorld(camera.pos + Vector(-camera.distance,0,0):getRotated(camang))) or player():getEyePos()-seat:getRight()*12,
+                    angles = eyeAngles(),
+                    drawviewer = true
+                }
+            end
+        end)
+    end)
+end
