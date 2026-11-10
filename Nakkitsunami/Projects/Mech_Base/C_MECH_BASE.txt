@@ -400,7 +400,7 @@ function C_MECH_BASE:think()
     local tr = trace.line(base_ent:getPos(), base_ent:localToWorld(-UP*(self.onGround and standHeight*1.25 or standHeight + z_vel)), filter)
     local ground_distance = tr.Fraction*standHeight*1.25
     
-    if ct - self.jumpCT >= 1 then
+    if ct - self.jumpCT >= 0.25 then
         self.onGround = tr.Hit
     else
         self.onGround = false
