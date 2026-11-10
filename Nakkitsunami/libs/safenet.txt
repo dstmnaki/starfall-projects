@@ -1,0 +1,53 @@
+--@name Nakkitsunami/libs/safenet.txt
+--@author Nakkitsunami
+--@shared
+
+if SERVER then
+    local returntable = {}
+    local playersSafeToNetwork = {}
+    local playersWhoISentToAlready = {}
+    hook.add("ClientInitialized", "safeNet:CL_Init", function(ply)
+        if isValid(ply) then
+            playersSafeToNetwork[ply] = true
+            playersWhoISentToAlready[ply] = false
+        end
+    end)
+    
+    hook.add("PlayerDisconnected", "safeNet:CL_Disconnect", function(ply)
+        playersSafeToNetwork[ply] = nil
+    end)
+    
+    function safeNetSendLoop(entities)
+        for k, v in pairs(entities) do
+            if not isValid(v) then return end
+        end
+        
+        local playersToSendTo = {}
+        for ply, _ in pairs(playersWhoISentToAlready) do
+            if not isValid(ply) then playersWhoISentToAlready[ply] = nil continue end
+            
+            if playersWhoISentToAlready[ply] then continue end
+            
+            table.insert(playersToSendTo, ply)
+            
+            playersWhoISentToAlready[ply] = true
+        end
+        
+        if table.isEmpty(playersToSendTo) then return end
+        
+        net.start("safeNet:NET_toClient")
+        net.writeTable(entities)
+        net.send(playersToSendTo,false)
+    end
+    
+    return safeNetSendLoop
+else
+    --[[ copy this to your code
+    
+    local safeNet_Entities = {}
+    
+    net.receive("safeNet:NET_toClient", function(len, ply)
+        safeNet_Entities = net.readTable()
+    end)
+    --]]
+end
