@@ -1,0 +1,552 @@
+--@name Nakkitsunami/Projects/Mech_Base/C_MECH_BASE.txt
+--@author Nakkitsunami
+--@server
+local C_MECH_BASE = class("C_MECH_BASE")
+
+local spawnQueue = {}
+
+local function perf(frac)
+    return cpuAverage() > cpuMax() * (frac == nil and 0.75 or frac)
+end
+
+timer.create("C_MECH_BASE:spawnQueue", 0.1, 0, function()
+    local entry = spawnQueue[1]
+    if entry == nil then return end
+    if not prop.canSpawn() then return end
+    
+    local class_table = entry[1]
+    local func = entry[2]
+    
+    local ent = func(class_table)
+    
+    if isValid(ent) then
+        table.remove(spawnQueue,1)
+    end
+end)
+
+local mech = {}
+local mechs = {}
+local count = 1
+
+local DEFAULT_PARAMS = {
+    health = 1000,
+    movement_speed = 600,
+    jump_strength = 800,
+    turn_rate = 20,
+    head_turn_rate = 20,
+    arm_turn_rate = 20,
+    standHeight = 150,
+    mass = 1000,
+    leg_length_a = 85,
+    leg_length_b = 85,
+    leg_reverse_knee = false,
+    leg_stand_width = 100,
+    foot_stand_width = 110,
+    head_pos = Vector(0,0,55),
+    arm_pos = Vector(-25,-100,25),
+    seat_pos = Vector(50,0,25),
+    seat_ang = Angle(0,-90,25)
+}
+
+local NOPOS = Vector()
+local NOANG = Angle()
+local UP = Vector(0,0,1)
+local RIGHT = Vector(0,1,0)
+local FORWARD = Vector(1,0,0)
+
+local NOUP = RIGHT+FORWARD
+
+local move_force = 2.5
+
+local gravity_force = 1500
+local gravity = -UP*gravity_force
+
+local Bone_MDL = "models/hunter/blocks/cube05x05x05.mdl"
+
+local function createLeg(Relative_Parent,Base_Ent,Position,Length_A,Length_B,Reversed)
+    local T = {}
+    
+    local P = Relative_Parent
+    local Base = hologram.create(P:localToWorld(Position), P:getAngles(), Bone_MDL, Vector())
+    Base:setParent(P)
+    T["Base"] = Base
+    
+    local P = Base_Ent
+    local segment = hologram.create(P:localToWorld(Position), P:getAngles(), Bone_MDL, Vector())
+    segment:setParent(P)
+    T["Hip_A"] = segment
+    
+    local P = T["Hip_A"]
+    local segment = hologram.create(P:localToWorld(Vector()), P:getAngles(), Bone_MDL, Vector(0.5))
+    segment:setParent(P)
+    T["Hip_B"] = segment
+    
+    local P = T["Hip_B"]
+    local segment = hologram.create(P:localToWorld(Vector(0,0,Length_A)), P:getAngles(), Bone_MDL, Vector(0.5))
+    segment:setParent(P)
+    T["Knee"] = segment
+    
+    local P = T["Knee"]
+    local segment = hologram.create(P:localToWorld(Vector(0,0,Length_B)), P:getAngles(), Bone_MDL, Vector(1,1,1))
+    segment:setParent(P)
+    T["Foot"] = segment
+    
+    T["Length_A"] = Length_A
+    T["Length_B"] = Length_B
+    T["Reversed"] = Reversed
+    return T
+end
+
+local function icos(A, B, C)
+    return math.deg(math.acos((A^2 + B^2 - C^2) / (2*A*B)))
+end
+
+local function toLocalAxis(ent, worldVector)
+    return ent:worldToLocal(worldVector + ent:getPos())
+end
+
+local function two_seg_ik(BoneTable, Target, step_up_fraction, pitch, roll)
+    if perf(0.9) then coroutine.yield() end
+    if perf() then coroutine.wait(0.1) end
+    local LengthA = BoneTable["Length_A"]
+    local LengthB = BoneTable["Length_B"]
+    
+    local Base = BoneTable["Base"]
+    
+    local HipA = BoneTable["Hip_A"]
+    local HipB = BoneTable["Hip_B"]
+    local Knee = BoneTable["Knee"]
+    local Foot = BoneTable["Foot"]
+    
+    local reverseKnee = BoneTable["Reversed"] == false
+    
+    if not (LengthA and LengthB) then return end
+    if not (Base and Base != nil and Base:isValid()) then return end
+    if not (HipA and HipA != nil and HipA:isValid()) then return end
+    if not (HipB and HipB != nil and HipB:isValid()) then return end
+    if not (Knee and Knee != nil and Knee:isValid()) then return end
+    if not (Foot and Foot != nil and Foot:isValid()) then return end
+    
+    local AxisWorld = Target - HipA:getPos()
+    local AxisLocal = toLocalAxis(Base,AxisWorld)
+    
+    HipA:setAngles(Base:localToWorldAngles(Angle(0,0,math.deg(math.atan2(math.rad(AxisLocal.z),math.rad(AxisLocal.y))) + 90)))
+    
+    local AxisLocal = toLocalAxis(HipA,(Target - HipB:getPos()))
+    local Distance = math.min(AxisLocal:getLength(), LengthA + LengthB)
+    
+    if reverseKnee then
+        HipB:setAngles(HipA:localToWorldAngles(Angle(math.deg(math.atan2(math.rad(AxisLocal.x),math.rad(AxisLocal.z))) + icos(Distance, LengthA, LengthB), 0, 0)))
+    else
+        HipB:setAngles(HipA:localToWorldAngles(Angle(math.deg(math.atan2(math.rad(-AxisLocal.x),math.rad(AxisLocal.z))) + icos(Distance, LengthA, LengthB), 180, 0)))
+    end
+    
+    Knee:setAngles(HipB:localToWorldAngles(Angle(icos(LengthB, LengthA, Distance) + 180, 0, 0)))
+    Foot:setAngles(Angle(0,Base:getAngles().yaw,0)+Angle(pitch,0,roll)*step_up_fraction)
+end
+
+local ENTITY = getMethods("Entity")
+
+function ENTITY:emitSound2(...)
+    if not sound.canEmitSound() then return end
+    self:emitSound(...)
+end
+function C_MECH_BASE:initialize(pos, ang, frozen, mech_data)
+    if mech_data ~= nil and not table.isEmpty(mech_data) then
+        for key, value in pairs(mech_data) do
+            self[key] = value
+        end
+    end
+    
+    for key, value in pairs(DEFAULT_PARAMS) do
+        if self[key] ~= nil then break end
+        self[key] = value
+    end
+    
+    local standHeight = self.standHeight
+    
+    local pos, ang = pos or chip():localToWorld(Vector(0,0,standHeight)), ang or chip():localToWorldAngles(Angle())
+    local base_ent = prop.create(pos, ang, "models/hunter/blocks/cube2x2x2.mdl", frozen)
+    
+    base_ent:enableGravity(false)
+    base_ent:enableDrag(false)
+    base_ent:setColor(Color(255,255,255,0))
+    base_ent:doNotDuplicate(false)
+
+    self.base_ent = base_ent
+    self.id_base = isValid(self.base_ent) and self.base_ent:entIndex() or -1
+    
+    local torso = hologram.create(base_ent:localToWorld(Vector(0,0,0)), base_ent:getAngles(), "models/hunter/blocks/cube05x05x05.mdl", Vector(1))
+    torso:setParent(base_ent)
+    self.torso = torso
+    
+    local head = hologram.create(torso:localToWorld(self.head_pos), torso:getAngles(), "models/hunter/blocks/cube05x05x05.mdl", Vector(1))
+    head:setParent(torso)
+    self.head = head
+    
+    
+    local left_arm_pos = self.arm_pos
+    local right_arm_pos = self.arm_pos*(FORWARD-RIGHT+UP)
+    
+    
+    local arm_left = hologram.create(head:localToWorld(left_arm_pos), head:getAngles(), "models/hunter/blocks/cube05x05x05.mdl", Vector(1))
+    arm_left:setParent(head)
+    self.arm_left = arm_left
+    
+    local arm_right = hologram.create(head:localToWorld(right_arm_pos), head:getAngles(), "models/hunter/blocks/cube05x05x05.mdl", Vector(1))
+    arm_right:setParent(head)
+    self.arm_right = arm_right
+    
+    local hud = prop.createComponent(pos, ang, "starfall_hud", "models/hunter/blocks/cube025x025x025.mdl", true)
+    hud:setParent(base_ent)
+    
+    hud:setColor(Color(0,0,0,0))
+    hud:setSolid(false)
+    hud:doNotDuplicate(false)
+    
+    self.hud = hud
+    
+    spawnQueue[#spawnQueue+1] = {self,function(class_table)
+        local head = class_table.head
+        
+        local pos = class_table.seat_pos
+        local ang = class_table.seat_ang
+        
+        seat = prop.createSeat(head:localToWorld(pos), head:localToWorldAngles(ang), "models/nova/airboat_seat.mdl", true)
+        seat:setParent(head)
+        seat:doNotDuplicate(false)
+        
+        self.hud:linkComponent(chip())
+        self.hud:linkComponent(seat)
+        
+        class_table.seat = seat
+        return seat
+    end}
+    
+    local length_a = self.leg_length_a
+    local length_b = self.leg_length_b
+    
+    local reverse_knee = self.leg_reverse_knee
+    
+    local leg_stand_width = self.leg_stand_width
+    local foot_stand_width = self.foot_stand_width
+    
+    local leg = createLeg(base_ent,torso,-RIGHT*leg_stand_width/2,length_a,length_b,reverse_knee)
+    self.left_leg = leg
+    
+    leg = createLeg(base_ent,torso,RIGHT*leg_stand_width/2,length_a,length_b,reverse_knee)
+    self.right_leg = leg
+    
+    self.moveDir = Vector(0,0,0)
+    self.target_ang = {0,0,0}
+    self.head_ang = {0,0,0}
+    
+    self.arm_left_ang = {0,0,0}
+    self.arm_right_ang = {0,0,0}
+    
+    self.jumpCT = 0
+    
+    self.left_leg_pos = torso:localToWorld(-RIGHT*foot_stand_width/2) - UP*standHeight+UP*12
+    self.right_leg_pos = torso:localToWorld(RIGHT*foot_stand_width/2) - UP*standHeight+UP*12
+    self.left_leg_pos_last = self.left_leg_pos
+    self.right_leg_pos_last = self.right_leg_pos
+    
+    self.step_lerp = 0
+    self.step = false
+    
+    self.lastOnGroundCT = 0
+    self.onGroundLandFraction = 0
+    
+    base_ent:setMass(self.mass)
+    
+    self.id = count
+    mechs[count] = self
+    count = count + 1
+end
+
+function C_MECH_BASE:entIndex()
+    return isValid(self.base_ent) and self.base_ent:entIndex() or -1
+end
+
+function C_MECH_BASE:isAlive()
+    return self.health > 0
+end
+
+function C_MECH_BASE:remove()
+    local base_ent = self.base_ent
+    if isValid(base_ent) then
+        base_ent:remove()
+    end
+    mechs[self.id] = nil
+end
+
+local LASTONGROUND = false
+
+function C_MECH_BASE:isOnGround()
+    local onGround = self.onGround == true
+    if onGround ~= LASTONGROUND then
+        LASTONGROUND = onGround
+        local base_ent = self.base_ent
+        if isValid(base_ent) then
+            base_ent:emitSound2("physics/metal/metal_barrel_impact_hard5.wav", 100, 100, 1, CHAN_AUTO)
+        end
+        if onGround == false then
+            self.lastOnGroundCT = timer.curtime()
+        end
+    end
+    return onGround
+end
+
+function C_MECH_BASE:getMoveDir(localVel)
+    local seat = self.seat
+    if not isValid(seat) then return NOPOS, 0 end
+    local driver = seat:getDriver()
+    if not isValid(driver) then return NOPOS, 0 end
+    
+    local move_speed = self.movement_speed
+    
+    local w = driver:keyDown(IN_KEY.FORWARD)
+    local s = driver:keyDown(IN_KEY.BACK)
+    local a = driver:keyDown(IN_KEY.MOVELEFT)
+    local d = driver:keyDown(IN_KEY.MOVERIGHT)
+    
+    local move_forward = (w and localVel.x < move_speed) and 1 or 0
+    local move_back = (s and -localVel.x < move_speed) and 1 or 0
+    local move_left = (a and localVel.y < move_speed) and 1 or 0
+    local move_right = (d and -localVel.y < move_speed) and 1 or 0
+    
+    self.moveDir[1] = move_forward-move_back
+    self.moveDir[2] = move_left-move_right
+    
+    local offAngle = driver:keyDown(IN_KEY.MOVELEFT) and 1 or driver:keyDown(IN_KEY.MOVERIGHT) and -1 or 0
+    
+    local moving = w or s or a or d
+    
+    local moveDir = self.moveDir
+    
+    return (moveDir:getLength() > 0 and moveDir:getNormalized() or Vector())*move_speed*move_force, offAngle
+end
+
+function C_MECH_BASE:doJump()
+    local base_ent = self.base_ent
+    if not isValid(base_ent) then return end
+    
+    base_ent:getPhysicsObject():setVelocity(base_ent:getVelocity() + base_ent:getVelocity()*NOUP*0.3 + UP*self.jump_strength)
+    
+    base_ent:emitSound2("npc/dog/dog_pneumatic1.wav", 100, 100, 1, CHAN_AUTO)
+    
+    local ct = timer.curtime()
+    self.jumpCT = ct
+end
+
+function math.approachAngle2(from, to, rate)
+    return {math.approachAngle(from[1], to[1], rate[1]),
+    math.approachAngle(from[2], to[2], rate[2]),
+    math.approachAngle(from[3], to[3], rate[3])}
+end
+
+function C_MECH_BASE:think()
+    local ct = timer.curtime()
+    local ft = timer.frametime()
+    local base_ent = self.base_ent
+    if not isValid(base_ent) then return end
+    
+    local physObj = base_ent:getPhysicsObject()
+    if not isValid(physObj) then return end
+    
+    base_ent:setFrozen(false)
+    local seat = self.seat
+    if not isValid(seat) then return end
+    
+    local head = self.head
+    if not isValid(head) then return end
+    
+    local torso = self.torso
+    if not isValid(torso) then return end
+    
+    local arm_left = self.arm_left
+    if not isValid(arm_left) then return end
+    
+    local arm_right = self.arm_right
+    if not isValid(arm_right) then return end
+    
+    
+    local driver = seat:getDriver()
+    
+    local filter = {chip(),base_ent,driver,seat,self.hud}
+    
+    local target_ang_no_approach = isValid(driver) and seat:worldToLocalAngles(driver:getEyeAngles()) or base_ent:getAngles()
+    
+    local base_vel = physObj:getVelocity()
+    
+    local localVel, _ = worldToLocal(base_vel,Angle(),Vector(),target_ang_no_approach*Angle(0,1,0))
+    
+    local localVel_x = math.clamp(localVel.x/600,-1,1)
+    local localVel_y = math.clamp(-localVel.y/600,-1,1)
+    
+    localVel_x = math.easeInSine(math.abs(localVel_x))*(localVel_x>=0 and 1 or -1)
+    localVel_y = math.easeInSine(math.abs(localVel_y))*(localVel_y>=0 and 1 or -1)
+    
+    local move_dir, offAngle = self:getMoveDir(localVel)
+    
+    local moving_multiplier = math.max((base_vel*NOUP):getLength()/800,math.clamp(math.abs(base_ent:getAngleVelocityAngle().yaw)/200,0,0.75))
+    
+    
+    local standHeight = self.standHeight
+    local z_vel = math.clamp(base_vel.z/800,-2,2)
+    z_vel = (z_vel / math.max(math.abs(z_vel),1)) / 2 * standHeight * 0.3
+    
+    
+    local tr = trace.line(base_ent:getPos(), base_ent:localToWorld(-UP*(self.onGround and standHeight*1.25 or standHeight + z_vel)), filter)
+    local ground_distance = tr.Fraction*standHeight*1.25
+    
+    if ct - self.jumpCT >= 1 then
+        self.onGround = tr.Hit
+    else
+        self.onGround = false
+    end
+    
+    local onGround = self:isOnGround()
+    if isValid(driver) and driver:keyDown(IN_KEY.JUMP) then
+        if self.jump ~= true then
+            self.jump = true
+            if onGround and self.onGroundLandFraction >= 1 then
+                self:doJump()
+            end
+        end
+    else
+        self.jump = false
+    end
+    
+    self.onGroundLandFraction = math.approach(self.onGroundLandFraction,onGround and 1 or 0,0.15 * ft * 10)
+    
+    local onGroundAnimMultiplier = math.easeOutSine(self.onGroundLandFraction)
+    
+    
+    local angOffTarget = math.abs(math.normalizeAngle(self.target_ang[2] - target_ang_no_approach[2]))
+    
+    local is_moving = onGround and (moving_multiplier >= 0.1 or angOffTarget > 35) or false
+    
+    self.target_ang = math.approachAngle2(self.target_ang, target_ang_no_approach+Angle(0,25*offAngle,0), Angle(self.turn_rate * ft * 8) * (is_moving and Angle(1) or Angle(1,0,1)))
+    
+    local step_lerp = self.step_lerp + (1.75+moving_multiplier*0.75) * ft
+    local step = self.step
+    
+    if step_lerp >= 1 then
+        if not is_moving then
+            step_lerp = step_lerp - 1
+            step = not step
+        else
+            step_lerp = step_lerp - 1
+            step = not step
+            base_ent:emitSound2("npc/dog/dog_footstep3.wav", 100, 80+30*moving_multiplier, 1, CHAN_AUTO)
+        end
+    end
+    
+    local moving_fraction = math.clamp(moving_multiplier*2,0,1)
+    
+    local damping = base_vel*NOUP*(5-moving_fraction*2) + base_vel*UP*30
+    local force = move_dir:rotateAroundAxis(UP,target_ang_no_approach.yaw) * (onGround and 0.2+self.onGroundLandFraction*0.8 or 0) + (onGround and NOPOS - damping + UP * (standHeight - ground_distance) * 200 or gravity - damping * Vector(0.05,0.05,0))
+    
+    base_ent:applyForceCenter(force * self.mass * ft)
+    base_ent:applyAngForce((base_ent:worldToLocalAngles(Angle(0,self.target_ang[2],0)) * 50 - base_ent:getAngleVelocityAngle()*12) * 25 * self.mass * ft)
+    
+    moving_fraction = moving_fraction*onGroundAnimMultiplier
+    
+    local camforward = target_ang_no_approach*Angle(0,1,0)
+    
+    local blockWalkSway = math.easeInSine(math.clamp(-1+onGroundAnimMultiplier*2,0,1))*onGroundAnimMultiplier*onGroundAnimMultiplier
+    
+    local forwardBackwardFlip = math.clamp(localVel_x*2,-1,1)
+    
+    torso:setPos(camforward:getForward() * localVel_x*35 + camforward:getRight() * (localVel_y*35) +
+    -UP * z_vel * 1 * math.clamp((ct - self.lastOnGroundCT)*3,0,1) +
+    base_ent:localToWorld(-UP*8*math.sin(math.rad(math.easeOutSine(onGroundAnimMultiplier)*180*2.5))*math.easeOutSine(1-onGroundAnimMultiplier)*(onGround and 1 or 0)+
+    (-UP*(8 + 10*math.sin(math.rad(step_lerp*360-100)))*blockWalkSway - RIGHT*8*math.sin(math.rad(step_lerp*180-145))*(step and 1 or -1))*moving_fraction*blockWalkSway))
+    
+    
+    torso:setAngles(base_ent:localToWorldAngles(Angle(math.clamp(self.target_ang[1]/2,-10,10)+localVel_x*15,13*math.sin(math.rad(step_lerp*180-105))*(step and 1 or -1)*moving_fraction*blockWalkSway*forwardBackwardFlip,localVel_y*15+5*math.sin(math.rad(step_lerp*180-165))*(step and 1 or -1)*moving_fraction*blockWalkSway)))
+    
+    self.head_ang = math.approachAngle2(self.head_ang, target_ang_no_approach, Angle(self.head_turn_rate * ft * 10))
+    
+    local head_local_ang = torso:worldToLocalAngles(self.head_ang)
+    head:setAngles(torso:localToWorldAngles(Angle(math.clamp(head_local_ang[1]/2,-5,5),head_local_ang[2],math.clamp(head_local_ang[3]/2,-5,5))))
+    
+    local aimpos = trace.line(seat:getPos(), seat:getPos() + target_ang_no_approach:getForward() * 10000, filter).HitPos
+    
+    local left_arm_to_target = (aimpos - arm_left:getPos()):getAngle()
+    
+    self.arm_left_ang = math.approachAngle2(self.arm_left_ang, left_arm_to_target, Angle(self.arm_turn_rate * ft * 10))
+    local arm_left_local_ang = head:worldToLocalAngles(self.arm_left_ang)
+    arm_left:setAngles(head:localToWorldAngles(Angle(math.clamp(arm_left_local_ang[1],-45,45),math.clamp(arm_left_local_ang[2],-25,25),0)))
+    
+    local right_arm_to_target = (aimpos - arm_right:getPos()):getAngle()
+    
+    self.arm_right_ang = math.approachAngle2(self.arm_right_ang, right_arm_to_target, Angle(self.arm_turn_rate * ft * 10))
+    local arm_right_local_ang = head:worldToLocalAngles(self.arm_right_ang)
+    arm_right:setAngles(head:localToWorldAngles(Angle(math.clamp(arm_right_local_ang[1],-45,45),math.clamp(arm_right_local_ang[2],-25,25),0)))
+    
+    
+    local leg_move_pos = base_vel*NOUP/3.5
+    
+    local step_up_fraction = math.sin(math.rad(step_lerp*180))*math.clamp(moving_multiplier,0,1)
+    local step_up = UP * step_up_fraction * UP*standHeight*0.5
+    
+    if onGround then
+        if is_moving or step_lerp < 1 then
+            if step then
+                local tr_leg = trace.line(base_ent:localToWorld(-RIGHT*self.leg_stand_width/2) + leg_move_pos, base_ent:localToWorld(-RIGHT*self.foot_stand_width/2) + leg_move_pos - UP*standHeight*1.5, filter)
+                self.left_leg_pos = math.lerpVector(step_lerp,self.left_leg_pos_last,tr_leg.HitPos+UP*12) + step_up
+                
+                self.right_leg_pos_last = self.right_leg_pos
+            else
+                local tr_leg = trace.line(base_ent:localToWorld(RIGHT*self.leg_stand_width/2) + leg_move_pos, base_ent:localToWorld(RIGHT*self.foot_stand_width/2) + leg_move_pos - UP*standHeight*1.5, filter)
+                self.right_leg_pos = math.lerpVector(step_lerp,self.right_leg_pos_last,tr_leg.HitPos+UP*12) + step_up
+                
+                self.left_leg_pos_last = self.left_leg_pos
+            end
+        end
+    else
+        local offGroundTime = math.clamp((ct - self.lastOnGroundCT)/2 + math.clamp(-base_vel.z/800,0,1),0,1)
+        self.left_leg_pos = math.lerpVector(0.1+offGroundTime,self.left_leg_pos,base_ent:localToWorld(-RIGHT*self.foot_stand_width/2) - UP*(standHeight + z_vel - 12))
+        self.right_leg_pos = math.lerpVector(0.1+offGroundTime,self.right_leg_pos,base_ent:localToWorld(RIGHT*self.foot_stand_width/2) - UP*(standHeight + z_vel - 12))
+        
+        self.left_leg_pos_last = self.left_leg_pos
+        self.right_leg_pos_last = self.right_leg_pos
+    end
+    
+    local foot_pitch = onGround and math.clamp(localVel_x*2,-1,1)*45 or 0
+    local foot_roll = onGround and math.clamp(localVel_y*2,-1,1)*45 or 0
+    
+    two_seg_ik(self.left_leg, self.left_leg_pos, onGround and (step and step_up_fraction or 0) or 0, foot_pitch, foot_roll)
+    two_seg_ik(self.right_leg, self.right_leg_pos, onGround and (not step and step_up_fraction or 0) or 0, foot_pitch, foot_roll)
+    
+    
+    self.step = step
+    self.step_lerp = step_lerp
+end
+
+function C_MECH_BASE:__tostring()
+    return "Entity ["..self:entIndex().."]["..C_MECH_BASE.name.."]"
+end
+
+hook.add("Think","C_MECH_BASE:think",coroutine.wrap(function()
+    while true do
+        for _, instance in pairs(mechs) do
+            if not instance:isAlive() then continue end
+            if perf(0.9) then coroutine.yield() end
+            if perf() then coroutine.wait(0.1) end
+            instance:think()
+        end
+        if perf() then coroutine.wait(0.1) end
+        coroutine.yield()
+    end
+    
+    error("Coroutine escape prevented! Chip halted...")
+    hook.remove("Think","C_MECH_BASE:think")
+end))
+
+mech.findAll = mechs
+mech.create = C_MECH_BASE
+
+return mech
