@@ -9,7 +9,7 @@ if SERVER then
     chip():setSolid(false)
     chip():setNoDraw(true)
     chip():setColor(Color(255,255,255,0))
-    chip():doNotDuplicate(false)
+    chip():doNotDuplicate(false)--]]
     
     local safeNetSendLoop = require("Nakkitsunami/libs/safenet.txt")
     local mech = require("Nakkitsunami/Projects/Mech_Base/C_MECH_BASE.txt")
@@ -118,11 +118,11 @@ else
                 you can call your holos with pthl.holos["index of holo"]
                 if you used a string for the holo index
                 
-                ht[hc] = -> ht["index of your holo"]
+                ht[hc]={hc, -> ht[hc]={"index of your holo",
                 
                 or, do something like myHolo = hc under the holo defining line
                 
-                then call it from myHolo variable
+                then call it from pthl.holos[myHolo variable]
             --]]
             
             print("Model loaded")
