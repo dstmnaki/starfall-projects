@@ -287,11 +287,11 @@ function C_MECH_BASE:isOnGround()
     if onGround ~= LASTONGROUND then
         LASTONGROUND = onGround
         local base_ent = self.base_ent
-        if isValid(base_ent) then
-            base_ent:emitSound2("physics/metal/metal_barrel_impact_hard5.wav", 100, 100, 1, CHAN_AUTO)
-        end
+        
         if onGround == false then
             self.lastOnGroundCT = timer.curtime()
+        elseif isValid(base_ent) then
+            base_ent:emitSound2("physics/metal/metal_barrel_impact_hard5.wav", 100, 100, 1, CHAN_AUTO)
         end
     end
     return onGround
