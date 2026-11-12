@@ -1,0 +1,120 @@
+--@name Nakkitsunami/Projects/PlayerRIG/C_PLAYER_RIG.txt
+--@author Nakkitsunami
+--@server
+local C_PLAYER_RIG = class("C_PLAYER_RIG")
+
+local player_rig = {}
+local player_rigs = {}
+local count = 1
+
+local defaultBoneTable = {
+    "ValveBiped.Bip01_Pelvis",
+    "ValveBiped.Bip01_Spine",
+    "ValveBiped.Bip01_Spine1",
+    "ValveBiped.Bip01_Spine2",
+    "ValveBiped.Bip01_Spine4",
+    "ValveBiped.Bip01_Neck1",
+    "ValveBiped.Bip01_Head1",
+    
+    "ValveBiped.Bip01_L_Thigh",
+    "ValveBiped.Bip01_L_Calf",
+    "ValveBiped.Bip01_L_Foot",
+    "ValveBiped.Bip01_L_Toe0",
+    
+    "ValveBiped.Bip01_R_Thigh",
+    "ValveBiped.Bip01_R_Calf",
+    "ValveBiped.Bip01_R_Foot",
+    "ValveBiped.Bip01_R_Toe0",
+    
+    "ValveBiped.Bip01_L_Clavicle",
+    "ValveBiped.Bip01_L_UpperArm",
+    "ValveBiped.Bip01_L_Forearm",
+    "ValveBiped.Bip01_L_Hand",
+    
+    "ValveBiped.Bip01_R_Clavicle",
+    "ValveBiped.Bip01_R_UpperArm",
+    "ValveBiped.Bip01_R_Forearm",
+    "ValveBiped.Bip01_R_Hand",
+}
+
+local function debugPrint(...)
+    printConsole("[PLAYER_RIG DEBUG] "..(...))
+end
+
+function C_PLAYER_RIG:initialize(pos, ang, model, show_bones, boneTable)
+    local pos, ang = pos or chip():localToWorld(Vector(0,0,standHeight)), ang or chip():localToWorldAngles(Angle())
+    local model = model or "models/player/breen.mdl"
+    local show_bones = show_bones or -1
+    local boneTable = boneTable or defaultBoneTable
+    
+    local root = hologram.create(pos, ang, "models/hunter/blocks/cube025x025x025.mdl", show_bones >= 2 and Vector(0.2) or Vector())
+    self.root = root
+    
+    local ply_holo = hologram.create(root:getPos(), root:getAngles(), model, Vector(1))
+    ply_holo:setColor(Color(0,0,0,0))
+    
+    local bones = {}
+    
+    for k, v in pairs(boneTable) do
+        local bone_index = ply_holo:lookupBone(v)
+        local pos, ang = ply_holo:getBonePosition(bone_index)
+        local holo = hologram.create(pos, ang, "models/hunter/blocks/cube025x025x025.mdl", show_bones >= 1 and Vector(0.2) or Vector())
+        
+        local p_index = ply_holo:getBoneParent(bone_index)
+        if p_index == nil then
+            p = root
+        else
+            local parent_name = ply_holo:getBoneName(p_index)
+            p = bones[parent_name]
+            if p == nil then
+                p = root
+            end
+        end
+        holo:setParent(p)
+        bones[v] = holo
+    end
+    
+    ply_holo:remove()
+    
+    self.bones = bones
+    
+    self.model = model
+    self.id = chip():entIndex()
+    self.creation_id = count
+    player_rigs[count] = self
+    count = count + 1
+    
+    debugPrint("Rig created with "..table.count(bones).." bones | ID: "..(count-1))
+end
+
+function C_PLAYER_RIG:entIndex(creation_id)
+    return creation_id and self.creation_id or self.id
+end
+
+function C_PLAYER_RIG:remove()
+    for _, holo in pairs(self.bones) do
+        if not isValid(holo) then continue end
+        holo:remove()
+    end
+    table.remove(player_rigs,self.creation_id)
+end
+
+function C_PLAYER_RIG:__tostring()
+    return "Entity ["..self:entIndex().."]["..C_PLAYER_RIG.name.."]".."\n"..
+        "Model: "..self.model.."\n"..
+        "Bone count: "..table.count(self.bones).."\n"..
+        "Creation ID: "..self.creation_id
+end
+
+function player_rig.findAll()
+    local list = {}
+    for k, v in pairs(player_rigs) do
+        if v == nil then continue end
+        list[#list+1] = v
+    end
+    return list
+end
+
+player_rig.create = C_PLAYER_RIG
+
+return player_rig
