@@ -3,10 +3,12 @@
 --@server
 local C_PLAYER_RIG = class("C_PLAYER_RIG")
 
+-- define some variables
 local player_rig = {}
 local player_rigs = {}
 local count = 1
 
+-- default bones, should be ignored
 local defaultBoneTable = {
     "ValveBiped.Bip01_Pelvis",
     "ValveBiped.Bip01_Spine",
@@ -37,15 +39,18 @@ local defaultBoneTable = {
     "ValveBiped.Bip01_R_Hand",
 }
 
+-- helper function, you can ignore this
 local function debugPrint(...)
     printConsole("[PLAYER_RIG DEBUG] "..(...))
 end
 
+-- main function, should not be used, see player_rig.create at the bottom!
 function C_PLAYER_RIG:initialize(pos, ang, model, show_bones, boneTable)
     local pos, ang = pos or chip():localToWorld(Vector(0,0,standHeight)), ang or chip():localToWorldAngles(Angle())
     local model = model or "models/player/breen.mdl"
     local show_bones = show_bones or -1
     local boneTable = boneTable or defaultBoneTable
+    -- setup backup variables if none provided
     
     local root = hologram.create(pos, ang, "models/hunter/blocks/cube025x025x025.mdl", show_bones >= 2 and Vector(0.2) or Vector())
     self.root = root
@@ -73,24 +78,31 @@ function C_PLAYER_RIG:initialize(pos, ang, model, show_bones, boneTable)
         holo:setParent(p)
         bones[v] = holo
     end
+    -- get all bones and create holos for them
+    -- also parent pelvis to root
     
     ply_holo:remove()
+    -- remove ply_holo to gain 1 more holo that can be used
     
     self.bones = bones
     
     self.model = model
-    self.id = chip():entIndex()
-    self.creation_id = count
+    self.id = chip():entIndex() -- just a fake id used with c_player_rig:entIndex()
+    self.creation_id = count -- the actual index used for things like c_player_rig:remove()
     player_rigs[count] = self
     count = count + 1
     
     debugPrint("Rig created with "..table.count(bones).." bones | ID: "..(count-1))
 end
 
+-- C_PLAYER_RIG:entIndex(boolean creation_id)
+-- returns the main chip's id unless creation_id is set to true, returns the actual id otherwise
 function C_PLAYER_RIG:entIndex(creation_id)
     return creation_id and self.creation_id or self.id
 end
 
+-- C_PLAYER_RIG:remove()
+-- removes the holos and table entry, does not shift indexes
 function C_PLAYER_RIG:remove()
     for _, holo in pairs(self.bones) do
         if not isValid(holo) then continue end
@@ -99,6 +111,8 @@ function C_PLAYER_RIG:remove()
     table.remove(player_rigs,self.creation_id)
 end
 
+-- helped function
+-- for example print(entity with C_PLAYER_RIG class here)
 function C_PLAYER_RIG:__tostring()
     return "Entity ["..self:entIndex().."]["..C_PLAYER_RIG.name.."]".."\n"..
         "Model: "..self.model.."\n"..
@@ -106,6 +120,8 @@ function C_PLAYER_RIG:__tostring()
         "Creation ID: "..self.creation_id
 end
 
+-- player_rig.findAll()
+-- returns all player rigs created by this chip
 function player_rig.findAll()
     local list = {}
     for k, v in pairs(player_rigs) do
@@ -115,6 +131,15 @@ function player_rig.findAll()
     return list
 end
 
+-- player_rig.create(vector pos, angle ang, string model, number show_bones, table boneTable)
+-- creates holos for defined bones from defined model at defined location
+-- alias for C_PLAYER_RIG(pos, ang, model, show_bones, boneTable)
+-- looks cleaner and follows prop.create format, for the most part
+-- show_bones ranges from 0/1/2
+--  0 or anything lower disables holo debug visibility
+--  1 displays all bones from the table
+--  2 displays the root holo as well
+-- all values are optional, default values are provided in the function
 player_rig.create = C_PLAYER_RIG
 
 return player_rig
