@@ -1,0 +1,225 @@
+--@name Nakkitsunami/Projects/Mech_Base/Spawn.txt
+--@author Nakkitsunami
+--@shared
+--@include Nakkitsunami/Projects/Mech_Base/C_MECH_BASE.txt
+--@include Nakkitsunami/libs/safenet.txt
+--@include Nakkitsunami/libs/pac_to_holo_loader.txt
+
+if SERVER then
+    chip():setSolid(false)
+    chip():setNoDraw(true)
+    chip():setColor(Color(255,255,255,0))
+    chip():doNotDuplicate(false)--]]
+    
+    local safeNetSendLoop = require("Nakkitsunami/libs/safenet.txt")
+    local mech = require("Nakkitsunami/Projects/Mech_Base/C_MECH_BASE.txt")
+    
+    local ent = mech.create()
+    
+    --ent.base_ent:setColor(Color(255,255,255,100))
+    
+    timer.create("safeNet", 0.5, 0, function()
+        if ent == nil then return end
+        local send = {
+            ent.seat,
+            ent.base_ent,
+            
+            ent.torso,
+            ent.head,
+            
+            ent.arm_left,
+            ent.arm_right,
+            
+            ent.left_leg["Hip_B"],
+            ent.left_leg["Knee"],
+            ent.left_leg["Foot"],
+            
+            ent.right_leg["Hip_B"],
+            ent.right_leg["Knee"],
+            ent.right_leg["Foot"],
+        }
+        
+        for k, v in pairs(send) do
+            if not isValid(v) then
+                return
+            end
+        end
+        
+        safeNetSendLoop(send)
+    end)
+else
+    local camera = {
+        distance = 200,
+        pos = Vector(-100,-100,145)
+    }
+    
+    
+    local safeNet_Entities = {}
+    
+    local seat = nil
+    local base = nil
+    
+    net.receive("safeNet:NET_toClient", function(len, ply)
+        safeNet_Entities = net.readTable()
+        seat = safeNet_Entities[1]
+        base = safeNet_Entities[2]
+        
+        left_arm = safeNet_Entities[5]
+        right_arm = safeNet_Entities[6]
+        
+        print("Client side initialized")
+        
+        local thirdperson = false
+        
+        local down = {}
+        
+        
+        require("Nakkitsunami/libs/pac_to_holo_loader.txt")
+        
+        local bones, reftable, holos, ht, hc = {}, {}, {}, {}, 0
+        local parent = chip()
+        local real_parent = chip()
+        
+        local size = 1
+        local no_col_mat = false
+        local showBones = false
+        
+        --hc=hc+1 ht[hc]={hc,visual_parent,physical_parent,Vector(),Angle()}
+        -- this is bone format, use it if you need it
+        
+        
+        --[[
+            you can define parent by defining the entity it should parent to
+            i.e parent = hc
+            
+            this will store the index of the holo
+            
+            you can then replace visual_parent and or physical_parent with the variable
+        --]]
+        
+        
+        --get your model converted from pac to holo, to sf
+        
+        
+        -- \/ \/ \/ INSERT CODE INSIDE HERE \/ \/ \/
+        
+        
+        
+        
+        -- /\ /\ /\ INSERT CODE INSIDE HERE /\ /\ /\
+        
+        --pthl.createHolos(hc,ht,no_col_mat,size,showBones)
+        -- remove the -- from the line above this, if you got your model code pasted
+        
+        timer.create("callback_but_outside",0.1,0,function()
+            if not pthl.ready then return end
+            
+            --[[
+                you can call your holos with pthl.holos["index of holo"]
+                if you used a string for the holo index
+                
+                ht[hc]={hc, -> ht[hc]={"index of your holo",
+                
+                or, do something like myHolo = hc under the holo defining line
+                
+                then call it from pthl.holos[myHolo variable]
+            --]]
+            
+            print("Model loaded")
+            timer.stop("callback_but_outside")
+        end)
+        
+        local lerpedCamPos = base:getPos()
+        
+        function math.clampAngle(angle,from,to)
+            angle[1] = math.clamp(angle[1],from[1],to[1])
+            angle[2] = math.clamp(angle[2],from[2],to[2])
+            angle[3] = math.clamp(angle[3],from[3],to[3])
+            
+            return angle
+        end
+        
+        
+        function drawCrosshair(x,y,size)
+            local matrix = Matrix()
+            matrix:translate(Vector(x,y))
+            matrix:setScale(Vector(size,size))
+            
+            render.pushMatrix(matrix)
+            
+            render.setColor(Color(200,200,200,80))
+            render.drawCircle(0, 0, 12)
+            
+            render.setColor(Color(255,255,255,255))
+            render.drawFilledCircle(0, 0, 2)
+            
+            render.popMatrix()
+        end
+        
+        local w, h = render.getGameResolution()
+        local lastScreenPos = Vector(w/2,h/2)
+        local zoomSize = 1
+        hook.add("DrawHUD", "", function()
+            local tr = trace.line(left_arm:getPos(), left_arm:localToWorld(Vector(10000,0,0)), {base, seat, player()})
+            
+            local screenpos = tr.HitPos:toScreen()
+            drawCrosshair(screenpos["x"], screenpos["y"], 1)
+            
+            tr = trace.line(right_arm:getPos(), right_arm:localToWorld(Vector(10000,0,0)), {base, seat, player()})
+            
+            screenpos = tr.HitPos:toScreen()
+            drawCrosshair(screenpos["x"], screenpos["y"], 1)
+            
+            render.setColor(Color(200,200,200,80))
+            tr = trace.line(seat:getPos(), seat:getPos() + player():getEyeAngles():getForward() * 10000, {base, seat, player()})
+            local aimpos = tr.HitPos
+            screenpos = aimpos:toScreen()
+            render.drawRect(screenpos["x"]-15, screenpos["y"]-15, 30, 30)
+            
+            render.setColor(Color(100,100,100,25))
+            
+            lastScreenPos = math.lerpVector(0.35 * 10 * timer.frametime(),lastScreenPos,Vector(screenpos["x"],screenpos["y"]))
+            
+            zoomSize = math.lerp(0.35 * 10 * timer.frametime(),zoomSize,1-math.clamp((aimpos-seat:getPos()):getLength()/5000-0.5,-0.5,1)*0.75)
+            
+            render.drawRectOutline(lastScreenPos.x-512*zoomSize, lastScreenPos.y-246*(0.3+zoomSize*0.7), 1024*zoomSize, 512*(0.3+zoomSize*0.7), 6)
+        end)
+        
+        local zoom = 1
+        
+        hook.add( "CalcView", "DriverCamera", function()
+            if not (isValid(base) and isValid(seat)) then return end
+            if player() == seat:getDriver() then
+                
+                zoom = math.approach(zoom, player():keyDown(IN_KEY.ATTACK2) and 0 or 1, 0.4 * 10 * timer.frametime())
+                
+                local offAngle = Angle(math.clamp(15+eyeAngles()[1]/35,0,15),0,0)*math.easeInOutSine(zoom)
+                local eyeAng = eyeAngles() + (thirdperson and offAngle or Angle())
+                local camang = base:worldToLocalAngles(eyeAng)
+                
+                local thirdPersonTarget = (base:localToWorld(camera.pos + camera.pos*Vector(0,0,1)*0.2*(1-zoom) + Vector(-camera.distance,0,0):getRotated(camang)))
+                
+                if (not player():isTyping() or input.isGameUIVisible()) and input.isKeyDown(KEY.V) then
+                    if down["v"] ~= true then
+                        down["v"] = true
+                        thirdperson = not thirdperson
+                        lerpedCamPos = thirdPersonTarget
+                    end
+                else
+                    down["v"] = false
+                end
+                
+                if thirdperson then
+                    lerpedCamPos = math.lerpVector((1 - (0.35 * zoom)) * 10 * timer.frametime(), lerpedCamPos, thirdPersonTarget)
+                end
+                
+                return {
+                    origin = thirdperson and lerpedCamPos or player():getEyePos()-seat:getRight()*12,
+                    angles = math.clampAngle(eyeAng,-Angle(90,360,360),Angle(90,360,360)),
+                    drawviewer = true,
+                    fov = 100 - 35 * math.easeInOutSine(1-zoom)
+                }
+            end
+        end)
+    end)
+end
