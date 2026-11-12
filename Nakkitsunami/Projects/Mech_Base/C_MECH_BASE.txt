@@ -546,7 +546,15 @@ hook.add("Think","C_MECH_BASE:think",coroutine.wrap(function()
     hook.remove("Think","C_MECH_BASE:think")
 end))
 
-mech.findAll = mechs
+function mech.findAll()
+    local list = {}
+    for k, v in pairs(mechs) do
+        if v == nil then continue end
+        list[#list+1] = v
+    end
+    return list
+end
+
 mech.create = C_MECH_BASE
 
 return mech
