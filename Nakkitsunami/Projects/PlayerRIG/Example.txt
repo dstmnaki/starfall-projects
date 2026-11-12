@@ -1,0 +1,184 @@
+--@name Nakkitsunami/Projects/PlayerRIG/Example.txt
+--@author Nakkitsunami
+--@shared
+--@include Nakkitsunami/Projects/PlayerRIG/C_PLAYER_RIG.txt
+--@include Nakkitsunami/libs/safenet.txt
+
+-- custom bones
+local boneTable = {
+    "ValveBiped.Bip01_Pelvis",
+    "ValveBiped.Bip01_Spine",
+    "ValveBiped.Bip01_Spine1",
+    "ValveBiped.Bip01_Spine2",
+    "ValveBiped.Bip01_Spine4",
+    "ValveBiped.Bip01_Neck1",
+    "ValveBiped.Bip01_Head1",
+    
+    "ValveBiped.Bip01_L_Thigh",
+    "ValveBiped.Bip01_L_Calf",
+    "ValveBiped.Bip01_L_Foot",
+    "ValveBiped.Bip01_L_Toe0",
+    
+    "ValveBiped.Bip01_R_Thigh",
+    "ValveBiped.Bip01_R_Calf",
+    "ValveBiped.Bip01_R_Foot",
+    "ValveBiped.Bip01_R_Toe0",
+    
+    "ValveBiped.Bip01_L_Clavicle",
+    "ValveBiped.Bip01_L_UpperArm",
+    "ValveBiped.Bip01_L_Forearm",
+    "ValveBiped.Bip01_L_Hand",
+    
+    "ValveBiped.Bip01_R_Clavicle",
+    "ValveBiped.Bip01_R_UpperArm",
+    "ValveBiped.Bip01_R_Forearm",
+    "ValveBiped.Bip01_R_Hand",
+}
+
+if SERVER then
+    local safeNetSendLoop = require("Nakkitsunami/libs/safenet.txt")
+    local player_rig = require("Nakkitsunami/Projects/PlayerRIG/C_PLAYER_RIG.txt")
+    
+    local player_holo_rig = player_rig.create(nil, nil, nil, 1, boneTable)
+    -- creates a c_player_rig class with no defined parameters besides holo visibility mode, 1 - all, 2 - all + root, 0 or less to disable
+    
+    local send = nil
+    timer.create("safeNet", 0.5, 0, function()
+        if player_holo_rig == nil then return end
+        if send == nil then
+            send = {player_holo_rig.root}
+            -- toss root to the first entry in the networked entities table
+            
+            for _, boneName in pairs(boneTable) do
+                send[#send+1] = player_holo_rig.bones[boneName]
+            end
+            -- add every bone to the networked table according to the defined bones list above, to make sure order stays
+        end
+        
+        for k, v in pairs(send) do
+            if not isValid(v) then
+                return
+            end
+        end
+        -- if all entities are valid, start networking to clients 2 times a second, if the client hasn't received the message already
+        
+        safeNetSendLoop(send)
+    end)
+else
+    local safeNet_Entities = {}
+    
+    function perf(frac)
+        return cpuAverage() > cpuMax() * (frac == nil and 0.75 or frac)
+    end
+    -- basic performance check, should toss this to shared library
+    
+    net.receive("safeNet:NET_toClient", function(len, ply)
+        safeNet_Entities = net.readTable()
+        local i = 1
+        local root = safeNet_Entities[i] i=i+1
+        -- super simple way of getting the entities without defining the index constantly, index or i increments by 1 after each call
+        -- stores last index that was used and continues from there with bone checks
+        
+        local lastIndex = i-1
+        
+        local bones = {}
+        
+        local ply_holo = hologram.create(root:getPos(), root:getAngles(), owner():getModel(), Vector(1))
+        ply_holo:setParent(root)
+        ply_holo:setLOD(2)
+        -- lod 2 has less bones to animate, much easier on cpu, if you wish to use the full quality model, block the setLOD function
+        -- also replace the bone table with the following text block
+        --[[
+            
+            local ENTITY = getMethods("Entity")
+            function ENTITY:getPlayerBones()
+                local t = {}
+                for i = 1, self:getBoneCount() do
+                    local boneName = self:getBoneName(i)
+                    if boneName == "__INVALIDBONE__" then continue end
+                    t[#t+1] = boneName
+                end
+                return t
+            end
+            
+            local boneTable = owner():getPlayerBones()
+            
+        --]]
+        ply_holo.lastPos = root:getPos()
+        
+        for index, boneName in pairs(boneTable) do
+            local ent = safeNet_Entities[lastIndex+index]
+            local boneIndex = ply_holo:lookupBone(boneName)
+            bones[boneName] = {boneIndex,ent,Matrix()}
+            ent.lastPos = ent:getPos()
+            if boneName == "ValveBiped.Bip01_Pelvis" then
+                ply_holo:setParent(ent)
+            end
+        end
+        -- add all bones to client side table according to the order of defined bone table
+        -- stores bone index, server holo and matrix so we don't create one constantly for every bone, garbage collection optimization
+        
+        print("Client side initialized")
+        
+        local updatePlayerHoloHook = "updatePlayerHoloHook"
+        local lastCT = timer.curtime()
+        hook.add("Think",updatePlayerHoloHook,coroutine.wrap(function()
+            while true do
+                local ct = timer.curtime()
+                local delta = 1/(ct - lastCT)/60
+                lastCT = ct
+                -- because of coroutine, we should compare to last call time of this part of the code than getting delta from timer.frametime()
+                
+                for boneName, data in pairs(bones) do
+                    if perf(0.9) then coroutine.yield() end -- if cpu usage reaches 90%, return to start
+                    if perf() then coroutine.wait(0.05) end -- if cpu usage reaches default check value (75%), wait 0.05 seconds
+                    
+                    local boneIndex = data[1]
+                    local boneParentHolo = data[2]
+                    
+                    if not isValid(boneParentHolo) then
+                        hook.remove("Think",updatePlayerHoloHook)
+                        return
+                    end
+                    
+                    local matrix = data[3]
+                    -- get stored matrix
+                    
+                    local curpos = boneParentHolo:getPos()
+                    local lastPos = boneParentHolo.lastPos
+                    
+                    local vel = curpos - lastPos
+                    
+                    local next_pos = curpos + vel * delta
+                    -- very scuffed attempt at preventing delay when using setBoneMatrix, works surprisingly well at 60 fps
+                    
+                    boneParentHolo.lastPos = curpos
+                    
+                    matrix:setTranslation(next_pos)
+                    matrix:setAngles(boneParentHolo:getAngles())
+                    -- update matrix values
+                    
+                    ply_holo:setBoneMatrix(boneIndex, matrix)
+                end
+                ply_holo:setupBones()
+                
+                local curpos = root:getPos()
+                local lastPos = ply_holo.lastPos
+                
+                local vel = curpos - lastPos
+                
+                local next_pos = curpos + vel * delta
+                -- very scuffed attempt at preventing delay pt 2
+                -- super important
+                
+                ply_holo.lastPos = curpos
+                
+                ply_holo:setPos(next_pos)
+                coroutine.yield()
+            end
+            
+            -- just in case something goes wrong
+            hook.remove("Think",updatePlayerHoloHook)
+        end))
+    end)
+end
