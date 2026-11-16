@@ -4,7 +4,7 @@
 --@include Nakkitsunami/libs/vehicle_core/wheeled_base.txt
 local wheeled_base = require("Nakkitsunami/libs/vehicle_core/wheeled_base.txt")
 
-local swayBarStrength = 1
+local swayBarStrength = 0.65
 
 local const = 50000
 local damp = 2000
