@@ -2,7 +2,7 @@
 --@author Nakkitsunami
 --@server
 
-local wheel = class("C_WHEELED_BASE")
+local wheel = class("C_WHEEL")
 local wheels = {}
 local wheelsID = 1
 
