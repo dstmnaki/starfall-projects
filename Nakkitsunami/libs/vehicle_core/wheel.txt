@@ -9,7 +9,7 @@ local wheelsID = 1
 function wheel:initialize(pos,radius,function_data)
     local base = function_data.base
     
-    local ent = hologram.create(pos, Angle(), "models/starfall/holograms/cylinder.mdl", Vector(1)*radius)
+    local ent = hologram.create(pos, NO_ANG, "models/starfall/holograms/cylinder.mdl", XYZ*radius)
     ent:setParent(base)
     ent:setMaterial("models/wireframe")
     
@@ -77,7 +77,13 @@ timer.create("wheel_main",1/40,0,function()
             if ground_pos == nil or offset == nil then continue end
             
             local pos = ground_pos + offset
-            local wheelwell_pos = isfunction(wheel.wheelwell_pos) and wheel.wheelwell_pos(base) or wheel.wheelwell_pos
+            
+            local wheelwell_pos = wheel.wheelwell_pos
+            if isfunction(wheel.wheelwell_pos) then
+                local getpos = base:worldToLocal(wheel.wheelwell_pos(base))
+                wheelwell_pos = base:localToWorld(getpos*POS_NO_UP)
+            end
+            
             local swayBarStrength = wheel.swayBarStrength
             
             local isOnGround = wheel.isOnGround
@@ -89,11 +95,11 @@ timer.create("wheel_main",1/40,0,function()
             local posDelta = pos - wheel.lastPos
             wheel.lastPos = pos
             
-            local friction = worldToLocal(-posDelta,Angle(),Vector(),angle) * Vector(1,wheel.brake_force,0)*(1-wheel.handbrake_force)*wheel.traction
+            local friction = worldToLocal(-posDelta,NO_ANG,NO_POS,angle) * Vector(1,wheel.brake_force,0)*(1-wheel.handbrake_force)*wheel.traction
             
             wheel_ent:setPos(pos)
             
-            local force = localToWorld(friction,Angle(),Vector(),angle) * 180/(1+friction:getLength()*0.8) * base:getMass() * dt * (isOnGround and 1 or 0)
+            local force = localToWorld(friction,NO_ANG,NO_POS,angle) * 180/(1+friction:getLength()*0.8) * base:getMass() * dt * (isOnGround and 1 or 0)
             
             pendingForces[#pendingForces + 1] = {
                 ent = base,
@@ -107,7 +113,7 @@ timer.create("wheel_main",1/40,0,function()
             wheel.lastRoll = wheel.roll
             wheel.roll = wheel.handbrake_force > 0.3 and wheel.roll or roll
             
-            wheel_ent:setAngles(base:localToWorldAngles(Angle(wheel.roll,wheel.steering_angle*wheel.steer,90)))
+            wheel_ent:setAngles(base:localToWorldAngles(ANG_PITCH*wheel.roll+ANG_YAW*wheel.steering_angle*wheel.steer+ANG_ROLL*90))
         end
         
         for _, f in ipairs(pendingForces) do
