@@ -13,7 +13,7 @@ local wheeled_bases = {}
 local wheeled_basesID = 1
 
 function wheeled_base:initialize(pos, ang, frozen, data, think)
-    pos, ang, frozen = pos or chip():getPos()+Vector(0,0,45), ang or chip():getAngles()*Angle(0,1,0), frozen or false
+    pos, ang, frozen = pos or chip():getPos()+POS_UP*45, ang or chip():getAngles()*ANG_YAW, frozen or false
     data = data or {}
     
     local base_model = data.base_model or "models/sprops/cuboids/height12/size_4/cube_48x108x12.mdl"
@@ -21,11 +21,12 @@ function wheeled_base:initialize(pos, ang, frozen, data, think)
     local base_ent = prop.create(pos, ang, base_model, frozen)
     base_ent:setMass(data.mass or 1000)
     base_ent:setInertia(data.inertia or Vector(500))
+    base_ent:doNotDuplicate(false)
     
     base_ent:setMaterial("models/wireframe")
     
-    local seat_pos = data.seat_pos or base_ent:localToWorld(Vector(0,0,5))
-    local seat_ang = data.seat_ang or base_ent:localToWorldAngles(Angle(0,-90,0))
+    local seat_pos = data.seat_pos or base_ent:localToWorld(POS_UP*5)
+    local seat_ang = data.seat_ang or base_ent:localToWorldAngles(ANG_YAW*-90)
     local seat_parent = data.seat_parent or base_ent
     
     seat = prop.createSeat(seat_pos, seat_ang, "models/nova/airboat_seat.mdl", true)
