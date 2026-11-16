@@ -3,7 +3,7 @@
 --@server
 
 local clamp, max = math.clamp, math.max
-local suspension = class("C_WHEELED_BASE")
+local suspension = class("C_SUSPENSION")
 local suspensions = {}
 local suspensionsID = 1
 
@@ -113,9 +113,12 @@ timer.create("suspension_main",1/40,0,function()
                         
                         if not frozen1 then
                             
+                            local getpos = base:worldToLocal(wPos1)
+                            local wheelwell_pos = base:localToWorld(getpos*POS_NO_UP)
+                            
                             pendingForces[#pendingForces + 1] = {
                                 ent = base,
-                                pos = math.lerpVector(spring.swayBarStrength,wPos2,wPos1),
+                                pos = math.lerpVector(spring.swayBarStrength,wPos2,wheelwell_pos),
                                 force = totalForce
                             }
                         end
