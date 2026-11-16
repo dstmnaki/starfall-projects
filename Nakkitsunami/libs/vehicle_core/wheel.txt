@@ -1,0 +1,121 @@
+--@name Nakkitsunami/libs/vehicle_core/wheel.txt
+--@author Nakkitsunami
+--@server
+
+local wheel = class("C_WHEELED_BASE")
+local wheels = {}
+local wheelsID = 1
+
+function wheel:initialize(pos,radius,function_data)
+    local base = function_data.base
+    
+    local ent = hologram.create(pos, Angle(), "models/starfall/holograms/cylinder.mdl", Vector(1)*radius)
+    ent:setParent(base)
+    ent:setMaterial("models/wireframe")
+    
+    self.ent = ent
+    self.pos = pos
+    self.lastPos = pos
+    self.radius = radius
+    self.function_data = function_data
+    
+    self.brake_force = 1
+    self.steer = 0
+    self.roll = 0
+    self.lastRoll = 0
+    self.handbrake_force = 1
+    self.traction = 1
+    self.driveForce = 0
+    
+    self.steering_angle = 0
+    self.swayBarStrength = 0
+    self.wheelwell_pos = ent:getPos()
+    
+    self.id = wheelsID
+    if wheels[base:entIndex()] == nil then
+        wheels[base:entIndex()] = {}
+    end
+    wheels[base:entIndex()][wheelsID] = self
+    wheelsID = wheelsID + 1
+    
+    return self
+end
+
+local function updateWheelRotation(wheelPosDelta, wheelForward, wheelDiameter, currentRollAngle)
+    local radius = wheelDiameter * 0.5
+    if radius <= 0 then return currentRollAngle end
+    
+    local forwardDistance = wheelPosDelta:dot(wheelForward)
+    
+    local deltaAngleDeg = math.deg(forwardDistance / radius)
+    
+    currentRollAngle = (currentRollAngle + deltaAngleDeg) % 360
+
+    return currentRollAngle
+end
+
+local lastThink = timer.curtime()
+local function delta()
+    local ct = timer.curtime()
+    local delta = ct - lastThink
+    lastThink = ct
+    return delta, ct
+end
+
+timer.create("wheel_main",1/40,0,function()
+    local dt, ct = delta()
+    for _, ent_table in pairs(wheels) do
+        
+        local pendingForces = {}
+        
+        for _, wheel in pairs(ent_table) do
+            local function_data = wheel.function_data
+            local base = function_data.base
+            local ground_pos = wheel.ground_pos
+            local offset = wheel.offset
+            
+            if ground_pos == nil or offset == nil then continue end
+            
+            local pos = ground_pos + offset
+            local wheelwell_pos = isfunction(wheel.wheelwell_pos) and wheel.wheelwell_pos(base) or wheel.wheelwell_pos
+            local swayBarStrength = wheel.swayBarStrength
+            
+            local isOnGround = wheel.isOnGround
+            
+            local wheel_ent = wheel.ent
+            
+            local angle = wheel_ent:getUp():getAngleEx(base:getUp())
+            
+            local posDelta = pos - wheel.lastPos
+            wheel.lastPos = pos
+            
+            local friction = worldToLocal(-posDelta,Angle(),Vector(),angle) * Vector(1,wheel.brake_force,0)*(1-wheel.handbrake_force)*wheel.traction
+            
+            wheel_ent:setPos(pos)
+            
+            local force = localToWorld(friction,Angle(),Vector(),angle) * 180/(1+friction:getLength()*0.8) * base:getMass() * dt * (isOnGround and 1 or 0)
+            
+            pendingForces[#pendingForces + 1] = {
+                ent = base,
+                pos = math.lerpVector(swayBarStrength,ground_pos,wheelwell_pos),
+                force = force
+            }
+            
+            local wheelForward = -angle:getRight()
+            
+            local roll = (isOnGround and updateWheelRotation(posDelta, wheelForward, wheel.radius, wheel.roll) or wheel.roll + (wheel.roll - wheel.lastRoll) * 0.98) + wheel.driveForce * dt * (isOnGround and (1-math.easeInSine(wheel.traction)) or 1)
+            wheel.lastRoll = wheel.roll
+            wheel.roll = wheel.handbrake_force > 0.3 and wheel.roll or roll
+            
+            wheel_ent:setAngles(base:localToWorldAngles(Angle(wheel.roll,wheel.steering_angle*wheel.steer,90)))
+        end
+        
+        for _, f in ipairs(pendingForces) do
+            f.ent:applyForceOffsetFixed(f.force, f.pos)
+        end
+    end
+end)
+
+wheel.create = wheel
+
+return wheel
