@@ -1,0 +1,137 @@
+--@name Nakkitsunami/libs/vehicle_core/suspension.txt
+--@author Nakkitsunami
+--@server
+
+local clamp, max = math.clamp, math.max
+local suspension = class("C_WHEELED_BASE")
+local suspensions = {}
+local suspensionsID = 1
+
+function suspension:initialize(base_ent, start_pos, end_pos, constant, damping)
+    if not isfunction(start_pos) or type(start_pos()) ~= "Vector" then
+        error("'start_pos' value needs to be a function that returns a vector!")
+    end
+    
+    if not isfunction(end_pos) or type(end_pos()) ~= "Vector" then
+        error("'end_pos' value needs to be a function that returns a vector!")
+    end
+    
+    self.base = base_ent
+    self.phys_ent = base_ent:getPhysicsObject()
+    
+    self.constant = constant or 0
+    self.damping = damping or 0
+    self.maxDamping = math.huge
+    self.restingLength = (end_pos(base_ent) - start_pos(base_ent)):getLength()
+    
+    self.start_pos = start_pos
+    self.end_pos = end_pos
+    
+    self.HitPos = end_pos(base_ent)
+    
+    self.displacement = 0
+    self.lastDisplacement = 0
+    
+    self.swayBarStrength = 0
+    
+    self.wheel = nil
+    
+    self.id = suspensionsID
+    if suspensions[base_ent:entIndex()] == nil then
+        suspensions[base_ent:entIndex()] = {}
+    end
+    suspensions[base_ent:entIndex()][suspensionsID] = self
+    suspensionsID = suspensionsID + 1
+    
+    return self
+end
+
+local m_in = 39.3701 -- Meter/inch conversion factor
+
+local lastThink = timer.curtime()
+local function delta()
+    local ct = timer.curtime()
+    local delta = ct - lastThink
+    lastThink = ct
+    return delta, ct
+end
+
+-- Can this be optimized further?
+timer.create("suspension_main",1/40,0,function()
+    local dt, ct = delta()
+    for _, ent_table in pairs(suspensions) do
+        
+        local pendingForces = {}
+        
+        for k, spring in pairs(ent_table) do
+            if isValid(spring.phys_ent) then
+                local base = spring.base
+                local debug_holo = spring.debug_holo
+                local frozen1 = base:isFrozen()
+                local wheel = spring.wheel
+                
+                if not frozen1 or not frozen2 then
+                    local wPos1 = spring.start_pos(base)
+                    local endpos = spring.end_pos(base)
+                    
+                    local tr = trace.line(wPos1, endpos, spring.filter or {owner(),base}, MASK.SHOT_HULL, COLLISION_GROUP.VEHICLE)
+                    
+                    local wPos2 = tr.HitPos
+                    
+                    local forceVector = wPos1 - wPos2
+                    local forceLen = forceVector:getLength()
+                    
+                    spring.displacement = (forceLen - spring.restingLength) / m_in -- Displacement of spring from rest position, in meters
+                    
+                    if wheel then
+                        local isOnGround = tr.Hit
+                        local ground_pos = wPos2
+                        
+                        wheel.isOnGround = isOnGround
+                        wheel.offset = base:getUp()*wheel.radius/2
+                        wheel.ground_pos = ground_pos
+                    end
+                    
+                    if forceLen ~= 0 then
+                        
+                        forceVector:normalize()
+                        
+                        local currentForce = (-spring.constant * m_in) * spring.displacement * dt -- N/m
+                        local springForceVector = forceVector * currentForce
+                        
+                        local displacementRate = (spring.displacement - spring.lastDisplacement) / dt -- m/s
+                        spring.lastDisplacement = spring.displacement
+                        
+                        local dampingForce
+                        if spring.customDamping then
+                            dampingForce = forceVector * spring.customDamping(displacementRate) * m_in * dt
+                        else
+                            dampingForce = forceVector * clamp((-spring.damping * m_in) * displacementRate * dt, -spring.maxDamping, spring.maxDamping) -- N/m/s
+                        end
+                        
+                        local totalForce = springForceVector + dampingForce
+                        
+                        if not frozen1 then
+                            
+                            pendingForces[#pendingForces + 1] = {
+                                ent = base,
+                                pos = math.lerpVector(spring.swayBarStrength,wPos2,wPos1),
+                                force = totalForce
+                            }
+                        end
+                    end
+                end
+            else
+                spring:remove()
+            end
+        end
+        
+        for _, f in ipairs(pendingForces) do
+            f.ent:applyForceOffsetFixed(f.force, f.pos)
+        end
+    end
+end)
+
+suspension.create = suspension
+
+return suspension
