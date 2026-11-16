@@ -33,7 +33,7 @@ local data = {
             end,
             end_pos = function(base)
                 if not isValid(base) then return Vector() end
-                return base:localToWorld(Vector(suspension_forward_forward,suspension_width_front,suspension_height_front-suspension_length_front-front_wheel_radius/2))
+                return base:localToWorld(Vector(suspension_forward_forward,suspension_width_front,suspension_height_front-suspension_length_front))
             end,
             constant = const,
             damping = damp,
@@ -56,7 +56,7 @@ local data = {
             end,
             end_pos = function(base)
                 if not isValid(base) then return Vector() end
-                return base:localToWorld(Vector(suspension_forward_forward,-suspension_width_front,suspension_height_front-suspension_length_front-front_wheel_radius/2))
+                return base:localToWorld(Vector(suspension_forward_forward,-suspension_width_front,suspension_height_front-suspension_length_front))
             end,
             constant = const,
             damping = damp,
@@ -79,7 +79,7 @@ local data = {
             end,
             end_pos = function(base)
                 if not isValid(base) then return Vector() end
-                return base:localToWorld(Vector(-suspension_forward_back,suspension_width_back,suspension_height_back-suspension_length_back-rear_wheel_radius/2))
+                return base:localToWorld(Vector(-suspension_forward_back,suspension_width_back,suspension_height_back-suspension_length_back))
             end,
             constant = const,
             damping = damp,
@@ -104,7 +104,7 @@ local data = {
             end,
             end_pos = function(base)
                 if not isValid(base) then return Vector() end
-                return base:localToWorld(Vector(-suspension_forward_back,-suspension_width_back,suspension_height_back-suspension_length_back-rear_wheel_radius/2))
+                return base:localToWorld(Vector(-suspension_forward_back,-suspension_width_back,suspension_height_back-suspension_length_back))
             end,
             constant = const,
             damping = damp,
