@@ -4,11 +4,14 @@
 --@include Nakkitsunami/libs/vehicle_core/wheeled_base.txt
 local wheeled_base = require("Nakkitsunami/libs/vehicle_core/wheeled_base.txt")
 
-local swayBarStrength = 0.6
+local swayBarStrength = 0.8
 local const = 50000
 local damp = 2000
 local suspension_height_front = 10
 local suspension_height_back = 10
+
+local suspension_length_front = 15
+local suspension_length_back = 15
 
 local suspension_width_front = 25
 local suspension_width_back = 25
@@ -24,11 +27,11 @@ local data = {
         ["left_front"] = {
             start_pos = function(base)
                 if not isValid(base) then return Vector() end
-                return base:localToWorld(Vector(suspension_forward_forward,suspension_width_front,0))
+                return base:localToWorld(Vector(suspension_forward_forward,suspension_width_front,suspension_height_front))
             end,
             end_pos = function(base)
                 if not isValid(base) then return Vector() end
-                return base:localToWorld(Vector(suspension_forward_forward,suspension_width_front,-suspension_height_front-front_wheel_radius/2))
+                return base:localToWorld(Vector(suspension_forward_forward,suspension_width_front,suspension_height_front-suspension_length_front-front_wheel_radius/2))
             end,
             constant = const,
             damping = damp,
@@ -47,11 +50,11 @@ local data = {
         ["right_front"] = {
             start_pos = function(base)
                 if not isValid(base) then return Vector() end
-                return base:localToWorld(Vector(suspension_forward_forward,-suspension_width_front,0))
+                return base:localToWorld(Vector(suspension_forward_forward,-suspension_width_front,suspension_height_front))
             end,
             end_pos = function(base)
                 if not isValid(base) then return Vector() end
-                return base:localToWorld(Vector(suspension_forward_forward,-suspension_width_front,-suspension_height_front-front_wheel_radius/2))
+                return base:localToWorld(Vector(suspension_forward_forward,-suspension_width_front,suspension_height_front-suspension_length_front-front_wheel_radius/2))
             end,
             constant = const,
             damping = damp,
@@ -70,11 +73,11 @@ local data = {
         ["left_back"] = {
             start_pos = function(base)
                 if not isValid(base) then return Vector() end
-                return base:localToWorld(Vector(-suspension_forward_back,suspension_width_back,0))
+                return base:localToWorld(Vector(-suspension_forward_back,suspension_width_back,suspension_height_back))
             end,
             end_pos = function(base)
                 if not isValid(base) then return Vector() end
-                return base:localToWorld(Vector(-suspension_forward_back,suspension_width_back,-suspension_height_back-rear_wheel_radius/2))
+                return base:localToWorld(Vector(-suspension_forward_back,suspension_width_back,suspension_height_back-suspension_length_back-rear_wheel_radius/2))
             end,
             constant = const,
             damping = damp,
@@ -95,11 +98,11 @@ local data = {
         ["right_back"] = {
             start_pos = function(base)
                 if not isValid(base) then return Vector() end
-                return base:localToWorld(Vector(-suspension_forward_back,-suspension_width_back,0))
+                return base:localToWorld(Vector(-suspension_forward_back,-suspension_width_back,suspension_height_back))
             end,
             end_pos = function(base)
                 if not isValid(base) then return Vector() end
-                return base:localToWorld(Vector(-suspension_forward_back,-suspension_width_back,-suspension_height_back-rear_wheel_radius/2))
+                return base:localToWorld(Vector(-suspension_forward_back,-suspension_width_back,suspension_height_back-suspension_length_back-rear_wheel_radius/2))
             end,
             constant = const,
             damping = damp,
