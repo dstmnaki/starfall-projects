@@ -4,10 +4,6 @@
 --@include Nakkitsunami/libs/vehicle_core/wheeled_base.txt
 local wheeled_base = require("Nakkitsunami/libs/vehicle_core/wheeled_base.txt")
 
-local swayBarStrength = 0.65
-
-local const = 50000
-local damp = 3000
 
 local suspension_height_front = 10
 local suspension_height_back = 10
@@ -18,25 +14,63 @@ local suspension_length_back = 35
 local suspension_width_front = 25
 local suspension_width_back = 25
 
-local suspension_forward_forward = 45
-local suspension_forward_back = 45
+local suspension_forward = 45
+local suspension_back = 45
 
 local front_wheel_radius = 24
 local rear_wheel_radius = 24
 
+
+local driveForce = 1
+local driveBiasFront = 0
+
+local maxVel = 800
+
+
+local allWheelSteering = false
+local steeringLock = 30
+local counterSteerMult = 0.5
+local steeringRate = 0.3
+
+local steeringReduceVel = 600
+local steeringReduceAmount = 5
+
+local suspensionStrength = 50000
+local suspensionDamping = 3000
+
+local antiRollBarBiasFront = 0.9
+local antiRollMult = 0.65
+
+
+local handbrakeBiasFront = 0.1
+local handbrakeStrength = 0.9
+
+local lowSpeedTractionLossMult = 0.4
+
+
 local data = {
+    parameterCallback = function()
+        return {
+            driveForce = driveForce,
+            maxVel = maxVel,
+            counterSteerMult = counterSteerMult,
+            steeringRate = steeringRate,
+            steeringReduceVel = steeringReduceVel,
+            steeringReduceAmount = steeringReduceAmount,
+        }
+    end,
     wheels = {
         ["left_front"] = {
             start_pos = function(base)
                 if not isValid(base) then return Vector() end
-                return base:localToWorld(Vector(suspension_forward_forward,suspension_width_front,suspension_height_front))
+                return base:localToWorld(Vector(suspension_forward,suspension_width_front,suspension_height_front))
             end,
             end_pos = function(base)
                 if not isValid(base) then return Vector() end
-                return base:localToWorld(Vector(suspension_forward_forward,suspension_width_front,suspension_height_front-suspension_length_front))
+                return base:localToWorld(Vector(suspension_forward,suspension_width_front,suspension_height_front-suspension_length_front))
             end,
-            constant = const,
-            damping = damp,
+            constant = suspensionStrength,
+            damping = suspensionDamping,
             wheel_ent_data = function(ent_data)
                 local sus = ent_data.suspensions["left_front"]
                 local base_ent = ent_data.base_ent
@@ -46,20 +80,22 @@ local data = {
                     {base = base_ent, suspension = sus}
                 }
             end,
-            steering_angle = 30,
-            swayBarStrength = swayBarStrength
+            steering_angle = steeringLock,
+            handbrake_force_mult = math.lerp(handbrakeBiasFront,0,handbrakeStrength),
+            driveForceMult = math.easeOutSine(driveBiasFront),
+            swayBarStrength = math.lerp(antiRollBarBiasFront,0,antiRollMult)
         },
         ["right_front"] = {
             start_pos = function(base)
                 if not isValid(base) then return Vector() end
-                return base:localToWorld(Vector(suspension_forward_forward,-suspension_width_front,suspension_height_front))
+                return base:localToWorld(Vector(suspension_forward,-suspension_width_front,suspension_height_front))
             end,
             end_pos = function(base)
                 if not isValid(base) then return Vector() end
-                return base:localToWorld(Vector(suspension_forward_forward,-suspension_width_front,suspension_height_front-suspension_length_front))
+                return base:localToWorld(Vector(suspension_forward,-suspension_width_front,suspension_height_front-suspension_length_front))
             end,
-            constant = const,
-            damping = damp,
+            constant = suspensionStrength,
+            damping = suspensionDamping,
             wheel_ent_data = function(ent_data)
                 local sus = ent_data.suspensions["right_front"]
                 local base_ent = ent_data.base_ent
@@ -69,20 +105,22 @@ local data = {
                     {base = base_ent, suspension = sus}
                 }
             end,
-            steering_angle = 30,
-            swayBarStrength = swayBarStrength
+            steering_angle = steeringLock,
+            handbrake_force_mult = math.lerp(handbrakeBiasFront,0,handbrakeStrength),
+            driveForceMult = math.easeOutSine(driveBiasFront),
+            swayBarStrength = math.lerp(antiRollBarBiasFront,0,antiRollMult)
         },
         ["left_back"] = {
             start_pos = function(base)
                 if not isValid(base) then return Vector() end
-                return base:localToWorld(Vector(-suspension_forward_back,suspension_width_back,suspension_height_back))
+                return base:localToWorld(Vector(-suspension_back,suspension_width_back,suspension_height_back))
             end,
             end_pos = function(base)
                 if not isValid(base) then return Vector() end
-                return base:localToWorld(Vector(-suspension_forward_back,suspension_width_back,suspension_height_back-suspension_length_back))
+                return base:localToWorld(Vector(-suspension_back,suspension_width_back,suspension_height_back-suspension_length_back))
             end,
-            constant = const,
-            damping = damp,
+            constant = suspensionStrength,
+            damping = suspensionDamping,
             wheel_ent_data = function(ent_data)
                 local sus = ent_data.suspensions["left_back"]
                 local base_ent = ent_data.base_ent
@@ -92,22 +130,23 @@ local data = {
                     {base = base_ent, suspension = sus}
                 }
             end,
-            handbrake_force_mult = 0.9,
-            traction_mult_slow_speed_acceleration = 0.4,
-            driveForceMult = 1,
-            swayBarStrength = swayBarStrength
+            steering_angle = allWheelSteering and -steeringLock or 0,
+            handbrake_force_mult = math.lerp(1-handbrakeBiasFront,0,handbrakeStrength),
+            traction_mult_slow_speed_acceleration = lowSpeedTractionLossMult,
+            driveForceMult = math.easeOutSine(1-driveBiasFront),
+            swayBarStrength = math.lerp(1-antiRollBarBiasFront,0,antiRollMult)
         },
         ["right_back"] = {
             start_pos = function(base)
                 if not isValid(base) then return Vector() end
-                return base:localToWorld(Vector(-suspension_forward_back,-suspension_width_back,suspension_height_back))
+                return base:localToWorld(Vector(-suspension_back,-suspension_width_back,suspension_height_back))
             end,
             end_pos = function(base)
                 if not isValid(base) then return Vector() end
-                return base:localToWorld(Vector(-suspension_forward_back,-suspension_width_back,suspension_height_back-suspension_length_back))
+                return base:localToWorld(Vector(-suspension_back,-suspension_width_back,suspension_height_back-suspension_length_back))
             end,
-            constant = const,
-            damping = damp,
+            constant = suspensionStrength,
+            damping = suspensionDamping,
             wheel_ent_data = function(ent_data)
                 local sus = ent_data.suspensions["right_back"]
                 local base_ent = ent_data.base_ent
@@ -117,15 +156,21 @@ local data = {
                     {base = base_ent, suspension = sus}
                 }
             end,
-            handbrake_force_mult = 0.9,
-            traction_mult_slow_speed_acceleration = 0.4,
-            driveForceMult = 1,
-            swayBarStrength = swayBarStrength
+            steering_angle = allWheelSteering and -steeringLock or 0,
+            handbrake_force_mult = math.lerp(1-handbrakeBiasFront,0,handbrakeStrength),
+            traction_mult_slow_speed_acceleration = lowSpeedTractionLossMult,
+            driveForceMult = math.easeOutSine(1-driveBiasFront),
+            swayBarStrength = math.lerp(1-antiRollBarBiasFront,0,antiRollMult)
         }
     }
 }
-wheeled_base(nil, nil, false, data, function(base_class, dt, ct)
+
+local base_ent = wheeled_base(pos, ang, frozen, data, function(base_class, dt, ct)
     local base = base_class.base_ent
+    local driveForce = base_class.driveForce
+    local steeringRate = base_class.steeringRate
+    local steeringReduceVel = base_class.steeringReduceVel
+    local steeringReduceAmount = base_class.steeringReduceAmount
     
     local driver = seat:getDriver()
     local w, s, a, d, space = driver:getControls()
@@ -135,7 +180,7 @@ wheeled_base(nil, nil, false, data, function(base_class, dt, ct)
     local vel_forward = vel_local.x
     local side_vel = vel_local.y/300
     
-    local steer = math.approach(base_class.steer, (a and -1 or d and 1 or 0)/(1+math.easeInSine(math.clamp(vel_len/(150*8),0,1))*(5+math.abs(side_vel)))-math.clamp(side_vel,-1,1)*0.2, 0.3 * 10 * dt)
+    local steer = math.approach(base_class.steer, (a and -1 or d and 1 or 0)/(1+math.easeInSine(math.clamp(vel_len/(steeringReduceVel*2),0,1))*(steeringReduceAmount+math.abs(side_vel)))-math.clamp(side_vel,-1,1)*0.5*counterSteerMult, steeringRate * 10 * dt)
     base_class.steer = steer
     
     local handbrake = space
@@ -149,6 +194,9 @@ wheeled_base(nil, nil, false, data, function(base_class, dt, ct)
     
     base_class.wheels["left_front"].steer = -steer
     base_class.wheels["right_front"].steer = -steer
+    
+    base_class.wheels["left_back"].steer = -steer
+    base_class.wheels["right_back"].steer = -steer
     
     local center_traction = Vector()
     local total_traction = 0
@@ -171,6 +219,6 @@ wheeled_base(nil, nil, false, data, function(base_class, dt, ct)
         center_traction = base:worldToLocal(center_traction / count)
         local center_target = base:localToWorld(center_traction*Vector(0.25,0.25,1))
         total_traction = total_traction / count
-        base:applyForceOffsetFixed(base:getForward() * throttle * (500 / (1+math.easeInSine(math.clamp(vel_len/1000,0,1)))) * 1.25 * total_traction * base:getMass() * dt, center_target)
+        base:applyForceOffsetFixed(base:getForward() * throttle * driveForce * (500 / (1+math.easeInSine(math.clamp(vel_len/(maxVel/800*1000),0,1)))) * 1.25 * total_traction * base:getMass() * dt, center_target)
     end
 end)
