@@ -95,7 +95,7 @@ timer.create("wheel_main",1/40,0,function()
             local posDelta = pos - wheel.lastPos
             wheel.lastPos = pos
             
-            local friction = worldToLocal(-posDelta,NO_ANG,NO_POS,angle) * Vector(1,wheel.brake_force,0)*(1-wheel.handbrake_force)*wheel.traction
+            local friction = worldToLocal(-posDelta,NO_ANG,NO_POS,angle) * Vector(1,wheel.brake_force,0)*0.6*(1-wheel.handbrake_force)*wheel.traction
             
             wheel_ent:setPos(pos)
             
