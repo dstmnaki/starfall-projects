@@ -43,7 +43,7 @@ if CLIENT then
     local front2 = math.bias(b, 0, front)
     local back2 = math.bias(1-b, 0, back)
     print("front "..front2)
-    print("front "..back2)
+    print("back "..back2)
 end
 --]]
 POS_FORWARD = Vector(1,0,0)
