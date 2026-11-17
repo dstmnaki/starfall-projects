@@ -262,7 +262,12 @@ local base_ent = wheeled_base(pos, ang, frozen, data, function(base_class, dt, c
         center_traction = base:worldToLocal(center_traction / count)
         local center_target = base:localToWorld(center_traction*Vector(0.25,0.25,1))
         total_traction = total_traction / count
-        base:applyForceOffsetFixed(base:getForward() * throttle * driveForce * (500 / (1+math.easeInSine(math.clamp(vel_len/(maxVel/800*1000),0,1)))) * 1.25 * total_traction * base:getMass() * dt, center_target)
+        
+        
+        local move = throttle * total_traction * driveForce
+        local speed_reduce = 620 * (1-vel_len/maxVel)
+        
+        base:applyForceOffsetFixed(base:getForward() * move * speed_reduce * base:getMass() * dt, center_target)
     end
     
     local customThink = base_class.customThink
