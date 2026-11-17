@@ -128,7 +128,7 @@ wheeled_base(nil, nil, false, data, function(base_class, dt, ct)
     local base = base_class.base_ent
     
     local driver = seat:getDriver()
-    local w, s, a, d = driver:getControls()
+    local w, s, a, d, space = driver:getControls()
     
     local vel_len = base:getVelocity():getLength()
     local vel_local = base:getLocalVelocity()
@@ -138,7 +138,7 @@ wheeled_base(nil, nil, false, data, function(base_class, dt, ct)
     local steer = math.approach(base_class.steer, (a and -1 or d and 1 or 0)/(1+math.easeInSine(math.clamp(vel_len/(150*8),0,1))*(5+math.abs(side_vel)))-math.clamp(side_vel,-1,1)*0.2, 0.3 * 10 * dt)
     base_class.steer = steer
     
-    local handbrake = isValid(driver) and driver:keyDown(IN_KEY.JUMP)
+    local handbrake = space
     
     local isBraking = ((w and vel_forward < 0) or (s and vel_forward > 0))
     
@@ -158,7 +158,7 @@ wheeled_base(nil, nil, false, data, function(base_class, dt, ct)
     for k, wheel in pairs(base_class.wheels) do
         wheel.brake_force = brake_force
         wheel.handbrake_force = handbrake and wheel.handbrake_force_mult*(0.3+math.clamp(vel_len/100,0,1)*0.8) or 0
-        wheel.traction = ((wheel.traction_mult_slow_speed_acceleration*(1-traction_mult)+traction_mult))*(1-0.4*math.abs(throttle))
+        wheel.traction = ((wheel.traction_mult_slow_speed_acceleration*(1-traction_mult)+traction_mult))*(1-0.4*math.clamp(math.abs(vel_forward/50),0,1))
         wheel.driveForce = 1000*wheel.driveForceMult*throttle
         
         if not wheel.isOnGround then continue end
