@@ -80,11 +80,6 @@ timer.create("suspension_main",1/40,0,function()
                     
                     local wPos2 = tr.HitPos
                     
-                    local forceVector = wPos1 - wPos2
-                    local forceLen = isOnGround and forceVector:getLength() or 0
-                    
-                    spring.displacement = (forceLen - spring.restingLength) / m_in -- Displacement of spring from rest position, in meters
-                    
                     if wheel then
                         local ground_pos = wPos2
                         
@@ -93,9 +88,18 @@ timer.create("suspension_main",1/40,0,function()
                         wheel.ground_pos = ground_pos
                     end
                     
+                    if not isOnGround then continue end
+                    
+                    local forceVector = wPos1 - wPos2
+                    local forceLen = isOnGround and forceVector:getLength() or 0
+                    
+                    spring.displacement = (forceLen - spring.restingLength) / m_in -- Displacement of spring from rest position, in meters
+                    
+                    
                     if forceLen ~= 0 then
                         
-                        forceVector:normalize()
+                        --forceVector:normalize()
+                        forceVector = tr.HitNormal
                         
                         local currentForce = (-spring.constant * m_in) * spring.displacement * dt -- N/m
                         local springForceVector = forceVector * currentForce
