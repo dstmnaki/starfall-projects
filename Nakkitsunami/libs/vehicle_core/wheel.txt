@@ -9,7 +9,7 @@ local wheelsID = 1
 function wheel:initialize(pos,radius,function_data)
     local base = function_data.base
     
-    local ent = hologram.create(pos, NO_ANG, "models/starfall/holograms/cylinder.mdl", XYZ*radius)
+    local ent = hologram.create(pos, NO_ANG, "models/starfall/holograms/cylinder.mdl", POS_NO_UP*radius+POS_UP*24)
     ent:setParent(base)
     ent:setMaterial("models/wireframe")
     
