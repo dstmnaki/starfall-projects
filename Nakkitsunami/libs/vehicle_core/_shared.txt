@@ -16,13 +16,15 @@ function ENTITY:applyForceOffsetFixed(force, pos)
 end
 
 function ENTITY:getControls()
-    if not isValid(self) then return false, false, false, false end
+    if not isValid(self) then return false, false, false, false, false end
     local w = isValid(self) and self:keyDown(IN_KEY.FORWARD)
     local s = isValid(self) and self:keyDown(IN_KEY.BACK)
     local a = isValid(self) and self:keyDown(IN_KEY.MOVELEFT)
     local d = isValid(self) and self:keyDown(IN_KEY.MOVERIGHT)
     
-    return w, s, a, d
+    local space = isValid(self) and self:keyDown(IN_KEY.JUMP)
+    
+    return w, s, a, d, space
 end
 
 POS_FORWARD = Vector(1,0,0)
