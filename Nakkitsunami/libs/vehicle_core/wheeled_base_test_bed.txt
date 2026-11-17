@@ -12,8 +12,8 @@ local damp = 2000
 local suspension_height_front = 10
 local suspension_height_back = 10
 
-local suspension_length_front = 15
-local suspension_length_back = 15
+local suspension_length_front = 35
+local suspension_length_back = 35
 
 local suspension_width_front = 25
 local suspension_width_back = 25
@@ -142,7 +142,7 @@ wheeled_base(nil, nil, false, data, function(base_class, dt, ct)
     
     local isBraking = ((w and vel_forward < 0) or (s and vel_forward > 0))
     
-    local brake_force = handbrake and 1 or isBraking and 0.05 or 0.015*(vel_len/300) 
+    local brake_force = isValid(driver) and (handbrake and 1 or (isBraking and 0.05 or 0.015*(vel_len/300))) or 1
     
     local throttle = math.approach(base_class.throttle, w and 1 or s and -0.5 or 0, 0.3 * 10 * dt)
     base_class.throttle = throttle
@@ -158,7 +158,7 @@ wheeled_base(nil, nil, false, data, function(base_class, dt, ct)
     for k, wheel in pairs(base_class.wheels) do
         wheel.brake_force = brake_force
         wheel.handbrake_force = handbrake and wheel.handbrake_force_mult*(0.3+math.clamp(vel_len/100,0,1)*0.8) or 0
-        wheel.traction = wheel.traction_mult_slow_speed_acceleration*(1-traction_mult)+traction_mult
+        wheel.traction = (wheel.traction_mult_slow_speed_acceleration*(1-traction_mult)+traction_mult)
         wheel.driveForce = 1000*wheel.driveForceMult*throttle
         
         if not wheel.isOnGround then continue end
