@@ -20,6 +20,12 @@ local suspension_back = 45
 local front_wheel_radius = 24
 local rear_wheel_radius = 24
 
+local front_camber = -15
+local rear_camber = -10
+
+local camberTiltRateFront = 1
+local camberTiltRateBack = 1
+
 
 local driveForce = 1
 local driveBiasFront = 0
@@ -47,6 +53,7 @@ local handbrakeBiasFront = 0.1
 local handbrakeStrength = 0.9
 
 local lowSpeedTractionLossMult = 0.4
+
 
 
 local data = {
@@ -84,7 +91,13 @@ local data = {
             steering_angle = steeringLock,
             handbrake_force_mult = math.bias(handbrakeBiasFront,0,handbrakeStrength),
             driveForceMult = math.easeOutSine(driveBiasFront),
-            swayBarStrength = math.bias(antiRollBarBiasFront,0,antiRollMult)
+            swayBarStrength = math.bias(antiRollBarBiasFront,0,antiRollMult),
+            wheelParameterCallback = function()
+                return {
+                    defaultCamber = -front_camber,
+                    camberTiltRate = -camberTiltRateFront
+                }
+            end
         },
         ["right_front"] = {
             start_pos = function(base)
@@ -109,7 +122,13 @@ local data = {
             steering_angle = steeringLock,
             handbrake_force_mult = math.bias(handbrakeBiasFront,0,handbrakeStrength),
             driveForceMult = math.easeOutSine(driveBiasFront),
-            swayBarStrength = math.bias(antiRollBarBiasFront,0,antiRollMult)
+            swayBarStrength = math.bias(antiRollBarBiasFront,0,antiRollMult),
+            wheelParameterCallback = function()
+                return {
+                    defaultCamber = front_camber,
+                    camberTiltRate = camberTiltRateFront
+                }
+            end
         },
         ["left_back"] = {
             start_pos = function(base)
@@ -135,7 +154,13 @@ local data = {
             handbrake_force_mult = math.bias(1-handbrakeBiasFront,0,handbrakeStrength),
             traction_mult_slow_speed_acceleration = lowSpeedTractionLossMult,
             driveForceMult = math.easeOutSine(1-driveBiasFront),
-            swayBarStrength = math.bias(1-antiRollBarBiasFront,0,antiRollMult)
+            swayBarStrength = math.bias(1-antiRollBarBiasFront,0,antiRollMult),
+            wheelParameterCallback = function()
+                return {
+                    defaultCamber = -rear_camber,
+                    camberTiltRate = -camberTiltRateBack
+                }
+            end
         },
         ["right_back"] = {
             start_pos = function(base)
@@ -161,7 +186,13 @@ local data = {
             handbrake_force_mult = math.bias(1-handbrakeBiasFront,0,handbrakeStrength),
             traction_mult_slow_speed_acceleration = lowSpeedTractionLossMult,
             driveForceMult = math.easeOutSine(1-driveBiasFront),
-            swayBarStrength = math.bias(1-antiRollBarBiasFront,0,antiRollMult)
+            swayBarStrength = math.bias(1-antiRollBarBiasFront,0,antiRollMult),
+            wheelParameterCallback = function()
+                return {
+                    defaultCamber = rear_camber,
+                    camberTiltRate = camberTiltRateBack
+                }
+            end
         }
     }
 }
@@ -204,11 +235,22 @@ local base_ent = wheeled_base(pos, ang, frozen, data, function(base_class, dt, c
     local count = 0
     
     local traction_mult = (1-math.easeInExpo(math.max(0,math.abs(throttle)-math.abs(vel_forward)/200)))/(1+math.abs(side_vel)*math.abs(throttle))
+    
+    local base_pos = base:getPos()
     for k, wheel in pairs(base_class.wheels) do
         wheel.brake_force = brake_force
         wheel.handbrake_force = handbrake and wheel.handbrake_force_mult*(0.3+math.clamp(vel_len/100,0,1)*0.8) or 0
         wheel.traction = ((wheel.traction_mult_slow_speed_acceleration*(1-traction_mult)+traction_mult))*(1-0.4*math.clamp(math.abs(vel_forward/50),0,1))
         wheel.driveForce = 1000*wheel.driveForceMult*throttle
+        
+        local wheel_ent = wheel.ent
+        
+        if isValid(wheel_ent) then
+            local wheel_pos = wheel_ent:getPos()
+            local offHeight = base:worldToLocal(wheel_pos).z
+            
+            wheel.camber = wheel.defaultCamber - offHeight * wheel.camberTiltRate
+        end
         
         if not wheel.isOnGround then continue end
         
@@ -222,4 +264,7 @@ local base_ent = wheeled_base(pos, ang, frozen, data, function(base_class, dt, c
         total_traction = total_traction / count
         base:applyForceOffsetFixed(base:getForward() * throttle * driveForce * (500 / (1+math.easeInSine(math.clamp(vel_len/(maxVel/800*1000),0,1)))) * 1.25 * total_traction * base:getMass() * dt, center_target)
     end
+    
+    local customThink = base_class.customThink
+    if customThink then customThink(base_class, dt, ct) end
 end)
