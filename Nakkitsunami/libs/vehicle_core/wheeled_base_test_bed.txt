@@ -38,7 +38,7 @@ local steeringReduceAmount = 5
 local suspensionStrength = 50000
 local suspensionDamping = 3000
 
-local antiRollBarBiasFront = 0.9
+local antiRollBarBiasFront = 0.5
 local antiRollMult = 0.65
 
 
@@ -62,11 +62,11 @@ local data = {
     wheels = {
         ["left_front"] = {
             start_pos = function(base)
-                if not isValid(base) then return Vector() end
+                if not isValid(base) then return NO_POS end
                 return base:localToWorld(Vector(suspension_forward,suspension_width_front,suspension_height_front))
             end,
             end_pos = function(base)
-                if not isValid(base) then return Vector() end
+                if not isValid(base) then return NO_POS end
                 return base:localToWorld(Vector(suspension_forward,suspension_width_front,suspension_height_front-suspension_length_front))
             end,
             constant = suspensionStrength,
@@ -81,17 +81,17 @@ local data = {
                 }
             end,
             steering_angle = steeringLock,
-            handbrake_force_mult = math.lerp(handbrakeBiasFront,0,handbrakeStrength),
+            handbrake_force_mult = math.bias(handbrakeBiasFront,0,handbrakeStrength),
             driveForceMult = math.easeOutSine(driveBiasFront),
-            swayBarStrength = math.lerp(antiRollBarBiasFront,0,antiRollMult)
+            swayBarStrength = math.bias(antiRollBarBiasFront,0,antiRollMult)
         },
         ["right_front"] = {
             start_pos = function(base)
-                if not isValid(base) then return Vector() end
+                if not isValid(base) then return NO_POS end
                 return base:localToWorld(Vector(suspension_forward,-suspension_width_front,suspension_height_front))
             end,
             end_pos = function(base)
-                if not isValid(base) then return Vector() end
+                if not isValid(base) then return NO_POS end
                 return base:localToWorld(Vector(suspension_forward,-suspension_width_front,suspension_height_front-suspension_length_front))
             end,
             constant = suspensionStrength,
@@ -106,17 +106,17 @@ local data = {
                 }
             end,
             steering_angle = steeringLock,
-            handbrake_force_mult = math.lerp(handbrakeBiasFront,0,handbrakeStrength),
+            handbrake_force_mult = math.bias(handbrakeBiasFront,0,handbrakeStrength),
             driveForceMult = math.easeOutSine(driveBiasFront),
-            swayBarStrength = math.lerp(antiRollBarBiasFront,0,antiRollMult)
+            swayBarStrength = math.bias(antiRollBarBiasFront,0,antiRollMult)
         },
         ["left_back"] = {
             start_pos = function(base)
-                if not isValid(base) then return Vector() end
+                if not isValid(base) then return NO_POS end
                 return base:localToWorld(Vector(-suspension_back,suspension_width_back,suspension_height_back))
             end,
             end_pos = function(base)
-                if not isValid(base) then return Vector() end
+                if not isValid(base) then return NO_POS end
                 return base:localToWorld(Vector(-suspension_back,suspension_width_back,suspension_height_back-suspension_length_back))
             end,
             constant = suspensionStrength,
@@ -131,18 +131,18 @@ local data = {
                 }
             end,
             steering_angle = allWheelSteering and -steeringLock or 0,
-            handbrake_force_mult = math.lerp(1-handbrakeBiasFront,0,handbrakeStrength),
+            handbrake_force_mult = math.bias(1-handbrakeBiasFront,0,handbrakeStrength),
             traction_mult_slow_speed_acceleration = lowSpeedTractionLossMult,
             driveForceMult = math.easeOutSine(1-driveBiasFront),
-            swayBarStrength = math.lerp(1-antiRollBarBiasFront,0,antiRollMult)
+            swayBarStrength = math.bias(1-antiRollBarBiasFront,0,antiRollMult)
         },
         ["right_back"] = {
             start_pos = function(base)
-                if not isValid(base) then return Vector() end
+                if not isValid(base) then return NO_POS end
                 return base:localToWorld(Vector(-suspension_back,-suspension_width_back,suspension_height_back))
             end,
             end_pos = function(base)
-                if not isValid(base) then return Vector() end
+                if not isValid(base) then return NO_POS end
                 return base:localToWorld(Vector(-suspension_back,-suspension_width_back,suspension_height_back-suspension_length_back))
             end,
             constant = suspensionStrength,
@@ -157,10 +157,10 @@ local data = {
                 }
             end,
             steering_angle = allWheelSteering and -steeringLock or 0,
-            handbrake_force_mult = math.lerp(1-handbrakeBiasFront,0,handbrakeStrength),
+            handbrake_force_mult = math.bias(1-handbrakeBiasFront,0,handbrakeStrength),
             traction_mult_slow_speed_acceleration = lowSpeedTractionLossMult,
             driveForceMult = math.easeOutSine(1-driveBiasFront),
-            swayBarStrength = math.lerp(1-antiRollBarBiasFront,0,antiRollMult)
+            swayBarStrength = math.bias(1-antiRollBarBiasFront,0,antiRollMult)
         }
     }
 }
