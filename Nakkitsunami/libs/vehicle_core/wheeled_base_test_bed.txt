@@ -7,7 +7,7 @@ local wheeled_base = require("Nakkitsunami/libs/vehicle_core/wheeled_base.txt")
 local swayBarStrength = 0.65
 
 local const = 50000
-local damp = 2000
+local damp = 3000
 
 local suspension_height_front = 10
 local suspension_height_back = 10
@@ -158,18 +158,18 @@ wheeled_base(nil, nil, false, data, function(base_class, dt, ct)
     for k, wheel in pairs(base_class.wheels) do
         wheel.brake_force = brake_force
         wheel.handbrake_force = handbrake and wheel.handbrake_force_mult*(0.3+math.clamp(vel_len/100,0,1)*0.8) or 0
-        wheel.traction = (wheel.traction_mult_slow_speed_acceleration*(1-traction_mult)+traction_mult)
+        wheel.traction = ((wheel.traction_mult_slow_speed_acceleration*(1-traction_mult)+traction_mult))*(1-0.4*math.abs(throttle))
         wheel.driveForce = 1000*wheel.driveForceMult*throttle
         
         if not wheel.isOnGround then continue end
         
-        total_traction = total_traction + wheel.traction
+        total_traction = total_traction + wheel.traction/0.6
         center_traction = center_traction + wheel.ground_pos
         count = count + 1
     end
     if count > 0 and not handbrake then
         center_traction = base:worldToLocal(center_traction / count)
-        local center_target = base:localToWorld(center_traction*Vector(1,1,0.5))
+        local center_target = base:localToWorld(center_traction*Vector(0.25,0.25,1))
         total_traction = total_traction / count
         base:applyForceOffsetFixed(base:getForward() * throttle * (500 / (1+math.easeInSine(math.clamp(vel_len/1000,0,1)))) * 1.25 * total_traction * base:getMass() * dt, center_target)
     end
