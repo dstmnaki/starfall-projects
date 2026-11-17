@@ -135,7 +135,7 @@ wheeled_base(nil, nil, false, data, function(base_class, dt, ct)
     local vel_forward = vel_local.x
     local side_vel = vel_local.y/300
     
-    local steer = math.approach(base_class.steer, (a and -1 or d and 1 or 0)/(1+math.easeInSine(math.clamp(vel_len/(150*5),0,1))*(4+math.abs(side_vel)))-math.clamp(side_vel,-1,1)*0.2, 0.3 * 10 * dt)
+    local steer = math.approach(base_class.steer, (a and -1 or d and 1 or 0)/(1+math.easeInSine(math.clamp(vel_len/(150*8),0,1))*(5+math.abs(side_vel)))-math.clamp(side_vel,-1,1)*0.2, 0.3 * 10 * dt)
     base_class.steer = steer
     
     local handbrake = isValid(driver) and driver:keyDown(IN_KEY.JUMP)
