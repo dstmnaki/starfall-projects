@@ -12,26 +12,30 @@ local wheeled_base = class("C_WHEELED_BASE")
 local wheeled_bases = {}
 local wheeled_baseID = 1
 
-function wheeled_base:initialize(pos, ang, frozen, data, think)
+function wheeled_base:initialize(pos, ang, frozen, data, think, customBaseProp, customSeatProp)
     pos, ang, frozen = pos or chip():getPos()+POS_UP*45, ang or chip():getAngles()*ANG_YAW, frozen or false
     data = data or {}
     
     local base_model = data.base_model or "models/sprops/cuboids/height12/size_4/cube_48x108x12.mdl"
     
-    local base_ent = prop.create(pos, ang, base_model, frozen)
-    base_ent:setMass(data.mass or 1000)
-    base_ent:setInertia(data.inertia or Vector(500))
-    base_ent:doNotDuplicate(false)
-    
-    base_ent:setMaterial("models/wireframe")
+    local base_ent = isValid(customBaseProp) and customBaseProp or prop.create(pos, ang, base_model, frozen)
+    if not customBaseProp then
+        base_ent:setMass(data.mass or 1000)
+        base_ent:setInertia(data.inertia or Vector(500))
+        
+        base_ent:doNotDuplicate(false)
+        base_ent:setMaterial("models/wireframe")
+    end
     
     local seat_pos = data.seat_pos or base_ent:localToWorld(POS_UP*5)
     local seat_ang = data.seat_ang or base_ent:localToWorldAngles(ANG_YAW*-90)
     local seat_parent = data.seat_parent or base_ent
     
-    seat = prop.createSeat(seat_pos, seat_ang, "models/nova/airboat_seat.mdl", true)
-    seat:setParent(isfunction(seat_parent) and seat_parent(base_ent) or seat_parent)
-    seat:doNotDuplicate(false)
+    seat = isValid(customSeatProp) and customSeatProp or prop.createSeat(seat_pos, seat_ang, "models/nova/airboat_seat.mdl", true)
+    if not customSeatProp then
+        seat:setParent(isfunction(seat_parent) and seat_parent(base_ent) or seat_parent)
+        seat:doNotDuplicate(false)
+    end
     
     self.seat = seat
     self.base_ent = base_ent
