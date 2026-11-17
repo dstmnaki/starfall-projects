@@ -10,7 +10,7 @@ local wheel = require("Nakkitsunami/libs/vehicle_core/wheel.txt")
 
 local wheeled_base = class("C_WHEELED_BASE")
 local wheeled_bases = {}
-local wheeled_basesID = 1
+local wheeled_baseID = 1
 
 function wheeled_base:initialize(pos, ang, frozen, data, think)
     pos, ang, frozen = pos or chip():getPos()+POS_UP*45, ang or chip():getAngles()*ANG_YAW, frozen or false
@@ -36,41 +36,52 @@ function wheeled_base:initialize(pos, ang, frozen, data, think)
     self.seat = seat
     self.base_ent = base_ent
     
-    local wheels = data.wheels
-    
     self.wheels = {}
     self.suspensions = {}
     
-    for wheel_index, wheel_data in pairs(wheels) do
-        local start_pos = wheel_data.start_pos
-        local end_pos = wheel_data.end_pos
-        local constant = wheel_data.constant
-        local damping = wheel_data.damping
+    local parameterCallback = data.parameterCallback
+    
+    if parameterCallback then
+        local params = parameterCallback()
+        for k, v in pairs(params) do
+            self[k] = v
+        end
+    end
+    
+    if data.wheels and not table.isEmpty(data.wheels) then
+        local wheels = data.wheels
         
-        local sus = suspension.create(base_ent, start_pos, end_pos, constant, damping)
-        
-        self.suspensions[wheel_index] = sus
-        
-        local wheel_ent = wheel.create(
-            unpack(wheel_data.wheel_ent_data(self))
-        )
-        
-        wheel_ent.handbrake_force_mult = wheel_data.handbrake_force_mult or 0.15
-        wheel_ent.traction_mult_slow_speed_acceleration = wheel_data.traction_mult_slow_speed_acceleration or 1
-        
-        wheel_ent.driveForceMult = wheel_data.driveForceMult or 0
-        
-        wheel_ent.steering_angle = wheel_data.steering_angle or 0
-        
-        wheel_ent.swayBarStrength = wheel_data.swayBarStrength or 0
-        
-        sus.swayBarStrength = wheel_data.swayBarStrength or 0
-        
-        wheel_ent.wheelwell_pos = start_pos
-        
-        sus.wheel = wheel_ent
-        
-        self.wheels[wheel_index] = wheel_ent
+        for wheel_index, wheel_data in pairs(wheels) do
+            local start_pos = wheel_data.start_pos
+            local end_pos = wheel_data.end_pos
+            local constant = wheel_data.constant
+            local damping = wheel_data.damping
+            
+            local sus = suspension.create(base_ent, start_pos, end_pos, constant, damping)
+            
+            self.suspensions[wheel_index] = sus
+            
+            local wheel_ent = wheel.create(
+                unpack(wheel_data.wheel_ent_data(self))
+            )
+            
+            wheel_ent.handbrake_force_mult = wheel_data.handbrake_force_mult or 0.15
+            wheel_ent.traction_mult_slow_speed_acceleration = wheel_data.traction_mult_slow_speed_acceleration or 1
+            
+            wheel_ent.driveForceMult = wheel_data.driveForceMult or 0
+            
+            wheel_ent.steering_angle = wheel_data.steering_angle or 0
+            
+            wheel_ent.swayBarStrength = wheel_data.swayBarStrength or 0
+            
+            sus.swayBarStrength = wheel_data.swayBarStrength or 0
+            
+            wheel_ent.wheelwell_pos = start_pos
+            
+            sus.wheel = wheel_ent
+            
+            self.wheels[wheel_index] = wheel_ent
+        end
     end
     
     self.think = think or function() end
@@ -78,9 +89,9 @@ function wheeled_base:initialize(pos, ang, frozen, data, think)
     self.steer = 0
     self.throttle = 0
     
-    self.id = wheeled_basesID
-    wheeled_bases[wheeled_basesID] = self
-    wheeled_basesID = wheeled_basesID + 1
+    self.id = wheeled_baseID
+    wheeled_bases[wheeled_baseID] = self
+    wheeled_baseID = wheeled_baseID + 1
     
     return self
 end
