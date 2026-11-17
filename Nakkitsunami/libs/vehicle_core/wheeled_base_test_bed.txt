@@ -35,6 +35,7 @@ local steeringRate = 0.3
 local steeringReduceVel = 600
 local steeringReduceAmount = 5
 
+local suspensionBiasFront = 0.8
 local suspensionStrength = 50000
 local suspensionDamping = 3000
 
@@ -69,8 +70,8 @@ local data = {
                 if not isValid(base) then return NO_POS end
                 return base:localToWorld(Vector(suspension_forward,suspension_width_front,suspension_height_front-suspension_length_front))
             end,
-            constant = suspensionStrength,
-            damping = suspensionDamping,
+            constant = math.bias(suspensionBiasFront,suspensionStrength/2,suspensionStrength),
+            damping = math.bias(suspensionBiasFront,suspensionDamping/2,suspensionDamping),
             wheel_ent_data = function(ent_data)
                 local sus = ent_data.suspensions["left_front"]
                 local base_ent = ent_data.base_ent
@@ -94,8 +95,8 @@ local data = {
                 if not isValid(base) then return NO_POS end
                 return base:localToWorld(Vector(suspension_forward,-suspension_width_front,suspension_height_front-suspension_length_front))
             end,
-            constant = suspensionStrength,
-            damping = suspensionDamping,
+            constant = math.bias(suspensionBiasFront,suspensionStrength/2,suspensionStrength),
+            damping = math.bias(suspensionBiasFront,suspensionDamping/2,suspensionDamping),
             wheel_ent_data = function(ent_data)
                 local sus = ent_data.suspensions["right_front"]
                 local base_ent = ent_data.base_ent
@@ -119,8 +120,8 @@ local data = {
                 if not isValid(base) then return NO_POS end
                 return base:localToWorld(Vector(-suspension_back,suspension_width_back,suspension_height_back-suspension_length_back))
             end,
-            constant = suspensionStrength,
-            damping = suspensionDamping,
+            constant = math.bias(1-suspensionBiasFront,suspensionStrength/2,suspensionStrength),
+            damping = math.bias(1-suspensionBiasFront,suspensionDamping/2,suspensionDamping),
             wheel_ent_data = function(ent_data)
                 local sus = ent_data.suspensions["left_back"]
                 local base_ent = ent_data.base_ent
@@ -145,8 +146,8 @@ local data = {
                 if not isValid(base) then return NO_POS end
                 return base:localToWorld(Vector(-suspension_back,-suspension_width_back,suspension_height_back-suspension_length_back))
             end,
-            constant = suspensionStrength,
-            damping = suspensionDamping,
+            constant = math.bias(1-suspensionBiasFront,suspensionStrength/2,suspensionStrength),
+            damping = math.bias(1-suspensionBiasFront,suspensionDamping/2,suspensionDamping),
             wheel_ent_data = function(ent_data)
                 local sus = ent_data.suspensions["right_back"]
                 local base_ent = ent_data.base_ent
