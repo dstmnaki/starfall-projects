@@ -31,6 +31,8 @@ function wheel:initialize(pos,radius,function_data)
     self.swayBarStrength = 0
     self.wheelwell_pos = ent:getPos()
     
+    self.camber = 0
+    
     self.id = wheelsID
     if wheels[base:entIndex()] == nil then
         wheels[base:entIndex()] = {}
@@ -113,7 +115,7 @@ timer.create("wheel_main",1/40,0,function()
             wheel.lastRoll = wheel.roll
             wheel.roll = wheel.handbrake_force > 0.3 and wheel.roll or roll
             
-            wheel_ent:setAngles(base:localToWorldAngles(ANG_PITCH*wheel.roll+ANG_YAW*wheel.steering_angle*wheel.steer+ANG_ROLL*90))
+            wheel_ent:setAngles(base:localToWorldAngles(ANG_PITCH*wheel.roll+ANG_YAW*wheel.steering_angle*wheel.steer+ANG_ROLL*90):rotateAroundAxis(base:getForward(),wheel.camber))
         end
         
         for _, f in ipairs(pendingForces) do
