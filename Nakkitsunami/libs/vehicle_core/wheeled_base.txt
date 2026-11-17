@@ -82,6 +82,15 @@ function wheeled_base:initialize(pos, ang, frozen, data, think, customBaseProp, 
             
             wheel_ent.wheelwell_pos = start_pos
             
+            local wheelParameterCallback = wheel_data.wheelParameterCallback
+            
+            if wheelParameterCallback then
+                local params = wheelParameterCallback()
+                for k, v in pairs(params) do
+                    wheel_ent[k] = v
+                end
+            end
+            
             sus.wheel = wheel_ent
             
             self.wheels[wheel_index] = wheel_ent
