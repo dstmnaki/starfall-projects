@@ -35,7 +35,7 @@ local steeringRate = 0.3
 local steeringReduceVel = 600
 local steeringReduceAmount = 5
 
-local suspensionBiasFront = 0.8
+local suspensionBiasFront = 0.5
 local suspensionStrength = 50000
 local suspensionDamping = 3000
 
