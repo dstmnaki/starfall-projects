@@ -27,6 +27,25 @@ function ENTITY:getControls()
     return w, s, a, d, space
 end
 
+function math.bias(t, from, to)
+    return math.lerp(math.clamp(t*2,0,1), from, to)
+end
+--[[
+bias test, based on gta behavior, bc i like it
+0 - rear/ front 0, rear 20
+0.5 - middle/ front 10, rear 20
+1 - front/ front 10, rear 0
+
+if CLIENT then
+    local front = 10
+    local back = 20
+    local b = 0.5
+    local front2 = math.bias(b, 0, front)
+    local back2 = math.bias(1-b, 0, back)
+    print("front "..front2)
+    print("front "..back2)
+end
+--]]
 POS_FORWARD = Vector(1,0,0)
 POS_RIGHT = Vector(0,1,0)
 POS_UP = Vector(0,0,1)
