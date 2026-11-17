@@ -85,7 +85,7 @@ timer.create("suspension_main",1/40,0,function()
                         
                         wheel.isOnGround = isOnGround
                         wheel.offset = base:getUp()*wheel.radius/2
-                        wheel.ground_pos = ground_pos
+                        wheel.ground_pos = ground_pos + base:getRight() * math.cos(math.rad(wheel.camber*wheel.radius/2))*wheel.camberTiltRate
                     end
                     
                     if not isOnGround then continue end
