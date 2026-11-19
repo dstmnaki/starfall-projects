@@ -58,6 +58,7 @@ end
 
 -- Can this be optimized further?
 timer.create("suspension_main",1/40,0,function()
+    if perf() then return end
     local dt, ct = delta()
     for _, ent_table in pairs(suspensions) do
         
@@ -66,6 +67,9 @@ timer.create("suspension_main",1/40,0,function()
         for k, spring in pairs(ent_table) do
             if isValid(spring.phys_ent) then
                 local base = spring.base
+                
+                if base.health ~= nil and base.health <= 0 then return end
+                
                 local debug_holo = spring.debug_holo
                 local frozen1 = base:isFrozen()
                 local wheel = spring.wheel
