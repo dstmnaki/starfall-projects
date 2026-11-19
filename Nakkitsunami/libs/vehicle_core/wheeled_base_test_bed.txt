@@ -17,10 +17,10 @@ local suspension_width_back = 25
 local suspension_forward = 45
 local suspension_back = 45
 
-local front_wheel_radius = 24
-local rear_wheel_radius = 24
+local front_wheel_radius = 32
+local rear_wheel_radius = 32
 
-local front_camber = -15
+local front_camber = -10
 local rear_camber = -10
 
 local camberTiltRateFront = 1
@@ -46,11 +46,11 @@ local suspensionStrength = 50000
 local suspensionDamping = 3000
 
 local antiRollBarBiasFront = 0.5
-local antiRollMult = 0.65
+local antiRollMult = 0.2
 
 
-local handbrakeBiasFront = 0.1
-local handbrakeStrength = 0.9
+local handbrakeBiasFront = 0.25
+local handbrakeStrength = 0.8
 
 local lowSpeedTractionLossMult = 0.4
 
