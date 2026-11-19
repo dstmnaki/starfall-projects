@@ -21,10 +21,12 @@ function wheeled_base:initialize(pos, ang, frozen, data, think, customBaseProp, 
     local base_ent = isValid(customBaseProp) and customBaseProp or prop.create(pos, ang, base_model, frozen)
     if not customBaseProp then
         base_ent:setMass(data.mass or 1000)
-        base_ent:setInertia(data.inertia or Vector(500))
+        base_ent:setInertia(data.inertia and (type(data.inertia) ~= "Vector" and Vector(data.inertia) or data.inertia) or Vector(700,1000,700))
         
         base_ent:doNotDuplicate(false)
         base_ent:setMaterial("models/wireframe")
+        
+        base_ent:setPhysMaterial("Metalvehicle")
     end
     
     local seat_pos = data.seat_pos or base_ent:localToWorld(POS_UP*5)
@@ -123,6 +125,14 @@ timer.create("wheeled_base_main",1/20,0,function()
     end
 end)
 
+wheeled_base.findAll = function()
+    local list = {}
+    for k, v in pairs(wheeled_bases) do
+        if v == nil then continue end
+        list[#list+1] = v
+    end
+    return list
+end
 wheeled_base.create = wheeled_base
 
 return wheeled_base
