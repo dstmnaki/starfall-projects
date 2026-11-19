@@ -65,6 +65,7 @@ local function delta()
 end
 
 timer.create("wheel_main",1/40,0,function()
+    if perf() then return end
     local dt, ct = delta()
     for _, ent_table in pairs(wheels) do
         
@@ -73,6 +74,9 @@ timer.create("wheel_main",1/40,0,function()
         for _, wheel in pairs(ent_table) do
             local function_data = wheel.function_data
             local base = function_data.base
+            
+            if base.health ~= nil and base.health <= 0 then return end
+            
             local ground_pos = wheel.ground_pos
             local offset = wheel.offset
             
