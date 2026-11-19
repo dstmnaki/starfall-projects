@@ -2,6 +2,10 @@
 --@author Nakkitsunami
 --@shared
 
+function perf(frac)
+    return cpuAverage() > cpuMax() * (frac == nil and 0.75 or frac)
+end
+
 local ENTITY = getMethods("Entity")
 local m_in_sq = 1 / 39.37 ^ 2 -- in^2 to m^2
 local const = m_in_sq * 360 / (2 * 3.1416)
