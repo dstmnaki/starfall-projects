@@ -6,11 +6,11 @@ local wheeled_base = require("Nakkitsunami/libs/vehicle_core/wheeled_base.txt")
 
 local model = "models/sprops/cuboids/height12/size_5/cube_96x192x12.mdl"
 
-local suspension_height_front = 10
-local suspension_height_back = 10
+local suspension_height_front = 0
+local suspension_height_back = 0
 
-local suspension_length_front = 45
-local suspension_length_back = 45
+local suspension_length_front = 25
+local suspension_length_back = 25
 
 local suspension_width_front = 30
 local suspension_width_back = 30
@@ -27,7 +27,7 @@ local rear_camber = -4
 local camberTiltRateFront = 0.3
 local camberTiltRateBack = 0.3
 
-local driveForce = 1
+local driveForce = 0.9
 local driveBiasFront = 0
 
 local maxVel = 1200
@@ -42,18 +42,18 @@ local steeringReduceVel = 500
 local steeringReduceAmount = 7
 
 local suspensionBiasFront = 0.6
-local suspensionStrength = 7000
+local suspensionStrength = 8000
 local suspensionDamping = 500
 
 local antiRollBarBiasFront = 0.6
-local antiRollMult = 0.5
+local antiRollMult = 0.1
 
 
 local handbrakeBiasFront = 0.2
 local handbrakeStrength = 0.9
 
 local lowSpeedTractionLossMult = 0.3
-local tractionLossMult = 4
+local tractionLossMult = 3
 
 local inertia = Vector(600,800,500)
 local mass = 300
@@ -76,13 +76,14 @@ local data = {
     end,
     wheels = {
         ["left_front"] = {
-            start_pos = function(base)
+            length = suspension_length_front,
+            start_pos = function(base,sus)
                 if not isValid(base) then return NO_POS end
                 return base:localToWorld(Vector(suspension_forward,suspension_width_front,suspension_height_front))
             end,
-            end_pos = function(base)
+            end_pos = function(base,sus)
                 if not isValid(base) then return NO_POS end
-                return base:localToWorld(Vector(suspension_forward,suspension_width_front,suspension_height_front-suspension_length_front))
+                return base:localToWorld(Vector(suspension_forward,suspension_width_front,suspension_height_front-sus.length))--suspension_length_front
             end,
             constant = math.bias(suspensionBiasFront,suspensionStrength/2,suspensionStrength),
             damping = math.bias(suspensionBiasFront,suspensionDamping/2,suspensionDamping),
@@ -90,7 +91,7 @@ local data = {
                 local sus = ent_data.suspensions["left_front"]
                 local base_ent = ent_data.base_ent
                 return {
-                    sus.end_pos(sus.base),
+                    sus.end_pos(sus.base,sus),
                     front_wheel_radius,
                     {base = base_ent, suspension = sus}
                 }
@@ -107,13 +108,14 @@ local data = {
             end
         },
         ["right_front"] = {
-            start_pos = function(base)
+            length = suspension_length_front,
+            start_pos = function(base,sus)
                 if not isValid(base) then return NO_POS end
                 return base:localToWorld(Vector(suspension_forward,-suspension_width_front,suspension_height_front))
             end,
-            end_pos = function(base)
+            end_pos = function(base,sus)
                 if not isValid(base) then return NO_POS end
-                return base:localToWorld(Vector(suspension_forward,-suspension_width_front,suspension_height_front-suspension_length_front))
+                return base:localToWorld(Vector(suspension_forward,-suspension_width_front,suspension_height_front-sus.length))--suspension_length_front
             end,
             constant = math.bias(suspensionBiasFront,suspensionStrength/2,suspensionStrength),
             damping = math.bias(suspensionBiasFront,suspensionDamping/2,suspensionDamping),
@@ -121,7 +123,7 @@ local data = {
                 local sus = ent_data.suspensions["right_front"]
                 local base_ent = ent_data.base_ent
                 return {
-                    sus.end_pos(sus.base),
+                    sus.end_pos(sus.base,sus),
                     front_wheel_radius,
                     {base = base_ent, suspension = sus}
                 }
@@ -138,13 +140,14 @@ local data = {
             end
         },
         ["left_back"] = {
-            start_pos = function(base)
+            length = suspension_length_back,
+            start_pos = function(base,sus)
                 if not isValid(base) then return NO_POS end
                 return base:localToWorld(Vector(-suspension_back,suspension_width_back,suspension_height_back))
             end,
-            end_pos = function(base)
+            end_pos = function(base,sus)
                 if not isValid(base) then return NO_POS end
-                return base:localToWorld(Vector(-suspension_back,suspension_width_back,suspension_height_back-suspension_length_back))
+                return base:localToWorld(Vector(-suspension_back,suspension_width_back,suspension_height_back-sus.length))--suspension_length_back
             end,
             constant = math.bias(1-suspensionBiasFront,suspensionStrength/2,suspensionStrength),
             damping = math.bias(1-suspensionBiasFront,suspensionDamping/2,suspensionDamping),
@@ -152,7 +155,7 @@ local data = {
                 local sus = ent_data.suspensions["left_back"]
                 local base_ent = ent_data.base_ent
                 return {
-                    sus.end_pos(sus.base),
+                    sus.end_pos(sus.base,sus),
                     rear_wheel_radius,
                     {base = base_ent, suspension = sus}
                 }
@@ -170,13 +173,14 @@ local data = {
             end
         },
         ["right_back"] = {
-            start_pos = function(base)
+            length = suspension_length_back,
+            start_pos = function(base,sus)
                 if not isValid(base) then return NO_POS end
                 return base:localToWorld(Vector(-suspension_back,-suspension_width_back,suspension_height_back))
             end,
-            end_pos = function(base)
+            end_pos = function(base,sus)
                 if not isValid(base) then return NO_POS end
-                return base:localToWorld(Vector(-suspension_back,-suspension_width_back,suspension_height_back-suspension_length_back))
+                return base:localToWorld(Vector(-suspension_back,-suspension_width_back,suspension_height_back-sus.length))--suspension_length_back
             end,
             constant = math.bias(1-suspensionBiasFront,suspensionStrength/2,suspensionStrength),
             damping = math.bias(1-suspensionBiasFront,suspensionDamping/2,suspensionDamping),
@@ -184,7 +188,7 @@ local data = {
                 local sus = ent_data.suspensions["right_back"]
                 local base_ent = ent_data.base_ent
                 return {
-                    sus.end_pos(sus.base),
+                    sus.end_pos(sus.base,sus),
                     rear_wheel_radius,
                     {base = base_ent, suspension = sus}
                 }
@@ -204,6 +208,11 @@ local data = {
     }
 }
 
+local bounce = false
+local bounceChangeCT = 0
+local altDown = false
+local blockAlt = false
+
 local base_ent = wheeled_base(pos, ang, frozen, data, function(base_class, dt, ct)
     local base = base_class.base_ent
     
@@ -217,21 +226,37 @@ local base_ent = wheeled_base(pos, ang, frozen, data, function(base_class, dt, c
     local driver = seat:getDriver()
     local w, s, a, d, space = driver:getControls()
     
+    local alt = isValid(driver) and driver:keyDown(IN_KEY.WALK) or false
+    
+    if alt then
+        if altDown ~= true then
+            altDown = true
+            bounceChangeCT = ct
+        end
+        if ct - bounceChangeCT >= 2 and not blockAlt then
+            bounce = not bounce
+            blockAlt = true
+        end
+    else
+        altDown = false
+        blockAlt = false
+    end
+    
     local vel_len = base:getVelocity():getLength()
     local vel_local = base:getLocalVelocity()
     local vel_forward = vel_local.x
     local side_vel = vel_local.y/300
     
-    local steer = math.approach(base_class.steer, (a and -1 or d and 1 or 0)/(1+math.easeInSine(math.clamp(math.abs(vel_forward)/(steeringReduceVel*2),0,1))*(steeringReduceAmount+math.abs(side_vel)))-math.clamp(side_vel,-1,1)*0.5*counterSteerMult, steeringRate * 10 * dt)
+    local steer = bounce and 0 or math.approach(base_class.steer, (a and -1 or d and 1 or 0)/(1+math.easeInSine(math.clamp(math.abs(vel_forward)/(steeringReduceVel*2),0,1))*(steeringReduceAmount+math.abs(side_vel)))-math.clamp(side_vel,-1,1)*0.5*counterSteerMult, steeringRate * 10 * dt)
     base_class.steer = steer
     
-    local handbrake = space
+    local handbrake = (not bounce) and space
     
     local isBraking = ((w and vel_forward < 0) or (s and vel_forward > 0))
     
-    local brake_force = isValid(driver) and (handbrake and 1 or (isBraking and 0.05 or 0.015*(vel_len/300))) or 1
+    local brake_force = bounce and 1 or isValid(driver) and (handbrake and 1 or (isBraking and 0.05 or 0.015*(vel_len/300))) or 1
     
-    local throttle = math.approach(base_class.throttle, w and 1 or s and -0.5 or 0, 0.3 * 10 * dt)
+    local throttle = bounce and 0 or math.approach(base_class.throttle, w and 1 or s and -0.5 or 0, 0.3 * 10 * dt)
     base_class.throttle = throttle
     
     base_class.wheels["left_front"].steer = -steer
@@ -279,4 +304,42 @@ local base_ent = wheeled_base(pos, ang, frozen, data, function(base_class, dt, c
         base:applyForceOffsetFixed(base:getForward() * move * speed_reduce * base:getMass() * dt, center_target)
     end
     
+    local suspensionLean = not bounce and Vector() or Vector(w and 1 or s and -1 or 0,a and 1 or d and -1 or 0)
+    
+    local goUp = (bounce and (isValid(driver) and driver:keyDown(IN_KEY.JUMP)) or false) and 0.6 or 0
+    
+    if suspensionLean:getLength() > 0 then
+        suspensionLean = suspensionLean:getNormalized()
+    end
+    
+    local bounceNormal = (bounce and 0.8 or 1)
+    local susIndex = 0
+    for k, suspension in pairs(base_class.suspensions) do
+        susIndex = susIndex + 1
+        if susIndex == 1 then
+            local target = math.clamp(suspensionLean.x-suspensionLean.y*0.75,goUp,1)
+            
+            suspension.constant = suspensionStrength * (target * 0.6 + 1)
+            local lengthTarget = suspension_length_front * (target + bounceNormal)
+            suspension.length = math.lerp(math.clamp(8 * dt,0,1), suspension.length, lengthTarget)
+        elseif susIndex == 2 then
+            local target = math.clamp(suspensionLean.x+suspensionLean.y*0.75,goUp,1)
+            
+            suspension.constant = suspensionStrength * (target * 0.6 + 1)
+            local lengthTarget = suspension_length_front * (target + bounceNormal)
+            suspension.length = math.lerp(math.clamp(8 * dt,0,1), suspension.length, lengthTarget)
+        elseif susIndex == 3 then
+            local target = math.clamp(-suspensionLean.x-suspensionLean.y*0.75,goUp,1)
+            
+            suspension.constant = suspensionStrength * (target * 0.6 + 1)
+            local lengthTarget = suspension_length_back * (target + bounceNormal)
+            suspension.length = math.lerp(math.clamp(8 * dt,0,1), suspension.length, lengthTarget)
+        else
+            local target = math.clamp(-suspensionLean.x+suspensionLean.y*0.75,goUp,1)
+            
+            suspension.constant = suspensionStrength * (target * 0.6 + 1)
+            local lengthTarget = suspension_length_back * (target + bounceNormal)
+            suspension.length = math.lerp(math.clamp(8 * dt,0,1), suspension.length, lengthTarget)
+        end
+    end
 end)
