@@ -22,12 +22,11 @@ function suspension:initialize(base_ent, start_pos, end_pos, constant, damping)
     self.constant = constant or 0
     self.damping = damping or 0
     self.maxDamping = math.huge
-    self.restingLength = (end_pos(base_ent) - start_pos(base_ent)):getLength()
     
     self.start_pos = start_pos
     self.end_pos = end_pos
     
-    self.HitPos = end_pos(base_ent)
+    self.HitPos = base_ent:getPos()
     
     self.displacement = 0
     self.lastDisplacement = 0
@@ -75,8 +74,8 @@ timer.create("suspension_main",1/40,0,function()
                 local wheel = spring.wheel
                 
                 if not frozen1 or not frozen2 then
-                    local wPos1 = spring.start_pos(base)
-                    local endpos = spring.end_pos(base)
+                    local wPos1 = spring.start_pos(base,spring)
+                    local endpos = spring.end_pos(base,spring)
                     
                     local tr = trace.line(wPos1, endpos, spring.filter or {owner(),base}, MASK.SHOT_HULL, COLLISION_GROUP.VEHICLE)
                     
@@ -97,7 +96,7 @@ timer.create("suspension_main",1/40,0,function()
                     local forceVector = wPos1 - wPos2
                     local forceLen = isOnGround and forceVector:getLength() or 0
                     
-                    spring.displacement = (forceLen - spring.restingLength) / m_in -- Displacement of spring from rest position, in meters
+                    spring.displacement = (forceLen - spring.length) / m_in -- Displacement of spring from rest position, in meters
                     
                     
                     if forceLen ~= 0 then
