@@ -233,7 +233,7 @@ local base_ent = wheeled_base(pos, ang, frozen, data, function(base_class, dt, c
             altDown = true
             bounceChangeCT = ct
         end
-        if ct - bounceChangeCT >= 2 and not blockAlt then
+        if ct - bounceChangeCT >= 1 and not blockAlt then
             bounce = not bounce
             blockAlt = true
         end
@@ -306,39 +306,41 @@ local base_ent = wheeled_base(pos, ang, frozen, data, function(base_class, dt, c
     
     local suspensionLean = not bounce and Vector() or Vector(w and 1 or s and -1 or 0,a and 1 or d and -1 or 0)
     
-    local goUp = (bounce and (isValid(driver) and driver:keyDown(IN_KEY.JUMP)) or false) and 0.6 or 0
+    local goUp = (bounce and (isValid(driver) and driver:keyDown(IN_KEY.JUMP)) or false) and 0.85 or 0
     
     if suspensionLean:getLength() > 0 then
         suspensionLean = suspensionLean:getNormalized()
     end
     
-    local bounceNormal = (bounce and 0.8 or 1)
+    local bounceHeight = (bounce and 0.8 or 1)
+    local bounceConstant = (bounce and 1.2 or 1)
+    
     local susIndex = 0
     for k, suspension in pairs(base_class.suspensions) do
         susIndex = susIndex + 1
         if susIndex == 1 then
-            local target = math.clamp(suspensionLean.x-suspensionLean.y*0.75,goUp,1)
+            local target = math.clamp(suspensionLean.x-suspensionLean.y*0.85,goUp,1)
             
-            suspension.constant = suspensionStrength * (target * 0.6 + 1)
-            local lengthTarget = suspension_length_front * (target + bounceNormal)
+            suspension.constant = suspensionStrength * (target * 0.6 + bounceConstant)
+            local lengthTarget = suspension_length_front * (target + bounceHeight)
             suspension.length = math.lerp(math.clamp(8 * dt,0,1), suspension.length, lengthTarget)
         elseif susIndex == 2 then
-            local target = math.clamp(suspensionLean.x+suspensionLean.y*0.75,goUp,1)
+            local target = math.clamp(suspensionLean.x+suspensionLean.y*0.85,goUp,1)
             
-            suspension.constant = suspensionStrength * (target * 0.6 + 1)
-            local lengthTarget = suspension_length_front * (target + bounceNormal)
+            suspension.constant = suspensionStrength * (target * 0.6 + bounceConstant)
+            local lengthTarget = suspension_length_front * (target + bounceHeight)
             suspension.length = math.lerp(math.clamp(8 * dt,0,1), suspension.length, lengthTarget)
         elseif susIndex == 3 then
-            local target = math.clamp(-suspensionLean.x-suspensionLean.y*0.75,goUp,1)
+            local target = math.clamp(-suspensionLean.x-suspensionLean.y*0.85,goUp,1)
             
-            suspension.constant = suspensionStrength * (target * 0.6 + 1)
-            local lengthTarget = suspension_length_back * (target + bounceNormal)
+            suspension.constant = suspensionStrength * (target * 0.6 + bounceConstant)
+            local lengthTarget = suspension_length_back * (target + bounceHeight)
             suspension.length = math.lerp(math.clamp(8 * dt,0,1), suspension.length, lengthTarget)
         else
-            local target = math.clamp(-suspensionLean.x+suspensionLean.y*0.75,goUp,1)
+            local target = math.clamp(-suspensionLean.x+suspensionLean.y*0.85,goUp,1)
             
-            suspension.constant = suspensionStrength * (target * 0.6 + 1)
-            local lengthTarget = suspension_length_back * (target + bounceNormal)
+            suspension.constant = suspensionStrength * (target * 0.6 + bounceConstant)
+            local lengthTarget = suspension_length_back * (target + bounceHeight)
             suspension.length = math.lerp(math.clamp(8 * dt,0,1), suspension.length, lengthTarget)
         end
     end
