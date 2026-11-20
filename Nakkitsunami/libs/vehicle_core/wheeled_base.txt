@@ -64,6 +64,7 @@ function wheeled_base:initialize(pos, ang, frozen, data, think, customBaseProp, 
             local damping = wheel_data.damping
             
             local sus = suspension.create(base_ent, start_pos, end_pos, constant, damping)
+            sus.length = wheel_data.length
             
             self.suspensions[wheel_index] = sus
             
