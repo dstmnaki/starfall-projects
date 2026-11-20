@@ -4,59 +4,64 @@
 --@include Nakkitsunami/libs/vehicle_core/wheeled_base.txt
 local wheeled_base = require("Nakkitsunami/libs/vehicle_core/wheeled_base.txt")
 
+local model = "models/sprops/cuboids/height12/size_5/cube_96x192x12.mdl"
 
 local suspension_height_front = 10
 local suspension_height_back = 10
 
-local suspension_length_front = 35
-local suspension_length_back = 35
+local suspension_length_front = 45
+local suspension_length_back = 45
 
-local suspension_width_front = 25
-local suspension_width_back = 25
+local suspension_width_front = 30
+local suspension_width_back = 30
 
-local suspension_forward = 45
-local suspension_back = 45
+local suspension_forward = 55
+local suspension_back = 55
 
 local front_wheel_radius = 32
 local rear_wheel_radius = 32
 
-local front_camber = -10
-local rear_camber = -10
+local front_camber = -4
+local rear_camber = -4
 
-local camberTiltRateFront = 1
-local camberTiltRateBack = 1
-
+local camberTiltRateFront = 0.3
+local camberTiltRateBack = 0.3
 
 local driveForce = 1
 local driveBiasFront = 0
 
-local maxVel = 800
+local maxVel = 1200
 
 
 local allWheelSteering = false
-local steeringLock = 30
-local counterSteerMult = 0.5
-local steeringRate = 0.3
+local steeringLock = 35
+local counterSteerMult = 0.7
+local steeringRate = 0.25
 
-local steeringReduceVel = 600
-local steeringReduceAmount = 5
+local steeringReduceVel = 500
+local steeringReduceAmount = 7
 
-local suspensionBiasFront = 0.5
-local suspensionStrength = 50000
-local suspensionDamping = 3000
+local suspensionBiasFront = 0.6
+local suspensionStrength = 7000
+local suspensionDamping = 500
 
-local antiRollBarBiasFront = 0.5
-local antiRollMult = 0.2
-
-
-local handbrakeBiasFront = 0.25
-local handbrakeStrength = 0.8
-
-local lowSpeedTractionLossMult = 0.4
+local antiRollBarBiasFront = 0.6
+local antiRollMult = 0.5
 
 
+local handbrakeBiasFront = 0.2
+local handbrakeStrength = 0.9
+
+local lowSpeedTractionLossMult = 0.3
+local tractionLossMult = 4
+
+local inertia = Vector(600,800,500)
+local mass = 300
 
 local data = {
+    base_model = model,
+    inertia = inertia,
+    mass = mass,
     parameterCallback = function()
         return {
             driveForce = driveForce,
@@ -65,6 +70,8 @@ local data = {
             steeringRate = steeringRate,
             steeringReduceVel = steeringReduceVel,
             steeringReduceAmount = steeringReduceAmount,
+            tractionLossMult = tractionLossMult,
+            lowSpeedTractionLossMult = lowSpeedTractionLossMult,
         }
     end,
     wheels = {
@@ -199,10 +206,13 @@ local data = {
 
 local base_ent = wheeled_base(pos, ang, frozen, data, function(base_class, dt, ct)
     local base = base_class.base_ent
+    
     local driveForce = base_class.driveForce
     local steeringRate = base_class.steeringRate
     local steeringReduceVel = base_class.steeringReduceVel
     local steeringReduceAmount = base_class.steeringReduceAmount
+    
+    local tractionLossMult = base_class.tractionLossMult
     
     local driver = seat:getDriver()
     local w, s, a, d, space = driver:getControls()
@@ -212,7 +222,7 @@ local base_ent = wheeled_base(pos, ang, frozen, data, function(base_class, dt, c
     local vel_forward = vel_local.x
     local side_vel = vel_local.y/300
     
-    local steer = math.approach(base_class.steer, (a and -1 or d and 1 or 0)/(1+math.easeInSine(math.clamp(vel_len/(steeringReduceVel*2),0,1))*(steeringReduceAmount+math.abs(side_vel)))-math.clamp(side_vel,-1,1)*0.5*counterSteerMult, steeringRate * 10 * dt)
+    local steer = math.approach(base_class.steer, (a and -1 or d and 1 or 0)/(1+math.easeInSine(math.clamp(math.abs(vel_forward)/(steeringReduceVel*2),0,1))*(steeringReduceAmount+math.abs(side_vel)))-math.clamp(side_vel,-1,1)*0.5*counterSteerMult, steeringRate * 10 * dt)
     base_class.steer = steer
     
     local handbrake = space
@@ -227,14 +237,11 @@ local base_ent = wheeled_base(pos, ang, frozen, data, function(base_class, dt, c
     base_class.wheels["left_front"].steer = -steer
     base_class.wheels["right_front"].steer = -steer
     
-    base_class.wheels["left_back"].steer = -steer
-    base_class.wheels["right_back"].steer = -steer
-    
     local center_traction = Vector()
     local total_traction = 0
     local count = 0
     
-    local traction_mult = (1-math.easeInExpo(math.max(0,math.abs(throttle)-math.abs(vel_forward)/200)))/(1+math.abs(side_vel)*math.abs(throttle))
+    local traction_mult = (1-math.easeInExpo(math.max(0,math.abs(throttle)-math.abs(vel_forward)/200)))/(1+math.abs(side_vel)*math.abs(throttle)*tractionLossMult)
     
     local base_pos = base:getPos()
     for k, wheel in pairs(base_class.wheels) do
@@ -252,17 +259,19 @@ local base_ent = wheeled_base(pos, ang, frozen, data, function(base_class, dt, c
             wheel.camber = wheel.defaultCamber - offHeight * wheel.camberTiltRate
         end
         
-        if not wheel.isOnGround then continue end
-        
-        total_traction = total_traction + wheel.traction/0.6
-        center_traction = center_traction + wheel.ground_pos
-        count = count + 1
+        if wheel.isOnGround then
+            total_traction = total_traction + wheel.traction/0.6
+            center_traction = center_traction + wheel.ground_pos
+            count = count + 1
+        else
+            wheel.traction = 0
+        end
     end
     if count > 0 and not handbrake then
         center_traction = base:worldToLocal(center_traction / count)
-        local center_target = base:localToWorld(center_traction*Vector(0.25,0.25,1))
         total_traction = total_traction / count
         
+        local center_target = base:localToWorld(center_traction*Vector(0.25,0.25,1))
         
         local move = throttle * total_traction * driveForce
         local speed_reduce = 620 * (1-vel_len/maxVel)
@@ -270,6 +279,4 @@ local base_ent = wheeled_base(pos, ang, frozen, data, function(base_class, dt, c
         base:applyForceOffsetFixed(base:getForward() * move * speed_reduce * base:getMass() * dt, center_target)
     end
     
-    local customThink = base_class.customThink
-    if customThink then customThink(base_class, dt, ct) end
 end)
